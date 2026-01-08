@@ -999,9 +999,9 @@ const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0]
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating event:", error);
-      alert("Erro ao criar evento");
+      alert(`Erro ao criar evento: ${error.message || JSON.stringify(error)}`);
     }
   };
 
@@ -1691,7 +1691,7 @@ const AdminReports: React.FC<{ visits: Visit[], academies: Academy[], events: Ev
   const [eventFilter, setEventFilter] = useState('');
   const [salesFilter, setSalesFilter] = useState('');
 
-  const years = useMemo(() => Array.from(new Set(vouchers.map(v => new Date(v.createdAt).getFullYear()))).sort((a, b) => b - a), [vouchers]);
+  const years = useMemo(() => Array.from(new Set(vouchers.map(v => new Date(v.createdAt).getFullYear()))).sort((a: number, b: number) => b - a), [vouchers]);
 
   const filteredVouchers = useMemo(() => {
     return vouchers.filter(v => {
