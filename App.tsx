@@ -113,6 +113,7 @@ const App: React.FC = () => {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [sellers, setSellers] = useState<User[]>([]);
+  const [admins, setAdmins] = useState<User[]>([]);
 
   const [selectedAcademyId, setSelectedAcademyId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -169,6 +170,11 @@ const App: React.FC = () => {
       const dbVouchers = await DatabaseService.getVouchers();
       setVouchers(dbVouchers);
 
+      if (currentUser) {
+        const dbNotifications = await DatabaseService.getNotifications(currentUser.id);
+        setNotifications(dbNotifications);
+      }
+
     } catch (error) {
       console.error("Error loading data:", error);
     }
@@ -204,14 +210,17 @@ const App: React.FC = () => {
     window.location.reload();
   };
 
-  const fetchSellers = async () => {
-    const { data } = await supabase.from('app_users').select('*').eq('role', UserRole.SALES);
-    if (data) setSellers(data as User[]);
+  const fetchUsers = async () => {
+    const { data: salesData } = await supabase.from('app_users').select('*').eq('role', UserRole.SALES);
+    if (salesData) setSellers(salesData as User[]);
+
+    const { data: adminData } = await supabase.from('app_users').select('*').eq('role', UserRole.ADMIN);
+    if (adminData) setAdmins(adminData as User[]);
   };
 
   useEffect(() => {
     if (currentUser?.role === UserRole.ADMIN) {
-      fetchSellers();
+      fetchUsers();
     }
   }, [currentUser]);
 
@@ -336,6 +345,26 @@ const App: React.FC = () => {
         />
 
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0">
+          {/* Global Notifications */}
+          {notifications.filter(n => n.userId === currentUser.id && !n.read).length > 0 && (
+            <div className="mb-6 space-y-3">
+              {notifications.filter(n => n.userId === currentUser.id && !n.read).map((n) => (
+                <div key={n.id} className="bg-indigo-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-lg animate-in slide-in-from-top-2 border border-indigo-500">
+                  <div className="flex items-center space-x-3">
+                    <Bell size={20} />
+                    <span className="font-bold text-sm">{n.message}</span>
+                  </div>
+                  <button onClick={() => {
+                    setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
+                    DatabaseService.markNotificationAsRead(n.id).catch(err => console.error("Error marking read:", err));
+                  }} className="hover:bg-white/20 p-1 rounded-lg">
+                    <X size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {activeTab === 'dashboard' && currentUser.role === UserRole.ADMIN && <AdminDashboard events={events} academies={academies} visits={visits} vouchers={vouchers} finance={finance} vendedores={sellers} />}
           {activeTab === 'access_control' && currentUser.role === UserRole.ADMIN && <AccessControlManager addLog={addLog} />}
           {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} addLog={addLog} currentUser={currentUser} />}
@@ -385,6 +414,12 @@ const App: React.FC = () => {
                 }
 
                 addLog('VISIT_COMPLETED', `Visita concluída na academia ${academies.find(a => a.id === selectedAcademyId)?.name}`);
+
+                // Notify Admins
+                admins.forEach(admin => {
+                  notifyUser(admin.id, `O vendedor ${currentUser.name} concluiu uma visita na academia "${academies.find(a => a.id === selectedAcademyId)?.name}".`);
+                });
+
                 setActiveTab('my_events');
               } catch (error) {
                 console.error("Error saving visit:", error);
@@ -592,7 +627,31 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Vouchers Gerados</p>
               <h3 className="text-3xl font-black text-white mt-1">{filteredVouchers.length}</h3>
             </div>
-            <div className="p-3 bg-amber-900/30 text-amber-400 rounded-xl"><Ticket size={24} /></div>
+            <div className="flex flex-col items-end space-y-2">
+              <div className="p-3 bg-amber-900/30 text-amber-400 rounded-xl"><Ticket size={24} /></div>
+              <button
+                onClick={() => {
+                  const headers = "Código;Data;Academia;Evento;Vendedor\n";
+                  const rows = filteredVouchers.map(v => {
+                    const visit = visits.find(vis => vis.id === v.visitId);
+                    const academy = academies.find(a => a.id === v.academyId)?.name || '';
+                    const event = events.find(e => e.id === v.eventId)?.name || '';
+                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || '';
+                    return `${v.code};${new Date(v.createdAt).toLocaleDateString()};${academy};${event};${seller}`;
+                  }).join('\n');
+                  const blob = new Blob(["\uFEFF" + headers + rows], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.body.appendChild(document.createElement("a"));
+                  link.href = URL.createObjectURL(blob);
+                  link.download = `vouchers_dashboard_${selectedYear}.csv`;
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="text-[10px] font-bold text-amber-500 hover:text-amber-400 flex items-center space-x-1"
+              >
+                <Download size={12} />
+                <span>Exportar</span>
+              </button>
+            </div>
           </div>
           <p className="text-xs text-slate-500">Conversão de alunos</p>
         </div>
@@ -1586,7 +1645,12 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
           updatedAt: new Date().toISOString()
         };
         const created = await DatabaseService.createFinance(payload);
+        const createdView = { ...created, eventId: created.event_id, salespersonId: created.salesperson_id, updatedAt: created.updated_at };
         setFinance((prev: FinanceRecord[]) => [created, ...prev]);
+
+        const eventName = events.find(e => e.id === payload.eventId)?.name;
+        notifyUser(payload.salespersonId!, `Novo lançamento financeiro no valor de $ ${payload.amount?.toFixed(2)} referente ao evento "${eventName}".`);
+        addLog('FINANCE_CREATED', `Lançamento de $ ${payload.amount?.toFixed(2)} criado para ${vendedores.find(v => v.id === payload.salespersonId)?.name}.`);
       }
 
       setShowModal(false);
@@ -1878,22 +1942,6 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
     <div className="space-y-6">
       <ProgressBar total={totalAcademies} completed={completedVisitsCount} />
 
-      {notifications.length > 0 && (
-        <div className="space-y-3">
-          {notifications.map((n: any) => (
-            <div key={n.id} className="bg-indigo-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-lg animate-in slide-in-from-top-2 border border-indigo-500">
-              <div className="flex items-center space-x-3">
-                <Bell size={20} />
-                <span className="font-bold text-sm">{n.message}</span>
-              </div>
-              <button onClick={() => onDismissNotif(n.id)} className="hover:bg-white/20 p-1 rounded-lg">
-                <X size={18} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
       {events.map(e => {
         const allAcademies = e.academiesIds.map(aid => academies.find(a => a.id === aid)).filter(Boolean) as Academy[];
         const completedIds = visits.filter(v => v.eventId === e.id).map(v => v.academyId);
@@ -1978,7 +2026,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
 
   const handleFinalize = () => { if (!visit.notes || !visit.temperature) { alert("Preencha as observações"); return; } setVisit(p => ({ ...p, status: VisitStatus.VISITED, finishedAt: new Date().toISOString() })); setStep('VOUCHERS'); };
 
-  const adjust = (c: number) => { if (c > 0) { const code = generateVoucherCode(); setVisit(p => ({ ...p, vouchersGenerated: [...(p.vouchersGenerated || []), code] })); setToast("Voucher gerado!"); setTimeout(() => setToast(null), 3000); } else setVisit(p => ({ ...p, vouchersGenerated: (p.vouchersGenerated || []).slice(0, -1) })); };
+  const adjust = (c: number) => { if (c > 0) { const code = generateVoucherCode(); setVisit(p => ({ ...p, vouchersGenerated: [...(p.vouchersGenerated || []), code] })); } else setVisit(p => ({ ...p, vouchersGenerated: (p.vouchersGenerated || []).slice(0, -1) })); };
 
   // Gera o link para a landing page pública
   const generateShareLink = () => {
