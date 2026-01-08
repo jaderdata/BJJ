@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:db": "node scripts/test_db_connection.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",

@@ -258,5 +258,153 @@ export const DatabaseService = {
         }).eq('id', id).select().single();
         if (error) throw error;
         return { ...data, eventId: data.event_id, salespersonId: data.salesperson_id, updatedAt: data.updated_at };
+    },
+
+    // NOTIFICATIONS
+    async getNotifications(userId: string) {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data.map((n: any) => ({
+            id: n.id,
+            userId: n.user_id,
+            message: n.message,
+            read: n.read,
+            timestamp: n.created_at
+        }));
+    },
+
+    async createNotification(userId: string, message: string) {
+        const { data, error } = await supabase
+            .from('notifications')
+            .insert({
+                user_id: userId,
+                message,
+                read: false
+            })
+            .select()
+            .single();
+        if (error) throw error;
+        return {
+            id: data.id,
+            userId: data.user_id,
+            message: data.message,
+            read: data.read,
+            timestamp: data.created_at
+        };
+    },
+
+    async markNotificationAsRead(id: string) {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ read: true })
+            .eq('id', id);
+        if (error) throw error;
+    },
+
+    // SYSTEM LOGS
+    async getSystemLogs(limit: number = 100) {
+        const { data, error } = await supabase
+            .from('system_logs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        if (error) throw error;
+        return data.map((log: any) => ({
+            id: log.id,
+            userId: log.user_id,
+            userName: log.user_name,
+            action: log.action,
+            details: log.details,
+            timestamp: log.created_at
+        }));
+    },
+
+
+    async createSystemLog(userId: string, userName: string, action: string, details: string) {
+        const { error } = await supabase
+            .from('system_logs')
+            .insert({
+                user_id: userId,
+                user_name: userName,
+                action,
+                details
+            });
+        if (error) throw error;
+    }
+};
+
+export const AuthService = {
+    async login(email: string, password: string) {
+        const { data, error } = await supabase.rpc('auth_login', {
+            p_email: email,
+            p_password: password
+        });
+        if (error) throw error;
+        return data; // Returns { success: boolean, message?: string, user?: object }
+    },
+
+    async requestAccess(email: string) {
+        const { data, error } = await supabase.rpc('auth_request_access', {
+            p_email: email
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    async activateUser(token: string, password: string, name: string) {
+        const { data, error } = await supabase.rpc('auth_activate_user', {
+            p_token: token,
+            p_password: password,
+            p_name: name
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    async requestReset(email: string) {
+        const { data, error } = await supabase.rpc('auth_request_reset', {
+            p_email: email
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    async executeReset(token: string, password: string) {
+        const { data, error } = await supabase.rpc('auth_reset_password', {
+            p_token: token,
+            p_password: password
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    // Admin Methods
+    async getAllowlist() {
+        const { data, error } = await supabase.from('app_allowlist').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        return data;
+    },
+
+    async addToAllowlist(email: string, role: 'ADMIN' | 'SALES') {
+        const { data, error } = await supabase.from('app_allowlist').insert({ email, role, status: 'ACTIVE' }).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    async toggleAllowlistStatus(id: string, currentStatus: string) {
+        const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        const { data, error } = await supabase.from('app_allowlist').update({ status: newStatus }).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    async getAuthLogs() {
+        const { data, error } = await supabase.from('auth_logs').select('*').order('created_at', { ascending: false }).limit(50);
+        if (error) throw error;
+        return data;
     }
 };

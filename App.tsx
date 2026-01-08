@@ -70,8 +70,9 @@ import {
 } from './data';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
-import Auth from './components/Auth';
-import { supabase, DatabaseService } from './lib/supabase';
+import CustomAuth from './components/CustomAuth';
+import { ProgressBar } from './components/ProgressBar';
+import { supabase, DatabaseService, AuthService } from './lib/supabase';
 import {
   LineChart,
   Line,
@@ -87,7 +88,8 @@ import {
   Legend,
   ResponsiveContainer,
   AreaChart,
-  Area
+  Area,
+  Label
 } from 'recharts';
 
 interface Notification {
@@ -124,24 +126,19 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        fetchProfile(session.user.id);
-      }
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        fetchProfile(session.user.id);
-      } else {
-        setCurrentUser(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    // Check local session
+    const storedUser = localStorage.getItem('bjj_user');
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    }
   }, []);
+
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+    localStorage.setItem('bjj_user', JSON.stringify(user));
+    setActiveTab(user.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
+    addLog('LOGIN', `Usuário ${user.name} entrou (Custom Auth)`);
+  };
 
   // Fetch initial data
   useEffect(() => {
@@ -202,12 +199,13 @@ const App: React.FC = () => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('bjj_user');
     setCurrentUser(null);
+    window.location.reload();
   };
 
   const fetchSellers = async () => {
-    const { data } = await supabase.from('profiles').select('*').eq('role', UserRole.SALES);
+    const { data } = await supabase.from('app_users').select('*').eq('role', UserRole.SALES);
     if (data) setSellers(data as User[]);
   };
 
@@ -217,7 +215,7 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
-  const addLog = (action: string, details: string) => {
+  const addLog = async (action: string, details: string) => {
     if (!currentUser) return;
     const newLog: SystemLog = {
       id: Math.random().toString(36).substr(2, 9),
@@ -228,10 +226,17 @@ const App: React.FC = () => {
       timestamp: new Date().toISOString()
     };
     setLogs(prev => [newLog, ...prev]);
+
+    // Persist to database
+    try {
+      await DatabaseService.createSystemLog(currentUser.id, currentUser.name, action, details);
+    } catch (error) {
+      console.error('Error saving log:', error);
+    }
   };
 
   /* Restore notifyUser */
-  const notifyUser = (userId: string, message: string) => {
+  const notifyUser = async (userId: string, message: string) => {
     const newNotif: Notification = {
       id: Math.random().toString(36).substr(2, 9),
       userId,
@@ -240,6 +245,13 @@ const App: React.FC = () => {
       timestamp: new Date().toISOString()
     };
     setNotifications(prev => [newNotif, ...prev]);
+
+    // Persist to database
+    try {
+      await DatabaseService.createNotification(userId, message);
+    } catch (error) {
+      console.error('Error saving notification:', error);
+    }
   };
 
   const handleUpdateEvent = async (updatedEvent: Event) => {
@@ -302,7 +314,7 @@ const App: React.FC = () => {
 
   // Se não estiver logado, exibe a tela de Auth
   if (!currentUser) {
-    return <Auth />;
+    return <CustomAuth onLogin={handleLogin} />;
   }
 
   return (
@@ -325,6 +337,7 @@ const App: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0">
           {activeTab === 'dashboard' && currentUser.role === UserRole.ADMIN && <AdminDashboard events={events} academies={academies} visits={visits} vouchers={vouchers} finance={finance} vendedores={sellers} />}
+          {activeTab === 'access_control' && currentUser.role === UserRole.ADMIN && <AccessControlManager addLog={addLog} />}
           {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} addLog={addLog} currentUser={currentUser} />}
           {activeTab === 'events' && currentUser.role === UserRole.ADMIN && <EventsManager events={events} visits={visits} setEvents={setEvents} academies={academies} vendedores={sellers} addLog={addLog} onSelectEvent={(id) => { setSelectedEventId(id); setActiveTab('event_detail_admin'); }} notifyUser={notifyUser} />}
           {activeTab === 'event_detail_admin' && selectedEventId && currentUser.role === UserRole.ADMIN && (
@@ -588,40 +601,76 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
       {/* Charts Row - Removed Revenue Chart */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Visit Status & Temperature */}
-        <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-sm h-[300px] flex flex-col">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Temperatura das Academias</h3>
+        <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-sm h-[350px] flex flex-col">
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Temperatura das Academias</h3>
           <div className="flex-1">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={temperatureData} layout="vertical" margin={{ left: 0 }}>
+              <BarChart data={temperatureData} layout="vertical" margin={{ left: 0, right: 40 }}>
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={60} stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                <Tooltip cursor={{ fill: '#334155', opacity: 0.2 }} contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }} />
-                <Bar dataKey="value" fill="#ec4899" radius={[0, 4, 4, 0]} barSize={20} />
+                <YAxis dataKey="name" type="category" width={80} stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip cursor={{ fill: '#334155', opacity: 0.2 }} contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff', fontWeight: 'bold' }} />
+                <Bar dataKey="value" fill="#ec4899" radius={[0, 8, 8, 0]} barSize={28}>
+                  <Label
+                    position="right"
+                    content={({ value, x, y, width, height }: any) => (
+                      <text
+                        x={Number(x) + Number(width) + 10}
+                        y={Number(y) + Number(height) / 2}
+                        fill="#fff"
+                        fontSize={18}
+                        fontWeight="900"
+                        textAnchor="start"
+                        dominantBaseline="middle"
+                      >
+                        {value}
+                      </text>
+                    )}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-sm h-[300px] flex flex-col">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Progresso de Visitas</h3>
-          <div className="flex-1">
+        <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-sm h-[350px] flex flex-col">
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Progresso de Visitas</h3>
+          <div className="flex-1 relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={visitStatusData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
+                  innerRadius={70}
+                  outerRadius={95}
                   paddingAngle={5}
                   dataKey="value"
                 >
                   {visitStatusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
+                  <Label
+                    position="center"
+                    content={({ viewBox }: any) => {
+                      const { cx, cy } = viewBox;
+                      const total = visitStatusData.reduce((sum, entry) => sum + entry.value, 0);
+                      const completed = visitStatusData.find(e => e.name === 'Realizadas')?.value || 0;
+                      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+                      return (
+                        <g>
+                          <text x={cx} y={cy - 10} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={36} fontWeight="900">
+                            {percentage}%
+                          </text>
+                          <text x={cx} y={cy + 20} textAnchor="middle" dominantBaseline="middle" fill="#94a3b8" fontSize={12} fontWeight="600">
+                            Concluídas
+                          </text>
+                        </g>
+                      );
+                    }}
+                  />
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }} />
-                <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
+                <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff', fontWeight: 'bold' }} />
+                <Legend verticalAlign="bottom" align="center" layout="horizontal" iconType="circle" wrapperStyle={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600', paddingTop: '10px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -1816,28 +1865,109 @@ const LogsTable: React.FC<{ logs: SystemLog[] }> = ({ logs }) => (
   </div>
 );
 
-const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visits: Visit[], notifications: any, onDismissNotif: any, onSelectAcademy: any }> = ({ events, academies, visits, notifications, onDismissNotif, onSelectAcademy }) => (
-  <div className="space-y-6">
-    {notifications.length > 0 && (<div className="space-y-3">{notifications.map((n: any) => (<div key={n.id} className="bg-indigo-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-lg animate-in slide-in-from-top-2 border border-indigo-500"><div className="flex items-center space-x-3"><Bell size={20} /><span className="font-bold text-sm">{n.message}</span></div><button onClick={() => onDismissNotif(n.id)} className="hover:bg-white/20 p-1 rounded-lg"><X size={18} /></button></div>))}</div>)}
-    {events.map(e => {
-      const allAcademies = e.academiesIds.map(aid => academies.find(a => a.id === aid)).filter(Boolean) as Academy[];
-      const completedIds = visits.filter(v => v.eventId === e.id).map(v => v.academyId);
-      const pendingAcademies = allAcademies.filter(a => !completedIds.includes(a.id));
-      const finishedAcademies = allAcademies.filter(a => completedIds.includes(a.id));
-      return (
-        <div key={e.id} className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-sm">
-          <div className="bg-slate-950 p-4 text-white font-bold flex items-center justify-between"><div className="flex items-center"><Calendar size={18} className="mr-2 text-blue-400" /> {e.name}</div><span className="text-[10px] font-bold uppercase tracking-widest bg-slate-800 px-2 py-1 rounded text-slate-300">{e.status}</span></div>
-          <div className="p-4 space-y-6">
-            <div><h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center"><Clock size={14} className="mr-2" /> Academias Pendentes ({pendingAcademies.length})</h4>
-              <div className="grid grid-cols-1 gap-2">{pendingAcademies.map(a => (<div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-4 flex justify-between items-center bg-slate-700/50 rounded-xl hover:bg-slate-700 cursor-pointer group transition-colors border border-slate-600/50"><div className="flex items-center space-x-4"><div className="p-2 rounded-xl bg-slate-800 text-slate-400 group-hover:bg-blue-900/30 group-hover:text-blue-400"><School size={20} /></div><div><p className="font-bold text-white text-sm">{a.name}</p><p className="text-[10px] text-slate-400">{a.city} - {a.responsible}</p></div></div><ChevronRight size={18} className="text-slate-500 group-hover:text-blue-400 transition-colors" /></div>))}</div>
+const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visits: Visit[], notifications: any, onDismissNotif: any, onSelectAcademy: any }> = ({ events, academies, visits, notifications, onDismissNotif, onSelectAcademy }) => {
+  // Calculate global progress for the salesperson
+  const totalAcademies = events.reduce((acc, e) => acc + e.academiesIds.length, 0);
+
+  // Filter visits that belong to the passed events (which are already filtered by salesperson) AND are visited
+  const completedVisitsCount = visits.filter(v =>
+    events.some(e => e.id === v.eventId) && v.status === VisitStatus.VISITED
+  ).length;
+
+  return (
+    <div className="space-y-6">
+      <ProgressBar total={totalAcademies} completed={completedVisitsCount} />
+
+      {notifications.length > 0 && (
+        <div className="space-y-3">
+          {notifications.map((n: any) => (
+            <div key={n.id} className="bg-indigo-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-lg animate-in slide-in-from-top-2 border border-indigo-500">
+              <div className="flex items-center space-x-3">
+                <Bell size={20} />
+                <span className="font-bold text-sm">{n.message}</span>
+              </div>
+              <button onClick={() => onDismissNotif(n.id)} className="hover:bg-white/20 p-1 rounded-lg">
+                <X size={18} />
+              </button>
             </div>
-            {finishedAcademies.length > 0 && (<div className="pt-4 border-t border-slate-700"><h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center"><CheckCircle2 size={14} className="mr-2 text-emerald-500" /> Academias Concluídas ({finishedAcademies.length})</h4><div className="grid grid-cols-1 gap-2">{finishedAcademies.map(a => { const visit = visits.find(v => v.eventId === e.id && v.academyId === a.id); return (<div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-4 flex justify-between items-center bg-slate-800 rounded-xl hover:bg-slate-700 cursor-pointer group transition-colors border border-slate-700 opacity-75"><div className="flex items-center space-x-4"><div className="p-2 rounded-xl bg-emerald-900/20 text-emerald-500"><CheckCircle2 size={20} /></div><div><p className="font-bold text-white text-sm">{a.name}</p><div className="flex items-center space-x-2"><span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${visit?.temperature === AcademyTemperature.HOT ? 'bg-red-900/30 text-red-500' : 'bg-blue-900/30 text-blue-500'}`}>{visit?.temperature}</span><p className="text-[10px] text-slate-400 tabular-nums">{visit?.vouchersGenerated.length} vouchers</p></div></div></div><Eye size={16} className="text-slate-500" /></div>); })}</div></div>)}
-          </div>
+          ))}
         </div>
-      );
-    })}
-  </div>
-);
+      )}
+
+      {events.map(e => {
+        const allAcademies = e.academiesIds.map(aid => academies.find(a => a.id === aid)).filter(Boolean) as Academy[];
+        const completedIds = visits.filter(v => v.eventId === e.id).map(v => v.academyId);
+        const pendingAcademies = allAcademies.filter(a => !completedIds.includes(a.id));
+        const finishedAcademies = allAcademies.filter(a => completedIds.includes(a.id));
+
+        return (
+          <div key={e.id} className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-sm">
+            <div className="bg-slate-950 p-4 text-white font-bold flex items-center justify-between">
+              <div className="flex items-center">
+                <Calendar size={18} className="mr-2 text-blue-400" /> {e.name}
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest bg-slate-800 px-2 py-1 rounded text-slate-300">{e.status}</span>
+            </div>
+            <div className="p-4 space-y-6">
+              <div>
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center">
+                  <Clock size={14} className="mr-2" /> Academias Pendentes ({pendingAcademies.length})
+                </h4>
+                <div className="grid grid-cols-1 gap-2">
+                  {pendingAcademies.map(a => (
+                    <div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-4 flex justify-between items-center bg-slate-700/50 rounded-xl hover:bg-slate-700 cursor-pointer group transition-colors border border-slate-600/50">
+                      <div className="flex items-center space-x-4">
+                        <div className="p-2 rounded-xl bg-slate-800 text-slate-400 group-hover:bg-blue-900/30 group-hover:text-blue-400">
+                          <School size={20} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-sm">{a.name}</p>
+                          <p className="text-[10px] text-slate-400">{a.city} - {a.responsible}</p>
+                        </div>
+                      </div>
+                      <ChevronRight size={18} className="text-slate-500 group-hover:text-blue-400 transition-colors" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {finishedAcademies.length > 0 && (
+                <div className="pt-4 border-t border-slate-700">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center">
+                    <CheckCircle2 size={14} className="mr-2 text-emerald-500" /> Academias Concluídas ({finishedAcademies.length})
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    {finishedAcademies.map(a => {
+                      const visit = visits.find(v => v.eventId === e.id && v.academyId === a.id);
+                      return (
+                        <div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-4 flex justify-between items-center bg-slate-800 rounded-xl hover:bg-slate-700 cursor-pointer group transition-colors border border-slate-700 opacity-75">
+                          <div className="flex items-center space-x-4">
+                            <div className="p-2 rounded-xl bg-emerald-900/20 text-emerald-500">
+                              <CheckCircle2 size={20} />
+                            </div>
+                            <div>
+                              <p className="font-bold text-white text-sm">{a.name}</p>
+                              <div className="flex items-center space-x-2">
+                                <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${visit?.temperature === AcademyTemperature.HOT ? 'bg-red-900/30 text-red-500' : 'bg-blue-900/30 text-blue-500'}`}>
+                                  {visit?.temperature}
+                                </span>
+                                <p className="text-[10px] text-slate-400 tabular-nums">{visit?.vouchersGenerated?.length || 0} vouchers</p>
+                              </div>
+                            </div>
+                          </div>
+                          <Eye size={16} className="text-slate-500" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onCancel }) => {
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(existingVisit ? 'SUMMARY' : 'START');
@@ -1980,5 +2110,129 @@ const SalesFinance: React.FC<{ finance: FinanceRecord[], events: Event[], onConf
     </div>
   </div>
 );
+
+
+const AccessControlManager: React.FC<{ addLog: any }> = ({ addLog }) => {
+  const [allowlist, setAllowlist] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [newEmail, setNewEmail] = useState('');
+  const [newRole, setNewRole] = useState<'SALES' | 'ADMIN'>('SALES');
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    const al = await AuthService.getAllowlist();
+    setAllowlist(al);
+    const lg = await AuthService.getAuthLogs();
+    setLogs(lg);
+  };
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await AuthService.addToAllowlist(newEmail, newRole);
+      setNewEmail('');
+      loadData();
+      addLog('ACCESS_GRANTED', `Acesso liberado para ${newEmail}`);
+      alert('Usuário autorizado com sucesso!');
+    } catch (error: any) {
+      alert('Erro: ' + error.message);
+    }
+  };
+
+  const toggleStatus = async (id: string, current: string) => {
+    try {
+      await AuthService.toggleAllowlistStatus(id, current);
+      loadData();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in">
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Allowlist Section */}
+        <div className="flex-1 space-y-4">
+          <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-sm">
+            <h3 className="text-xl font-bold text-white mb-4">Autorizar Novo Acesso</h3>
+            <form onSubmit={handleAdd} className="space-y-4">
+              <input
+                type="email"
+                required
+                placeholder="E-mail do novo usuário"
+                className="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-white outline-none focus:border-blue-500"
+                value={newEmail}
+                onChange={e => setNewEmail(e.target.value)}
+              />
+              <div className="flex gap-4">
+                <select
+                  className="flex-1 bg-slate-900 border border-slate-700 p-3 rounded-xl text-white outline-none"
+                  value={newRole}
+                  onChange={e => setNewRole(e.target.value as any)}
+                >
+                  <option value="SALES">Vendedor</option>
+                  <option value="ADMIN">Administrador</option>
+                </select>
+                <button type="submit" className="flex-1 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors">
+                  <UserPlus size={18} className="inline mr-2" />
+                  Adicionar
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden">
+            <div className="p-4 bg-slate-900/50 border-b border-slate-700">
+              <h3 className="font-bold text-white text-sm uppercase tracking-wider">Usuários Autorizados</h3>
+            </div>
+            <div className="divide-y divide-slate-700 max-h-[400px] overflow-y-auto">
+              {allowlist.map(item => (
+                <div key={item.id} className="p-4 flex justify-between items-center hover:bg-slate-700/30">
+                  <div>
+                    <p className="text-white font-bold">{item.email}</p>
+                    <span className="text-xs text-slate-500 font-bold uppercase">{item.role}</span>
+                  </div>
+                  <button
+                    onClick={() => toggleStatus(item.id, item.status)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${item.status === 'ACTIVE' ? 'bg-emerald-900/30 text-emerald-400 hover:bg-red-900/30 hover:text-red-400' : 'bg-red-900/30 text-red-400 hover:bg-emerald-900/30 hover:text-emerald-400'}`}
+                  >
+                    {item.status === 'ACTIVE' ? 'Ativo' : 'Inativo'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Logs Section */}
+        <div className="flex-1">
+          <div className="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden h-full flex flex-col">
+            <div className="p-4 bg-slate-900/50 border-b border-slate-700 flex justify-between items-center">
+              <h3 className="font-bold text-white text-sm uppercase tracking-wider">Logs de Autenticação</h3>
+              <button onClick={loadData} className="text-blue-400 hover:text-white"><RefreshCw size={16} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto max-h-[600px] p-2 space-y-2">
+              {logs.map(log => (
+                <div key={log.id} className="p-3 bg-slate-900/50 rounded-xl border border-slate-700/50 text-xs">
+                  <div className="flex justify-between mb-1">
+                    <span className={`font-bold ${log.action.includes('SUCCESS') || log.action.includes('ACTIVATED') ? 'text-emerald-400' :
+                      log.action.includes('FAILED') || log.action.includes('BLOCKED') ? 'text-red-400' : 'text-blue-400'
+                      }`}>{log.action}</span>
+                    <span className="text-slate-500 tabular-nums">{new Date(log.created_at).toLocaleString()}</span>
+                  </div>
+                  <p className="text-white font-medium mb-1">{log.email}</p>
+                  <p className="text-slate-500 break-all bg-slate-950 p-2 rounded-lg font-mono">{log.details}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default App;

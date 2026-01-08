@@ -1,5 +1,5 @@
 import React from 'react';
-import { 
+import {
   Menu,
   School,
   LayoutDashboard,
@@ -8,7 +8,8 @@ import {
   FileText,
   ClipboardList,
   LogOut,
-  X 
+  X,
+  ShieldCheck
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 
@@ -21,15 +22,15 @@ interface SidebarProps {
   logout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ 
-  currentUser, 
-  activeTab, 
-  setActiveTab, 
-  sidebarOpen, 
-  setSidebarOpen, 
-  logout 
+const Sidebar: React.FC<SidebarProps> = ({
+  currentUser,
+  activeTab,
+  setActiveTab,
+  sidebarOpen,
+  setSidebarOpen,
+  logout
 }) => {
-  
+
   const SidebarItem = ({ id, icon: Icon, label }: { id: string, icon: any, label: string }) => {
     // Logic for 'events' highlighting when in detail view moved here or kept simple
     // Original: const isActive = activeTab === id || (id === 'events' && activeTab === 'event_detail_admin');
@@ -37,15 +38,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     // Let's replicate the logic from App.tsx loosely or expect the parent to manage 'active' state purely on id.
     // HACK: To maintain the "events" highlighing when inside "event_detail_admin", we check it here.
     const isActive = activeTab === id || (id === 'events' && activeTab === 'event_detail_admin');
-    
+
     return (
       <button
         onClick={() => { setActiveTab(id); setSidebarOpen(false); }}
-        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-          isActive 
-            ? 'bg-blue-600 text-white shadow-lg' 
-            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-        }`}
+        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
+          ? 'bg-blue-600 text-white shadow-lg'
+          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+          }`}
       >
         <Icon size={20} />
         <span className="font-medium">{label}</span>
@@ -71,7 +71,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               <SidebarItem id="events" icon={Calendar} label="Eventos" />
               <SidebarItem id="admin_finance" icon={DollarSign} label="Financeiro" />
               <SidebarItem id="reports" icon={FileText} label="Relatórios" />
-              <SidebarItem id="logs" icon={ClipboardList} label="Auditoria" />
+              <SidebarItem id="access_control" icon={ShieldCheck} label="Gestão de Acessos" />
+              <SidebarItem id="logs" icon={ClipboardList} label="Logs do Sistema" />
             </>
           ) : (
             <>
