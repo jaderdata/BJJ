@@ -529,8 +529,14 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
   const availableYears = useMemo(() => {
     const yearsSet = new Set<string>();
     events.forEach(e => { if (e.startDate) yearsSet.add(new Date(e.startDate).getFullYear().toString()); });
+    vouchers.forEach(v => { if (v.createdAt) yearsSet.add(new Date(v.createdAt).getFullYear().toString()); });
+    visits.forEach(v => { if (v.finishedAt) yearsSet.add(new Date(v.finishedAt).getFullYear().toString()); });
+
+    // Fallback to current year if no data
+    if (yearsSet.size === 0) yearsSet.add(new Date().getFullYear().toString());
+
     return Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
-  }, [events]);
+  }, [events, vouchers, visits]);
 
   const [selectedYear, setSelectedYear] = useState<string>(availableYears[0] || new Date().getFullYear().toString());
 
