@@ -25,14 +25,15 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
         const type = params.get('type'); // 'activation' or 'reset'
 
         if (urlToken) {
+            console.log("Token detected in URL:", urlToken, type);
             setToken(urlToken);
             if (type === 'activation') {
                 setView('ACTIVATE');
             } else if (type === 'reset') {
                 setView('RESET_PASSWORD');
             }
-            // Clean URL
-            window.history.replaceState({}, '', window.location.pathname);
+            // Optional: Clean URL only after successful state set
+            // window.history.replaceState({}, '', window.location.pathname); 
         }
     }, []);
 
