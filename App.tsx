@@ -651,7 +651,7 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
                       .join(';');
                   }).join('\n');
 
-                  const content = `sep=;\n${headers}\n${rows}`;
+                  const content = `${headers}\n${rows}`;
                   const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
                   const link = document.body.appendChild(document.createElement("a"));
                   link.href = URL.createObjectURL(blob);
@@ -1805,7 +1805,7 @@ const AdminReports: React.FC<{ visits: Visit[], academies: Academy[], events: Ev
         .join(';');
     }).join('\n');
 
-    const content = `sep=;\n${headers}\n${rows}`;
+    const content = `${headers}\n${rows}`;
     const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
