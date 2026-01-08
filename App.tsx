@@ -646,9 +646,7 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
                     const sellerName = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || '';
                     const dateStr = new Date(v.createdAt).toLocaleDateString('pt-BR');
 
-                    return [v.code, dateStr, academyName, eventName, sellerName]
-                      .map(val => `"${val.replace(/"/g, '""')}"`)
-                      .join(';');
+                    return `${v.code};${dateStr};${academyName};${eventName};${sellerName}`;
                   }).join('\n');
 
                   const content = `${headers}\n${rows}`;
