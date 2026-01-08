@@ -637,15 +637,22 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
               <div className="p-3 bg-amber-900/30 text-amber-400 rounded-xl"><Ticket size={24} /></div>
               <button
                 onClick={() => {
-                  const headers = "Código;Data;Academia;Evento;Vendedor\n";
+                  const headers = "Código;Data;Academia;Evento;Vendedor";
                   const rows = filteredVouchers.map(v => {
                     const visit = visits.find(vis => vis.id === v.visitId);
-                    const academy = academies.find(a => a.id === v.academyId)?.name || '';
-                    const event = events.find(e => e.id === v.eventId)?.name || '';
-                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || '';
-                    return `${v.code};${new Date(v.createdAt).toLocaleDateString()};${academy};${event};${seller}`;
+                    const event = events.find(e => e.id === v.eventId);
+                    const academyName = academies.find(a => a.id === v.academyId)?.name || '';
+                    const eventName = event?.name || '';
+                    const sellerName = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || '';
+                    const dateStr = new Date(v.createdAt).toLocaleDateString('pt-BR');
+
+                    return [v.code, dateStr, academyName, eventName, sellerName]
+                      .map(val => `"${val.replace(/"/g, '""')}"`)
+                      .join(';');
                   }).join('\n');
-                  const blob = new Blob(["\uFEFF" + headers + rows], { type: 'text/csv;charset=utf-8;' });
+
+                  const content = `sep=;\n${headers}\n${rows}`;
+                  const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
                   const link = document.body.appendChild(document.createElement("a"));
                   link.href = URL.createObjectURL(blob);
                   link.download = `vouchers_dashboard_${selectedYear}.csv`;
@@ -1784,16 +1791,22 @@ const AdminReports: React.FC<{ visits: Visit[], academies: Academy[], events: Ev
   }, [vouchers, visits, academies, events, searchTerm, yearFilter, eventFilter, salesFilter]);
 
   const exportCSV = () => {
-    const headers = "Código;Data;Academia;Evento;Vendedor\n";
+    const headers = "Código;Data;Academia;Evento;Vendedor";
     const rows = filteredVouchers.map(v => {
       const visit = visits.find(vis => vis.id === v.visitId);
-      const academy = academies.find(a => a.id === v.academyId)?.name || '';
-      const event = events.find(e => e.id === v.eventId)?.name || '';
-      const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || '';
-      return `${v.code};${new Date(v.createdAt).toLocaleDateString()};${academy};${event};${seller}`;
+      const event = events.find(e => e.id === v.eventId);
+      const academyName = academies.find(a => a.id === v.academyId)?.name || '';
+      const eventName = event?.name || '';
+      const sellerName = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || '';
+      const dateStr = new Date(v.createdAt).toLocaleDateString('pt-BR');
+
+      return [v.code, dateStr, academyName, eventName, sellerName]
+        .map(val => `"${val.replace(/"/g, '""')}"`)
+        .join(';');
     }).join('\n');
 
-    const blob = new Blob(["\uFEFF" + headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const content = `sep=;\n${headers}\n${rows}`;
+    const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.setAttribute("download", `relatorio_vouchers_${new Date().getTime()}.csv`);
