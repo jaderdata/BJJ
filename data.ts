@@ -1,5 +1,5 @@
 
-import { User, UserRole, Academy, Event, EventStatus, FinanceRecord, SystemLog, FinanceStatus } from './types';
+import { User, UserRole, Academy, Event, EventStatus, FinanceRecord, FinanceStatus } from './types';
 
 
 export const INITIAL_ACADEMIES: Academy[] = [
@@ -9,17 +9,14 @@ export const INITIAL_ACADEMIES: Academy[] = [
 ];
 
 export const INITIAL_EVENTS: Event[] = [
-  { id: 'e1', name: 'Open SP 2024', city: 'São Paulo', state: 'SP', address: 'Ginásio do Ibirapuera', status: EventStatus.IN_PROGRESS, salespersonId: '2', academiesIds: ['a1', 'a2'], date: '2024-05-15' },
-  { id: 'e2', name: 'Rio Fall 2024', city: 'Rio de Janeiro', state: 'RJ', address: 'Arena Carioca 1', status: EventStatus.UPCOMING, salespersonId: '3', academiesIds: ['a3'], date: '2024-10-20' },
+  { id: 'e1', name: 'Open SP 2024', city: 'São Paulo', state: 'SP', address: 'Ginásio do Ibirapuera', status: EventStatus.IN_PROGRESS, salespersonId: '2', academiesIds: ['a1', 'a2'], date: '2024-05-15', startDate: '2024-05-15', endDate: '2024-05-17' },
+  { id: 'e2', name: 'Rio Fall 2024', city: 'Rio de Janeiro', state: 'RJ', address: 'Arena Carioca 1', status: EventStatus.UPCOMING, salespersonId: '3', academiesIds: ['a3'], date: '2024-10-20', startDate: '2024-10-20', endDate: '2024-10-22' },
 ];
 
 export const INITIAL_FINANCE: FinanceRecord[] = [
   { id: 'f1', eventId: 'e1', salespersonId: '2', amount: 500.00, status: FinanceStatus.PENDING, updatedAt: new Date().toISOString() },
 ];
 
-export const INITIAL_LOGS: SystemLog[] = [
-  { id: 'l1', userId: '1', userName: 'Admin Master', action: 'LOGIN', details: 'Acesso ao sistema', timestamp: new Date().toISOString() },
-];
 
 // Helper to generate voucher code: 3 letters + 3 numbers
 export const generateVoucherCode = () => {

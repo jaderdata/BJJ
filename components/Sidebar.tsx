@@ -72,7 +72,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               <SidebarItem id="admin_finance" icon={DollarSign} label="Financeiro" />
               <SidebarItem id="reports" icon={FileText} label="Relatórios" />
               <SidebarItem id="access_control" icon={ShieldCheck} label="Gestão de Acessos" />
-              <SidebarItem id="logs" icon={ClipboardList} label="Logs do Sistema" />
             </>
           ) : (
             <>

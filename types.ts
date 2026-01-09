@@ -99,11 +99,3 @@ export interface FinanceRecord {
   updatedAt: string;
 }
 
-export interface SystemLog {
-  id: string;
-  userId: string;
-  userName: string;
-  action: string;
-  details: string;
-  timestamp: string;
-}

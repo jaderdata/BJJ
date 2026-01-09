@@ -44,7 +44,8 @@ import {
   QrCode,
   Copy,
   ExternalLink,
-  Thermometer
+  Thermometer,
+  Share2
 } from 'lucide-react';
 import {
   User,
@@ -57,7 +58,6 @@ import {
   AcademyTemperature,
   FinanceRecord,
   FinanceStatus,
-  SystemLog,
   Voucher,
   AcademyObservation
 } from './types';
@@ -65,7 +65,6 @@ import {
   INITIAL_ACADEMIES, // Keeping for fallback if needed, or remove
   INITIAL_EVENTS,
   INITIAL_FINANCE,
-  INITIAL_LOGS,
   generateVoucherCode
 } from './data';
 import Sidebar from './components/Sidebar';
@@ -109,7 +108,6 @@ const App: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [finance, setFinance] = useState<FinanceRecord[]>([]);
-  const [logs, setLogs] = useState<SystemLog[]>([]);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [sellers, setSellers] = useState<User[]>([]);
@@ -138,7 +136,6 @@ const App: React.FC = () => {
     setCurrentUser(user);
     localStorage.setItem('bjj_user', JSON.stringify(user));
     setActiveTab(user.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
-    addLog('LOGIN', `Usuário ${user.name} entrou (Custom Auth)`);
   };
 
   // Fetch initial data
@@ -197,7 +194,6 @@ const App: React.FC = () => {
           role: data.role as UserRole
         });
         setActiveTab(data.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
-        addLog('LOGIN', `Usuário ${data.name} acessou o sistema`);
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -224,25 +220,6 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
-  const addLog = async (action: string, details: string) => {
-    if (!currentUser) return;
-    const newLog: SystemLog = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: currentUser.id,
-      userName: currentUser.name,
-      action,
-      details,
-      timestamp: new Date().toISOString()
-    };
-    setLogs(prev => [newLog, ...prev]);
-
-    // Persist to database
-    try {
-      await DatabaseService.createSystemLog(currentUser.id, currentUser.name, action, details);
-    } catch (error) {
-      console.error('Error saving log:', error);
-    }
-  };
 
   /* Restore notifyUser */
   const notifyUser = async (userId: string, message: string) => {
@@ -286,7 +263,6 @@ const App: React.FC = () => {
       // 4. Notifications (Legacy Logic adapted)
       if (oldEvent && oldEvent.salespersonId !== updatedEvent.salespersonId && updatedEvent.salespersonId) {
         notifyUser(updatedEvent.salespersonId, `Você é o novo responsável pelo evento "${updatedEvent.name}".`);
-        addLog('EVENT_SALESPERSON_CHANGED', `Vendedor do evento "${updatedEvent.name}" alterado`);
       }
 
       if (oldEvent && updatedEvent.salespersonId) {
@@ -295,8 +271,6 @@ const App: React.FC = () => {
           notifyUser(updatedEvent.salespersonId, `${newAcademiesCount} novas academias atribuídas ao evento "${updatedEvent.name}".`);
         }
       }
-
-      addLog('EVENT_UPDATED', `Evento "${updatedEvent.name}" atualizado.`);
 
     } catch (error) {
       console.error("Error updating event:", error);
@@ -366,9 +340,9 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'dashboard' && currentUser.role === UserRole.ADMIN && <AdminDashboard events={events} academies={academies} visits={visits} vouchers={vouchers} finance={finance} vendedores={sellers} />}
-          {activeTab === 'access_control' && currentUser.role === UserRole.ADMIN && <AccessControlManager addLog={addLog} />}
-          {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} addLog={addLog} currentUser={currentUser} />}
-          {activeTab === 'events' && currentUser.role === UserRole.ADMIN && <EventsManager events={events} visits={visits} setEvents={setEvents} academies={academies} vendedores={sellers} addLog={addLog} onSelectEvent={(id) => { setSelectedEventId(id); setActiveTab('event_detail_admin'); }} notifyUser={notifyUser} />}
+          {activeTab === 'access_control' && currentUser.role === UserRole.ADMIN && <AccessControlManager />}
+          {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} currentUser={currentUser} />}
+          {activeTab === 'events' && currentUser.role === UserRole.ADMIN && <EventsManager events={events} visits={visits} setEvents={setEvents} academies={academies} vendedores={sellers} onSelectEvent={(id) => { setSelectedEventId(id); setActiveTab('event_detail_admin'); }} notifyUser={notifyUser} />}
           {activeTab === 'event_detail_admin' && selectedEventId && currentUser.role === UserRole.ADMIN && (
             <EventDetailAdmin
               event={events.find(e => e.id === selectedEventId)!}
@@ -385,12 +359,10 @@ const App: React.FC = () => {
               setFinance={setFinance}
               events={events}
               vendedores={sellers}
-              addLog={addLog}
               notifyUser={notifyUser}
             />
           )}
           {activeTab === 'reports' && currentUser.role === UserRole.ADMIN && <AdminReports visits={visits} academies={academies} events={events} vouchers={vouchers} vendedores={sellers} />}
-          {activeTab === 'logs' && currentUser.role === UserRole.ADMIN && <LogsTable logs={logs} />}
 
           {activeTab === 'my_events' && <SalespersonEvents events={events.filter(e => e.salespersonId === currentUser.id)} academies={academies} visits={visits} notifications={notifications.filter(n => n.userId === currentUser.id && !n.read)} onDismissNotif={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))} onSelectAcademy={(eventId, academyId) => { setSelectedEventId(eventId); setSelectedAcademyId(academyId); setActiveTab('visit_detail'); }} />}
           {activeTab === 'visit_detail' && selectedEventId && selectedAcademyId && (
@@ -412,8 +384,6 @@ const App: React.FC = () => {
                   await DatabaseService.createVouchers(newVoucherObjects);
                   setVouchers(prev => [...prev, ...newVoucherObjects]);
                 }
-
-                addLog('VISIT_COMPLETED', `Visita concluída na academia ${academies.find(a => a.id === selectedAcademyId)?.name}`);
 
                 // Notify Admins
                 admins.forEach(admin => {
@@ -439,7 +409,6 @@ const App: React.FC = () => {
                   try {
                     const updated = await DatabaseService.updateFinance(record.id, { ...record, status: FinanceStatus.RECEIVED, updatedAt: new Date().toISOString() });
                     setFinance(prev => prev.map(f => f.id === recordId ? updated : f));
-                    addLog('FINANCE_RECEIVED', `Vendedor confirmou recebimento de R$ ${record.amount.toFixed(2)}`);
                   } catch (error) {
                     console.error("Error confirming finance:", error);
                   }
@@ -457,8 +426,8 @@ const App: React.FC = () => {
 const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], createdAt: number }> = ({ academyName, codes, createdAt }) => {
   const [copied, setCopied] = useState(false);
   const now = Date.now();
-  const threeHoursInMs = 3 * 60 * 60 * 1000;
-  const isExpired = now - createdAt > threeHoursInMs;
+  const expirationTime = 24 * 60 * 60 * 1000; // 24 hours
+  const isExpired = createdAt > 0 && (now - createdAt > expirationTime);
 
   const contentToCopy = `Thank you for being part of the upcoming PBJJF event! 🥋\n\nYour academy (${academyName}) has received the following vouchers:\n👉 ${codes.join(', ')}\n\nTo redeem, please send a text message to (407) 633-9166 with the academy name and the voucher codes listed above.\n\nWe appreciate the partnership and wish you a great event!`;
 
@@ -474,7 +443,7 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
         <div className="max-w-md w-full bg-slate-800 p-10 rounded-3xl shadow-xl border border-slate-700 space-y-4">
           <div className="bg-red-900/30 text-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto"><Clock size={32} /></div>
           <h1 className="text-2xl font-bold text-white">Link Expirado</h1>
-          <p className="text-slate-400 leading-relaxed">Este link de vouchers expirou após 3 horas por razões de segurança. Por favor, solicite um novo código ao representante.</p>
+          <p className="text-slate-400 leading-relaxed">Este link de vouchers expirou após 24 horas por razões de segurança. Por favor, solicite um novo código ao representante.</p>
         </div>
       </div>
     );
@@ -517,7 +486,7 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
           </button>
         </div>
         <div className="bg-slate-900 p-4 border-t border-slate-800 text-center">
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Expires in 3 hours • Secure BJJVisits Token</p>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Expira em 24 horas • Secure BJJVisits Token</p>
         </div>
       </div>
     </div>
@@ -539,15 +508,66 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
   }, [events, vouchers, visits]);
 
   const [selectedYear, setSelectedYear] = useState<string>(availableYears[0] || new Date().getFullYear().toString());
+  const [syncingSheet, setSyncingSheet] = useState(false);
+
+  const handleSyncSheet = async () => {
+    setSyncingSheet(true);
+    try {
+      const groupedData: Record<string, any[]> = {};
+
+      filteredVouchers.forEach(v => {
+        const visit = visits.find(vis => vis.id === v.visitId);
+        const event = events.find(e => e.id === v.eventId);
+        const eventName = event?.name || 'Sem Evento';
+        const academyName = academies.find(a => a.id === v.academyId)?.name || '';
+        const sellerName = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || '';
+        const dateStr = new Date(v.createdAt).toLocaleDateString('pt-BR');
+
+        if (!groupedData[eventName]) {
+          groupedData[eventName] = [];
+        }
+
+        groupedData[eventName].push({
+          codigo: v.code,
+          data: dateStr,
+          academia: academyName,
+          vendedor: sellerName,
+          retirado: "NO"
+        });
+      });
+
+      const { data, error } = await supabase.functions.invoke('sync-vouchers', {
+        body: { events: groupedData }
+      });
+
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+
+      alert('Sincronização concluída com sucesso!');
+    } catch (error: any) {
+      console.error('Error syncing sheet:', error);
+      alert(error.message || 'Erro inesperado na sincronização.');
+    } finally {
+      setSyncingSheet(false);
+    }
+  };
 
   // Filter Data by Year
   const filteredEvents = useMemo(() => events.filter(e => e.startDate && new Date(e.startDate).getFullYear().toString() === selectedYear), [events, selectedYear]);
-  const filteredVisits = useMemo(() => visits.filter(v => v.finishedAt && new Date(v.finishedAt).getFullYear().toString() === selectedYear), [visits, selectedYear]);
+
+  // All visits that BELONG to events in the selected year
+  const visitsInYear = useMemo(() => {
+    const eventIds = new Set(filteredEvents.map(e => e.id));
+    return visits.filter(v => eventIds.has(v.eventId));
+  }, [visits, filteredEvents]);
+
+  const filteredVisits = useMemo(() => visitsInYear.filter(v => v.status === VisitStatus.VISITED), [visitsInYear]);
+  const filteredPendingVisits = useMemo(() => visitsInYear.filter(v => v.status === VisitStatus.PENDING), [visitsInYear]);
   const filteredVouchers = useMemo(() => vouchers.filter(v => new Date(v.createdAt).getFullYear().toString() === selectedYear), [vouchers, selectedYear]);
 
   // KPIs
-  const pendingVisitsCount = visits.filter(v => v.status === VisitStatus.PENDING).length;
-  const activeEventsCount = filteredEvents.filter(e => e.status === EventStatus.IN_PROGRESS).length;
+  const pendingVisitsCount = filteredPendingVisits.length;
+  const activeEventsCount = filteredEvents.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING).length;
 
   // Chart Data: Academy Temperature
   const temperatureData = useMemo(() => {
@@ -561,12 +581,12 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
   // Chart Data: Visit Status
   const visitStatusData = useMemo(() => {
     const visited = filteredVisits.length;
-    const pending = visits.length - visited;
+    const pending = filteredPendingVisits.length;
     return [
       { name: 'Realizadas', value: visited, color: '#10b981' },
       { name: 'Pendentes', value: pending, color: '#64748b' }
     ];
-  }, [visits, filteredVisits]);
+  }, [filteredVisits, filteredPendingVisits]);
 
   // Seller Leaderboard (Sorted by VISITS, Revenue removed)
   const sellerLeaderboard = useMemo(() => {
@@ -604,145 +624,191 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
       </div>
 
       {/* KPI Cards - Removed Revenue Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-sm">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Eventos Ativos</p>
-              <h3 className="text-3xl font-black text-white mt-1">{activeEventsCount}</h3>
-            </div>
-            <div className="p-3 bg-blue-900/30 text-blue-400 rounded-xl"><Calendar size={24} /></div>
+      {/* KPI Cards - Rebalanced to 4 columns */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start mb-2">
+            <div className="p-2 bg-blue-900/30 text-blue-400 rounded-xl"><Calendar size={20} /></div>
+            <span className="text-[10px] font-black text-blue-500/50 bg-blue-900/20 px-2 py-0.5 rounded-full uppercase tracking-tighter">Eventos</span>
           </div>
-          <p className="text-xs text-slate-500">Eventos em andamento agora</p>
+          <div className="mt-4">
+            <h3 className="text-3xl font-black text-white">{activeEventsCount}</h3>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Eventos Ativos</p>
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-700/50">
+            <p className="text-[10px] text-slate-500 font-medium">Eventos em andamento</p>
+          </div>
         </div>
 
-        <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-sm">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Visitas Realizadas</p>
-              <h3 className="text-3xl font-black text-white mt-1">{filteredVisits.length}</h3>
-            </div>
-            <div className="p-3 bg-indigo-900/30 text-indigo-400 rounded-xl"><CheckCircle2 size={24} /></div>
+        <div className="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start mb-2">
+            <div className="p-2 bg-emerald-900/30 text-emerald-400 rounded-xl"><CheckCircle2 size={20} /></div>
+            <span className="text-[10px] font-black text-emerald-500/50 bg-emerald-900/20 px-2 py-0.5 rounded-full uppercase tracking-tighter">Sucesso</span>
           </div>
-          <p className="text-xs text-slate-500">Total acumulado no ano</p>
+          <div className="mt-4">
+            <h3 className="text-3xl font-black text-white">{filteredVisits.length}</h3>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Visitas Realizadas</p>
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-700/50">
+            <p className="text-[10px] text-slate-500 font-medium">Total acumulado {selectedYear}</p>
+          </div>
         </div>
 
-        <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-sm">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Vouchers Gerados</p>
-              <h3 className="text-3xl font-black text-white mt-1">{filteredVouchers.length}</h3>
-            </div>
-            <div className="flex flex-col items-end space-y-2">
-              <div className="p-3 bg-amber-900/30 text-amber-400 rounded-xl"><Ticket size={24} /></div>
-              <button
-                onClick={() => {
-                  const headers = "Código;Data;Academia;Evento;Vendedor";
-                  const rows = filteredVouchers.map(v => {
-                    const visit = visits.find(vis => vis.id === v.visitId);
-                    const event = events.find(e => e.id === v.eventId);
-                    const academyName = academies.find(a => a.id === v.academyId)?.name || '';
-                    const eventName = event?.name || '';
-                    const sellerName = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || '';
-                    const dateStr = new Date(v.createdAt).toLocaleDateString('pt-BR');
-
-                    return `${v.code};${dateStr};${academyName};${eventName};${sellerName}`;
-                  }).join('\n');
-
-                  const content = `${headers}\n${rows}`;
-                  const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
-                  const link = document.body.appendChild(document.createElement("a"));
-                  link.href = URL.createObjectURL(blob);
-                  link.download = `vouchers_dashboard_${selectedYear}.csv`;
-                  link.click();
-                  document.body.removeChild(link);
-                }}
-                className="text-[10px] font-bold text-amber-500 hover:text-amber-400 flex items-center space-x-1"
-              >
-                <Download size={12} />
-                <span>Exportar</span>
-              </button>
-            </div>
+        <div className="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start mb-2">
+            <div className="p-2 bg-slate-700 text-slate-400 rounded-xl"><Clock size={20} /></div>
+            <span className="text-[10px] font-black text-slate-500 bg-slate-900/50 px-2 py-0.5 rounded-full uppercase tracking-tighter">Planejadas</span>
           </div>
-          <p className="text-xs text-slate-500">Conversão de alunos</p>
+          <div className="mt-4">
+            <h3 className="text-3xl font-black text-white">{pendingVisitsCount}</h3>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Visitas Pendentes</p>
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-700/50">
+            <p className="text-[10px] text-slate-500 font-medium">Aguardando atendimento</p>
+          </div>
+        </div>
+
+        <div className="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-3xl rounded-full -mr-10 -mt-10 group-hover:bg-amber-500/10 transition-colors"></div>
+          <div className="flex justify-between items-start mb-2">
+            <div className="p-2 bg-amber-900/30 text-amber-400 rounded-xl"><Ticket size={20} /></div>
+            <button
+              onClick={handleSyncSheet}
+              disabled={syncingSheet}
+              className={`p-2 bg-slate-900/50 rounded-lg hover:bg-slate-900 transition-colors ${syncingSheet ? 'cursor-not-allowed opacity-50' : 'text-amber-500'}`}
+              title="Sincronizar Planilha"
+            >
+              <Share2 size={16} className={syncingSheet ? 'animate-spin' : ''} />
+            </button>
+          </div>
+          <div className="mt-4">
+            <h3 className="text-3xl font-black text-white">{filteredVouchers.length}</h3>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Vouchers Gerados</p>
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
+            <p className="text-[10px] text-slate-500 font-medium">Conversão de alunos</p>
+            {!syncingSheet && (
+              <button onClick={handleSyncSheet} className="text-[10px] font-black text-amber-500 uppercase hover:underline">Atualizar</button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Charts Row - Removed Revenue Chart */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Visit Status & Temperature */}
-        <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-sm h-[350px] flex flex-col">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Temperatura das Academias</h3>
-          <div className="flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={temperatureData} layout="vertical" margin={{ left: 0, right: 40 }}>
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={80} stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip cursor={{ fill: '#334155', opacity: 0.2 }} contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff', fontWeight: 'bold' }} />
-                <Bar dataKey="value" fill="#ec4899" radius={[0, 8, 8, 0]} barSize={28}>
-                  <Label
-                    position="right"
-                    content={({ value, x, y, width, height }: any) => (
-                      <text
-                        x={Number(x) + Number(width) + 10}
-                        y={Number(y) + Number(height) / 2}
-                        fill="#fff"
-                        fontSize={18}
-                        fontWeight="900"
-                        textAnchor="start"
-                        dominantBaseline="middle"
-                      >
-                        {value}
-                      </text>
-                    )}
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+      {/* Charts Row - Optimized Framing */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Performance de Visitas - 3 columns for better balance */}
+        <div className="lg:col-span-3 bg-slate-800 p-8 rounded-[2.5rem] border border-slate-700 shadow-xl min-h-[480px] flex flex-col">
+          <div className="flex justify-between items-start mb-10">
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Performance de Visitas</h3>
+              <p className="text-[10px] text-slate-500 font-bold uppercase">Eficiência e Metas de Conversão</p>
+            </div>
+            <div className="flex flex-col items-end space-y-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
+                <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">Realizadas</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-600"></div>
+                <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">Pendentes</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 flex-1">
+            {/* Meta Card */}
+            <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-slate-700/50 flex flex-col items-center justify-center relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+              <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-4 relative z-10">Meta Global</p>
+              <h4 className="text-7xl font-black text-white italic leading-none relative z-10">
+                {visitsInYear.length > 0 ? Math.round((filteredVisits.length / visitsInYear.length) * 100) : 0}%
+              </h4>
+              <p className="text-[10px] text-slate-500 font-bold uppercase mt-4 relative z-10">Aproveitamento</p>
+            </div>
+
+            {/* Realizadas Card */}
+            <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-slate-700/50 flex flex-col items-center justify-center relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-4 relative z-10">Concluídas</p>
+              <div className="flex items-baseline space-x-2 relative z-10">
+                <h4 className="text-7xl font-black text-white leading-none">{filteredVisits.length}</h4>
+                <span className="text-slate-500 font-black text-xl">/ {visitsInYear.length}</span>
+              </div>
+              <div className="mt-8 w-full h-2 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800 relative z-10">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                  style={{ width: `${(filteredVisits.length / Math.max(visitsInYear.length, 1)) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Pendentes Card */}
+            <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-slate-700/50 flex flex-col items-center justify-center relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+              <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.3em] mb-4 relative z-10">Pendentes</p>
+              <h4 className="text-7xl font-black text-white leading-none relative z-10">{filteredPendingVisits.length}</h4>
+              <p className="text-[10px] text-slate-500 font-bold uppercase mt-4 relative z-10">Restantes</p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-sm h-[350px] flex flex-col">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Progresso de Visitas</h3>
-          <div className="flex-1 relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={visitStatusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={95}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {visitStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                  <Label
-                    position="center"
-                    content={({ viewBox }: any) => {
-                      const { cx, cy } = viewBox;
-                      const total = visitStatusData.reduce((sum, entry) => sum + entry.value, 0);
-                      const completed = visitStatusData.find(e => e.name === 'Realizadas')?.value || 0;
-                      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-                      return (
-                        <g>
-                          <text x={cx} y={cy - 10} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={36} fontWeight="900">
-                            {percentage}%
-                          </text>
-                          <text x={cx} y={cy + 20} textAnchor="middle" dominantBaseline="middle" fill="#94a3b8" fontSize={12} fontWeight="600">
-                            Concluídas
-                          </text>
-                        </g>
-                      );
-                    }}
-                  />
-                </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff', fontWeight: 'bold' }} />
-                <Legend verticalAlign="bottom" align="center" layout="horizontal" iconType="circle" wrapperStyle={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600', paddingTop: '10px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+        {/* Temperatura - 2 columns */}
+        <div className="lg:col-span-2 bg-slate-800 p-8 rounded-[2.5rem] border border-slate-700 shadow-xl min-h-[480px] flex flex-col">
+          <div className="mb-10">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Interesse das Academias</h3>
+            <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Nível de temperatura pós-visita</p>
+          </div>
+
+          <div className="flex-1 flex flex-col justify-center">
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={temperatureData} layout="vertical" margin={{ left: -15, right: 65, top: 0, bottom: 0 }}>
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" width={80} stroke="#94a3b8" fontSize={13} fontStyle="italic" fontWeight="900" tickLine={false} axisLine={false} />
+                  <Tooltip cursor={{ fill: '#334155', opacity: 0.1 }} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '15px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)' }} />
+                  <Bar dataKey="value" radius={[0, 15, 15, 0]} barSize={45}>
+                    {temperatureData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.name === 'HOT' ? '#ef4444' : entry.name === 'WARM' ? '#f59e0b' : '#3b82f6'}
+                        className="filter drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]"
+                      />
+                    ))}
+                    <Label
+                      position="right"
+                      content={({ value, x, y, width, height }: any) => (
+                        <text
+                          x={Number(x) + Number(width) + 25}
+                          y={Number(y) + Number(height) / 2}
+                          fill="#fff"
+                          fontSize={32}
+                          fontWeight="900"
+                          fontStyle="italic"
+                          textAnchor="start"
+                          dominantBaseline="middle"
+                        >
+                          {value}
+                        </text>
+                      )}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="mt-10 grid grid-cols-3 gap-4">
+            {['HOT', 'WARM', 'COLD'].map(temp => (
+              <div key={temp} className="text-center group">
+                <div className={`text-[10px] font-black uppercase mb-3 tracking-widest ${temp === 'HOT' ? 'text-red-500' : temp === 'WARM' ? 'text-amber-500' : 'text-blue-500'}`}>{temp}</div>
+                <div className="h-2 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                  <div
+                    className={`h-full rounded-full transition-all duration-1000 ease-in-out ${temp === 'HOT' ? 'bg-red-500' : temp === 'WARM' ? 'bg-amber-500' : 'bg-blue-500'}`}
+                    style={{ width: `${(temperatureData.find(d => d.name === temp)?.value || 0) / Math.max(filteredVisits.length, 1) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -802,7 +868,7 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
   );
 };
 
-const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dispatch<React.SetStateAction<Academy[]>>, addLog: (a: string, d: string) => void, currentUser: User }> = ({ academies, setAcademies, addLog, currentUser }) => {
+const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dispatch<React.SetStateAction<Academy[]>>, currentUser: User }> = ({ academies, setAcademies, currentUser }) => {
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'view' | 'edit'>('create');
   const [academyForm, setAcademyForm] = useState<Partial<Academy>>({ state: 'SP' });
@@ -855,7 +921,6 @@ const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dis
 
         const createdAcademies = await DatabaseService.createAcademies(newAcademies);
         setAcademies(prev => [...createdAcademies, ...prev]);
-        addLog('ACADEMIES_IMPORTED', `${newAcademies.length} academias importadas via CSV.`);
         showToast(`${newAcademies.length} academias importadas com sucesso!`);
       } catch (error) {
         console.error("Error parsing CSV:", error);
@@ -871,7 +936,6 @@ const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dis
       try {
         await DatabaseService.deleteAcademy(id);
         setAcademies(prev => prev.filter(i => i.id !== id));
-        addLog('ACADEMY_DELETED', `Academia "${name}" excluída`);
         showToast("Academia excluída!", "error");
       } catch (error) {
         console.error("Error deleting academy:", error);
@@ -1040,7 +1104,7 @@ const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dis
   );
 };
 
-const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any, academies: Academy[], vendedores: User[], addLog: any, onSelectEvent: any, notifyUser: (uid: string, msg: string) => void }> = ({ events, visits, setEvents, academies, vendedores, addLog, onSelectEvent, notifyUser }) => {
+const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any, academies: Academy[], vendedores: User[], onSelectEvent: any, notifyUser: (uid: string, msg: string) => void }> = ({ events, visits, setEvents, academies, vendedores, onSelectEvent, notifyUser }) => {
   const [showModal, setShowModal] = useState(false);
   const [newEvent, setNewEvent] = useState<Partial<Event>>({
     status: EventStatus.UPCOMING,
@@ -1061,7 +1125,6 @@ const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any
       setEvents((prev: Event[]) => [created, ...prev]);
 
       if (created.salespersonId) notifyUser(created.salespersonId, `Você foi atribuído ao novo evento "${created.name}".`);
-      addLog('EVENT_CREATED', `Evento "${created.name}" criado`);
       setShowModal(false);
       setNewEvent({
         status: EventStatus.UPCOMING,
@@ -1081,7 +1144,6 @@ const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any
       try {
         await DatabaseService.deleteEvent(eventId);
         setEvents((prev: Event[]) => prev.filter(ev => ev.id !== eventId));
-        addLog('EVENT_DELETED', `Evento "${eventName}" excluído`);
         alert("Evento excluído!");
       } catch (error) {
         console.error("Error deleting event:", error);
@@ -1625,7 +1687,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
   );
 };
 
-const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events: Event[], vendedores: User[], addLog: any, notifyUser: any }> = ({ finance, setFinance, events, vendedores, addLog, notifyUser }) => {
+const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events: Event[], vendedores: User[], notifyUser: any }> = ({ finance, setFinance, events, vendedores, notifyUser }) => {
   const [showModal, setShowModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<FinanceRecord | null>(null);
   const [formRecord, setFormRecord] = useState<Partial<FinanceRecord>>({ status: FinanceStatus.PENDING });
@@ -1646,7 +1708,6 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
         };
         const updated = await DatabaseService.updateFinance(updatedPayload.id, updatedPayload);
         setFinance((prev: FinanceRecord[]) => prev.map(f => f.id === updated.id ? updated : f));
-        addLog('FINANCE_EDITED', `Lançamento ID ${updated.id} atualizado.`);
       } else {
         const payload: Partial<FinanceRecord> = {
           eventId: formRecord.eventId!,
@@ -1661,7 +1722,6 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
 
         const eventName = events.find(e => e.id === payload.eventId)?.name;
         notifyUser(payload.salespersonId!, `Novo lançamento financeiro no valor de $ ${payload.amount?.toFixed(2)} referente ao evento "${eventName}".`);
-        addLog('FINANCE_CREATED', `Lançamento de $ ${payload.amount?.toFixed(2)} criado para ${vendedores.find(v => v.id === payload.salespersonId)?.name}.`);
       }
 
       setShowModal(false);
@@ -1935,14 +1995,6 @@ const AdminReports: React.FC<{ visits: Visit[], academies: Academy[], events: Ev
   );
 };
 
-const LogsTable: React.FC<{ logs: SystemLog[] }> = ({ logs }) => (
-  <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-sm">
-    <table className="w-full text-left text-sm">
-      <thead className="bg-slate-900 border-b border-slate-700"><tr><th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Hora</th><th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Usuário</th><th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Ação</th></tr></thead>
-      <tbody className="divide-y divide-slate-700">{logs.map(log => (<tr key={log.id} className="hover:bg-slate-700/50"><td className="px-6 py-4 text-slate-500 tabular-nums">{new Date(log.timestamp).toLocaleTimeString()}</td><td className="px-6 py-4 font-bold text-white">{log.userName}</td><td className="px-6 py-4 text-xs text-slate-300 font-medium">{log.action}: {log.details}</td></tr>))}</tbody>
-    </table>
-  </div>
-);
 
 const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visits: Visit[], notifications: any, onDismissNotif: any, onSelectAcademy: any }> = ({ events, academies, visits, notifications, onDismissNotif, onSelectAcademy }) => {
   // Calculate global progress for the salesperson
@@ -2175,7 +2227,7 @@ const SalesFinance: React.FC<{ finance: FinanceRecord[], events: Event[], onConf
 );
 
 
-const AccessControlManager: React.FC<{ addLog: any }> = ({ addLog }) => {
+const AccessControlManager: React.FC = () => {
   const [allowlist, setAllowlist] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [newEmail, setNewEmail] = useState('');
@@ -2198,7 +2250,6 @@ const AccessControlManager: React.FC<{ addLog: any }> = ({ addLog }) => {
       await AuthService.addToAllowlist(newEmail, newRole);
       setNewEmail('');
       loadData();
-      addLog('ACCESS_GRANTED', `Acesso liberado para ${newEmail}`);
       alert('Usuário autorizado com sucesso!');
     } catch (error: any) {
       alert('Erro: ' + error.message);

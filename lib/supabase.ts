@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Academy, Event, Visit, FinanceRecord, SystemLog, Voucher } from '../types';
+import { Academy, Event, Visit, FinanceRecord, Voucher } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zdtkjfljiugjvixiarka.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_XcIl9FFEJXqd_w4QTZTWcw_ZYW9OhZU';
@@ -305,36 +305,6 @@ export const DatabaseService = {
         if (error) throw error;
     },
 
-    // SYSTEM LOGS
-    async getSystemLogs(limit: number = 100) {
-        const { data, error } = await supabase
-            .from('system_logs')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(limit);
-        if (error) throw error;
-        return data.map((log: any) => ({
-            id: log.id,
-            userId: log.user_id,
-            userName: log.user_name,
-            action: log.action,
-            details: log.details,
-            timestamp: log.created_at
-        }));
-    },
-
-
-    async createSystemLog(userId: string, userName: string, action: string, details: string) {
-        const { error } = await supabase
-            .from('system_logs')
-            .insert({
-                user_id: userId,
-                user_name: userName,
-                action,
-                details
-            });
-        if (error) throw error;
-    }
 };
 
 export const AuthService = {
