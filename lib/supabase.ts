@@ -260,6 +260,11 @@ export const DatabaseService = {
         return { ...data, eventId: data.event_id, salespersonId: data.salesperson_id, updatedAt: data.updated_at };
     },
 
+    async deleteFinance(id: string) {
+        const { error } = await supabase.from('finance_records').delete().eq('id', id);
+        if (error) throw error;
+    },
+
     // NOTIFICATIONS
     async getNotifications(userId: string) {
         const { data, error } = await supabase

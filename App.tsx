@@ -280,7 +280,12 @@ const App: React.FC = () => {
 
   // Se o hash contiver public-voucher, renderiza a tela pública
   if (hash.startsWith('#/public-voucher/')) {
-    const voucherData = hash.replace('#/public-voucher/', '').split('|');
+    const rawHash = hash.replace('#/public-voucher/', '');
+    // Tenta dividir por pipe literal, ou pipe encoded (%7C) se o browser/scanner codificou
+    let voucherData = rawHash.split('|');
+    if (voucherData.length < 3 && rawHash.includes('%7C')) {
+      voucherData = rawHash.split('%7C');
+    }
     const academyName = decodeURIComponent(voucherData[0] || '');
     const codesStr = decodeURIComponent(voucherData[1] || '');
     const timestamp = parseInt(voucherData[2] || '0');
@@ -485,8 +490,14 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
             <span>{copied ? 'Copied to Clipboard!' : 'Copy Instructions & Codes'}</span>
           </button>
         </div>
-        <div className="bg-slate-900 p-4 border-t border-slate-800 text-center">
+        <div className="bg-slate-900 p-4 border-t border-slate-800 text-center space-y-4">
           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Expira em 24 horas • Secure BJJVisits Token</p>
+          <button
+            onClick={() => window.location.hash = ''}
+            className="text-slate-500 hover:text-white text-xs font-bold uppercase flex items-center justify-center mx-auto transition-colors"
+          >
+            <X size={14} className="mr-1" /> Fechar Tela
+          </button>
         </div>
       </div>
     </div>
@@ -1691,6 +1702,7 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
   const [showModal, setShowModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<FinanceRecord | null>(null);
   const [formRecord, setFormRecord] = useState<Partial<FinanceRecord>>({ status: FinanceStatus.PENDING });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLaunchOrEdit = async () => {
     if (!formRecord.eventId || !formRecord.salespersonId || !formRecord.amount) {
@@ -1698,6 +1710,7 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (selectedRecord) {
         const updatedPayload = {
@@ -1729,6 +1742,25 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
     } catch (error) {
       console.error("Error saving finance record:", error);
       alert("Erro ao salvar lançamento financeiro.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRecord || !window.confirm("Tem certeza que deseja excluir este lançamento?")) return;
+
+    setIsSubmitting(true);
+    try {
+      await DatabaseService.deleteFinance(selectedRecord.id);
+      setFinance((prev: FinanceRecord[]) => prev.filter(f => f.id !== selectedRecord.id));
+      setShowModal(false);
+      setSelectedRecord(null);
+    } catch (error: any) {
+      console.error("Error deleting finance record:", error);
+      alert("Erro ao excluir lançamento.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1752,7 +1784,7 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <p className="text-slate-400">Controle de comissões.</p>
-        <button onClick={() => setShowModal(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 shadow-lg hover:bg-emerald-700 transition-colors">
+        <button onClick={() => { setSelectedRecord(null); setFormRecord({ status: FinanceStatus.PENDING }); setShowModal(true); }} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 shadow-lg hover:bg-emerald-700 transition-colors">
           <Plus size={20} />
           <span>Lançar Pagamento</span>
         </button>
@@ -1771,8 +1803,11 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
           </thead>
           <tbody className="divide-y divide-slate-700">
             {finance.map(f => (
-              <tr key={f.id} onClick={() => { setSelectedRecord(f); setFormRecord({ ...f }); setShowModal(true); }} className="text-sm hover:bg-slate-700/50 cursor-pointer">
-                <td className="px-6 py-4 font-bold text-white">{events.find(e => e.id === f.eventId)?.name}</td>
+              <tr key={f.id} onClick={() => { setSelectedRecord(f); setFormRecord({ ...f }); setShowModal(true); }} className="text-sm hover:bg-slate-700/50 cursor-pointer group">
+                <td className="px-6 py-4 font-bold text-white relative">
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 group-hover:h-2/3 bg-blue-500 transition-all rounded-r-full"></div>
+                  {events.find(e => e.id === f.eventId)?.name}
+                </td>
                 <td className="px-6 py-4 text-slate-300">{vendedores.find(v => v.id === f.salespersonId)?.name}</td>
                 <td className="px-6 py-4 font-black text-white tabular-nums text-lg">$ {f.amount.toFixed(2)}</td>
                 <td className="px-6 py-4">
@@ -1783,9 +1818,12 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  {f.status === FinanceStatus.PENDING && (
-                    <button onClick={(e) => handleMarkAsPaid(e, f)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors">Marcar Pago</button>
-                  )}
+                  <div className="flex items-center justify-end space-x-2">
+                    <span className="text-xs font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">Editar</span>
+                    {f.status === FinanceStatus.PENDING && (
+                      <button onClick={(e) => handleMarkAsPaid(e, f)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors">Marcar Pago</button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -1809,9 +1847,30 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
                 <option value="">Vendedor</option>
                 {vendedores.map(v => <option key={v.id} value={v.id} className="bg-slate-800">{v.name}</option>)}
               </select>
-              {/* Fix: Wrap e.target.value in Number() to avoid type mismatch on 'amount' field */}
               <input type="number" step="0.01" className="w-full border border-slate-600 p-3 rounded-xl bg-slate-700 text-white focus:border-blue-500 outline-none placeholder:text-slate-400" placeholder="Valor" value={formRecord.amount || ''} onChange={e => setFormRecord({ ...formRecord, amount: Number(e.target.value) })} />
-              <button onClick={handleLaunchOrEdit} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-colors">Salvar Lançamento</button>
+
+              <div className="flex gap-3 pt-2">
+                {selectedRecord && (
+                  <button
+                    onClick={handleDelete}
+                    disabled={isSubmitting}
+                    className="flex-1 bg-red-900/30 text-red-500 py-4 rounded-2xl font-bold hover:bg-red-900/50 transition-colors border border-red-900/50 flex items-center justify-center disabled:opacity-50"
+                  >
+                    <Trash2 size={20} className="mr-2" /> Excluir
+                  </button>
+                )}
+                <button
+                  onClick={handleLaunchOrEdit}
+                  disabled={isSubmitting}
+                  className={`flex-[2] bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isSubmitting ? (
+                    <><RefreshCw className="animate-spin mr-2" size={20} /> Salvando...</>
+                  ) : (
+                    selectedRecord ? 'Salvar Alterações' : 'Lançar Pagamento'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

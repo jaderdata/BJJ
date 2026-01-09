@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthService } from '../lib/supabase';
-import { ShieldCheck, Mail, Lock, User as UserIcon, ArrowRight, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 
 type AuthView = 'LOGIN' | 'REQUEST_ACCESS' | 'ACTIVATE' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD';
 
@@ -121,17 +121,14 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
 
     // Render Components based on View
     return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-4">
             <div className="max-w-md w-full">
                 <div className="text-center mb-8 animate-in slide-in-from-top-4">
-                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-600 text-white shadow-2xl mb-6">
-                        <ShieldCheck size={40} />
-                    </div>
                     <h1 className="text-3xl font-black text-white tracking-tight">BJJVisits</h1>
-                    <p className="text-slate-400 mt-2 font-medium">Acesso Restrito</p>
+                    <p className="text-neutral-400 mt-2 font-medium">Acesso Restrito</p>
                 </div>
 
-                <div className="bg-slate-800 p-8 rounded-[2.5rem] border border-slate-700 shadow-2xl relative overflow-hidden animate-in zoom-in-95">
+                <div className="bg-neutral-800 p-8 rounded-[2.5rem] border border-neutral-700 shadow-2xl relative overflow-hidden animate-in zoom-in-95">
 
                     {/* View Title */}
                     <h2 className="text-xl font-bold text-white mb-6 text-center">
@@ -154,12 +151,12 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                         {/* Fields for ACTIVATE */}
                         {view === 'ACTIVATE' && (
                             <div className="relative group">
-                                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={20} />
                                 <input
                                     required
                                     type="text"
                                     placeholder="Seu Nome Completo"
-                                    className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl text-white focus:border-blue-500 outline-none transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white focus:border-white outline-none transition-all"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                 />
@@ -169,12 +166,12 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                         {/* Fields for LOGIN, REQ_ACCESS, FORGOT */}
                         {['LOGIN', 'REQUEST_ACCESS', 'FORGOT_PASSWORD'].includes(view) && (
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={20} />
                                 <input
                                     required
                                     type="email"
                                     placeholder="Seu E-mail"
-                                    className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl text-white focus:border-blue-500 outline-none transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white focus:border-white outline-none transition-all"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
@@ -184,12 +181,12 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                         {/* Fields for LOGIN, ACTIVATE, RESET */}
                         {['LOGIN', 'ACTIVATE', 'RESET_PASSWORD'].includes(view) && (
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={20} />
                                 <input
                                     required
                                     type="password"
                                     placeholder={view === 'LOGIN' ? "Sua Senha" : "Nova Senha (min 6 chars, 1 num)"}
-                                    className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl text-white focus:border-blue-500 outline-none transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white focus:border-white outline-none transition-all"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
@@ -199,12 +196,12 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                         {/* Confirm Password for ACTIVATE/RESET */}
                         {['ACTIVATE', 'RESET_PASSWORD'].includes(view) && (
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={20} />
                                 <input
                                     required
                                     type="password"
                                     placeholder="Confirme a Senha"
-                                    className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl text-white focus:border-blue-500 outline-none transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white focus:border-white outline-none transition-all"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                 />
@@ -214,7 +211,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                         <button
                             disabled={loading}
                             type="submit"
-                            className="w-full py-4 bg-blue-600 text-white rounded-[1.25rem] font-bold shadow-xl shadow-blue-900/40 hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center space-x-2 text-sm uppercase tracking-wider"
+                            className="w-full py-4 bg-white text-neutral-900 rounded-[1.25rem] font-bold shadow-xl hover:bg-neutral-200 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center space-x-2 text-sm uppercase tracking-wider"
                         >
                             {loading ? <RefreshCw className="animate-spin" size={20} /> : (
                                 <>
@@ -235,24 +232,24 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                     <div className="mt-6 space-y-3 text-center">
                         {view === 'LOGIN' && (
                             <>
-                                <button onClick={() => handleSwitch('FORGOT_PASSWORD')} className="block w-full text-slate-500 hover:text-white text-xs font-bold transition-colors">
+                                <button onClick={() => handleSwitch('FORGOT_PASSWORD')} className="block w-full text-neutral-500 hover:text-white text-xs font-bold transition-colors">
                                     Esqueci minha senha
                                 </button>
-                                <button onClick={() => handleSwitch('REQUEST_ACCESS')} className="block w-full text-blue-400 hover:text-blue-300 text-xs font-bold transition-colors">
+                                <button onClick={() => handleSwitch('REQUEST_ACCESS')} className="block w-full text-neutral-300 hover:text-white text-xs font-bold transition-colors">
                                     Não tem acesso? Solicitar aqui
                                 </button>
                             </>
                         )}
 
                         {(view === 'REQUEST_ACCESS' || view === 'FORGOT_PASSWORD') && (
-                            <button onClick={() => handleSwitch('LOGIN')} className="text-slate-500 hover:text-white text-xs font-bold transition-colors">
+                            <button onClick={() => handleSwitch('LOGIN')} className="text-neutral-500 hover:text-white text-xs font-bold transition-colors">
                                 Voltar para Login
                             </button>
                         )}
                     </div>
 
                 </div>
-                <p className="text-center text-slate-600 text-[10px] mt-8 uppercase font-bold tracking-widest">
+                <p className="text-center text-neutral-600 text-[10px] mt-8 uppercase font-bold tracking-widest">
                     Sistema Protegido • BJJVisits
                 </p>
             </div>
