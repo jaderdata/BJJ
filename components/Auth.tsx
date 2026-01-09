@@ -46,31 +46,28 @@ const Auth: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-4">
             <div className="max-w-md w-full">
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-600 text-white shadow-2xl mb-6 transform hover:rotate-6 transition-transform">
-                        <ShieldCheck size={40} />
-                    </div>
                     <h1 className="text-4xl font-black text-white tracking-tight">BJJVisits</h1>
-                    <p className="text-slate-400 mt-2 font-medium">Official Visit Management System</p>
+                    <p className="text-neutral-400 mt-2 font-medium">Official Visit Management System</p>
                 </div>
 
-                <div className="bg-slate-800 p-8 rounded-[2.5rem] border border-slate-700 shadow-2xl space-y-8 relative overflow-hidden">
+                <div className="bg-neutral-800 p-8 rounded-[2.5rem] border border-neutral-700 shadow-2xl space-y-8 relative overflow-hidden">
                     {/* Subtle gradient overlay */}
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neutral-500 to-neutral-400"></div>
 
-                    <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-slate-700/50">
+                    <div className="flex bg-neutral-900/50 p-1.5 rounded-2xl border border-neutral-700/50">
                         <button
                             onClick={() => setIsSignUp(false)}
-                            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center space-x-2 ${!isSignUp ? 'bg-slate-800 text-white shadow-lg border border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
+                            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center space-x-2 ${!isSignUp ? 'bg-neutral-800 text-white shadow-lg border border-neutral-700' : 'text-neutral-400 hover:text-neutral-200'}`}
                         >
                             <LogIn size={18} />
                             <span>Login</span>
                         </button>
                         <button
                             onClick={() => setIsSignUp(true)}
-                            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center space-x-2 ${isSignUp ? 'bg-slate-800 text-white shadow-lg border border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
+                            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center space-x-2 ${isSignUp ? 'bg-neutral-800 text-white shadow-lg border border-neutral-700' : 'text-neutral-400 hover:text-neutral-200'}`}
                         >
                             <UserPlus size={18} />
                             <span>Sign Up</span>
@@ -88,12 +85,12 @@ const Auth: React.FC = () => {
                             {isSignUp && (
                                 <>
                                     <div className="relative group">
-                                        <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                        <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-white transition-colors" size={20} />
                                         <input
                                             required
                                             type="text"
                                             placeholder="Full Name"
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                            className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                         />
@@ -102,7 +99,7 @@ const Auth: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setRole(UserRole.SALES)}
-                                            className={`flex-1 py-3 rounded-xl border font-bold text-xs transition-all flex items-center justify-center space-x-2 ${role === UserRole.SALES ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-slate-900 border-slate-700 text-slate-500 hover:bg-slate-800'}`}
+                                            className={`flex-1 py-3 rounded-xl border font-bold text-xs transition-all flex items-center justify-center space-x-2 ${role === UserRole.SALES ? 'bg-white/20 border-white text-white' : 'bg-neutral-900 border-neutral-700 text-neutral-500 hover:bg-neutral-800'}`}
                                         >
                                             <Briefcase size={14} />
                                             <span>Sales Role</span>
@@ -110,7 +107,7 @@ const Auth: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setRole(UserRole.ADMIN)}
-                                            className={`flex-1 py-3 rounded-xl border font-bold text-xs transition-all flex items-center justify-center space-x-2 ${role === UserRole.ADMIN ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400' : 'bg-slate-900 border-slate-700 text-slate-500 hover:bg-slate-800'}`}
+                                            className={`flex-1 py-3 rounded-xl border font-bold text-xs transition-all flex items-center justify-center space-x-2 ${role === UserRole.ADMIN ? 'bg-neutral-600/20 border-neutral-500 text-neutral-400' : 'bg-neutral-900 border-neutral-700 text-neutral-500 hover:bg-neutral-800'}`}
                                         >
                                             <ShieldCheck size={14} />
                                             <span>Admin Role</span>
@@ -120,24 +117,24 @@ const Auth: React.FC = () => {
                             )}
 
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-white transition-colors" size={20} />
                                 <input
                                     required
                                     type="email"
                                     placeholder="Email Address"
-                                    className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
                             </div>
 
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-white transition-colors" size={20} />
                                 <input
                                     required
                                     type="password"
                                     placeholder="Password"
-                                    className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
@@ -147,10 +144,10 @@ const Auth: React.FC = () => {
                         <button
                             disabled={loading}
                             type="submit"
-                            className="w-full py-4 bg-blue-600 text-white rounded-[1.25rem] font-bold shadow-xl shadow-blue-900/40 hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center space-x-2"
+                            className="w-full py-4 bg-white text-neutral-900 rounded-[1.25rem] font-bold shadow-xl hover:bg-neutral-200 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center space-x-2"
                         >
                             {loading ? (
-                                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <div className="w-6 h-6 border-2 border-neutral-900/30 border-t-neutral-900 rounded-full animate-spin"></div>
                             ) : (
                                 <>
                                     <span>{isSignUp ? 'Create Account' : 'Verify Identity'}</span>
@@ -162,7 +159,7 @@ const Auth: React.FC = () => {
 
                     {!isSignUp && (
                         <div className="pt-4 text-center">
-                            <p className="text-slate-500 text-xs font-medium uppercase tracking-widest">Authorized Access Only</p>
+                            <p className="text-neutral-500 text-xs font-medium uppercase tracking-widest">Authorized Access Only</p>
                         </div>
                     )}
                 </div>

@@ -43,8 +43,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       <button
         onClick={() => { setActiveTab(id); setSidebarOpen(false); }}
         className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
-          ? 'bg-blue-600 text-white shadow-lg'
-          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+          ? 'bg-white text-neutral-900 shadow-lg'
+          : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
           }`}
       >
         <Icon size={20} />
@@ -54,11 +54,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} print:hidden`}>
+    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-neutral-900 text-white transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} print:hidden`}>
       <div className="flex flex-col h-full p-4">
         <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center space-x-3">
-            <div className="bg-blue-600 p-2 rounded-lg"><School size={24} /></div>
+            <div className="bg-white p-2 rounded-lg text-neutral-900"><School size={24} /></div>
             <span className="text-xl font-bold tracking-tight">BJJVisits</span>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden"><X size={24} /></button>
@@ -80,11 +80,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             </>
           )}
         </nav>
-        <div className="pt-4 border-t border-slate-800 space-y-4">
-          <div className="px-4 py-3 bg-slate-800/50 rounded-lg">
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Logado como</p>
+        <div className="pt-4 border-t border-neutral-800 space-y-4">
+          <div className="px-4 py-3 bg-neutral-800/50 rounded-lg">
+            <p className="text-xs text-neutral-400 font-medium uppercase tracking-wider mb-1">Logado como</p>
             <p className="text-sm font-semibold truncate">{currentUser.name}</p>
-            <p className="text-[10px] text-blue-400 font-bold">{currentUser.role}</p>
+            <p className="text-[10px] text-neutral-400 font-bold">{currentUser.role}</p>
           </div>
           <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors">
             <LogOut size={20} />
