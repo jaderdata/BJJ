@@ -57,10 +57,11 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
 
         try {
             let result;
+            const normalizedEmail = email.trim().toLowerCase();
 
             switch (view) {
                 case 'LOGIN':
-                    result = await AuthService.login(email, password);
+                    result = await AuthService.login(normalizedEmail, password);
                     if (result.success && result.user) {
                         onLogin(result.user);
                         return; // Successfully logged in
@@ -68,7 +69,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                     break;
 
                 case 'REQUEST_ACCESS':
-                    result = await AuthService.requestAccess(email);
+                    result = await AuthService.requestAccess(normalizedEmail);
                     break;
 
                 case 'ACTIVATE':
@@ -86,7 +87,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                     break;
 
                 case 'FORGOT_PASSWORD':
-                    result = await AuthService.requestReset(email);
+                    result = await AuthService.requestReset(normalizedEmail);
                     break;
 
                 case 'RESET_PASSWORD':

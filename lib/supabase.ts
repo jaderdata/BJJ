@@ -310,7 +310,7 @@ export const DatabaseService = {
 export const AuthService = {
     async login(email: string, password: string) {
         const { data, error } = await supabase.rpc('auth_login', {
-            p_email: email,
+            p_email: email.trim().toLowerCase(),
             p_password: password
         });
         if (error) throw error;
@@ -319,7 +319,7 @@ export const AuthService = {
 
     async requestAccess(email: string) {
         const { data, error } = await supabase.rpc('auth_request_access', {
-            p_email: email
+            p_email: email.trim().toLowerCase()
         });
         if (error) throw error;
         return data;
@@ -337,7 +337,7 @@ export const AuthService = {
 
     async requestReset(email: string) {
         const { data, error } = await supabase.rpc('auth_request_reset', {
-            p_email: email
+            p_email: email.trim().toLowerCase()
         });
         if (error) throw error;
         return data;
@@ -360,7 +360,11 @@ export const AuthService = {
     },
 
     async addToAllowlist(email: string, role: 'ADMIN' | 'SALES') {
-        const { data, error } = await supabase.from('app_allowlist').insert({ email, role, status: 'ACTIVE' }).select().single();
+        const { data, error } = await supabase.from('app_allowlist').insert({
+            email: email.trim().toLowerCase(),
+            role,
+            status: 'ACTIVE'
+        }).select().single();
         if (error) throw error;
         return data;
     },
