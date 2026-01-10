@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthService } from '../lib/supabase';
-import { Mail, Lock, User as UserIcon, ArrowRight, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, CheckCircle2, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
 
 type AuthView = 'LOGIN' | 'REQUEST_ACCESS' | 'ACTIVATE' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD';
 
@@ -14,6 +14,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [name, setName] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     // Token from URL
     const [token, setToken] = useState<string | null>(null);
@@ -43,6 +44,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
         setConfirmPassword('');
         setName('');
         setMessage(null);
+        setShowPassword(false);
     };
 
     const handleSwitch = (newView: AuthView) => {
@@ -123,9 +125,13 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
     return (
         <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-4">
             <div className="max-w-md w-full">
-                <div className="text-center mb-8 animate-in slide-in-from-top-4">
+                <div className="text-center mb-8 animate-in slide-in-from-top-4 flex flex-col items-center">
+                    <img
+                        src="/oss_logo.jpg"
+                        alt="OSS Logo"
+                        className="w-48 h-auto mb-1 mix-blend-screen filter invert hue-rotate-180 brightness-110 contrast-125 saturate-150 object-contain"
+                    />
                     <h1 className="text-3xl font-black text-white tracking-tight">BJJVisits</h1>
-                    <p className="text-neutral-400 mt-2 font-medium">Acesso Restrito</p>
                 </div>
 
                 <div className="bg-neutral-800 p-8 rounded-[2.5rem] border border-neutral-700 shadow-2xl relative overflow-hidden animate-in zoom-in-95">
@@ -184,12 +190,19 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" size={20} />
                                 <input
                                     required
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder={view === 'LOGIN' ? "Sua Senha" : "Nova Senha (min 6 chars, 1 num)"}
-                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white focus:border-white outline-none transition-all"
+                                    className="w-full pl-12 pr-12 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white focus:border-white outline-none transition-all"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
+                                >
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
                             </div>
                         )}
 
@@ -249,9 +262,6 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                     </div>
 
                 </div>
-                <p className="text-center text-neutral-600 text-[10px] mt-8 uppercase font-bold tracking-widest">
-                    Sistema Protegido • BJJVisits
-                </p>
             </div>
         </div>
     );

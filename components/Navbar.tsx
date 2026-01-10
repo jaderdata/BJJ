@@ -10,7 +10,7 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ setSidebarOpen, activeTab }) => {
     return (
         <header className="h-16 bg-neutral-800 border-b border-neutral-700 flex items-center justify-between px-6 shrink-0 print:hidden text-white">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-neutral-400 hover:text-white"><Menu size={24} /></button>
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-neutral-400 hover:text-white"><Menu size={20} strokeWidth={1.5} /></button>
             <h2 className="text-lg font-bold text-white">
                 {activeTab === 'dashboard' && 'Visão Geral'}
                 {activeTab === 'academies' && 'Gerenciar Academias'}

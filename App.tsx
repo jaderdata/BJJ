@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  LayoutDashboard,
-  School,
-  Calendar,
+  BarChart3,
+  Building2,
+  CalendarDays,
   Users,
-  DollarSign,
-  FileText,
+  Wallet,
+  FileBarChart,
   ClipboardList,
   LogOut,
   Menu,
@@ -39,7 +39,7 @@ import {
   FileDown,
   Printer,
   FileSpreadsheet,
-  Wallet,
+  Wallet as WalletIcon,
   UserCheck,
   QrCode,
   Copy,
@@ -124,17 +124,47 @@ const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Limpar campos de seleção ao mudar para abas principais (não detalhes)
+  useEffect(() => {
+    const detailTabs = ['visit_detail', 'event_detail_admin'];
+
+    // Só limpamos se não estivermos indo para uma tela de detalhes
+    if (!detailTabs.includes(activeTab)) {
+      setSelectedEventId(null);
+      setSelectedAcademyId(null);
+    }
+
+    // Verificação de Segurança de Perfil (Role Protection)
+    if (currentUser) {
+      const adminTabs = ['dashboard', 'access_control', 'academies', 'events', 'admin_finance', 'reports', 'event_detail_admin'];
+      if (currentUser.role !== UserRole.ADMIN && adminTabs.includes(activeTab)) {
+        setActiveTab('my_events');
+      }
+      if (currentUser.role === UserRole.ADMIN && activeTab === 'visit_detail') {
+        setActiveTab('dashboard');
+      }
+    }
+  }, [activeTab, currentUser?.role]);
+
   useEffect(() => {
     // Check local session
     const storedUser = localStorage.getItem('bjj_user');
     if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
+      try {
+        const parsed = JSON.parse(storedUser);
+        setCurrentUser(parsed);
+      } catch (e) {
+        localStorage.removeItem('bjj_user');
+      }
     }
   }, []);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     localStorage.setItem('bjj_user', JSON.stringify(user));
+    // Reset state and set initial tab
+    setSelectedEventId(null);
+    setSelectedAcademyId(null);
     setActiveTab(user.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
   };
 
@@ -143,9 +173,9 @@ const App: React.FC = () => {
     if (currentUser) {
       loadData();
     }
-  }, [currentUser]);
+  }, [currentUser?.id]); // Use ID to be safe
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     try {
       const dbAcademies = await DatabaseService.getAcademies();
       setAcademies(dbAcademies);
@@ -175,12 +205,94 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Error loading data:", error);
     }
-  };
+  }, [currentUser?.id]);
+
+  // Real-time Notifications Subscription
+  useEffect(() => {
+    if (!currentUser) return;
+
+    console.log('🔔 [Notifications] Setting up realtime subscription for user:', currentUser.id);
+
+    const channel = supabase
+      .channel(`user-notifs-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${currentUser.id}`
+        },
+        (payload) => {
+          console.log('🔔 [Notifications] Received realtime notification:', payload);
+          const newN = payload.new;
+          const mapped: Notification = {
+            id: newN.id,
+            userId: newN.user_id,
+            message: newN.message,
+            read: newN.read,
+            timestamp: newN.created_at
+          };
+          console.log('🔔 [Notifications] Adding to state:', mapped);
+          setNotifications(prev => [mapped, ...prev]);
+        }
+      )
+      .subscribe((status) => {
+        console.log('🔔 [Notifications] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔔 [Notifications] Cleaning up subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
+
+  // 🔄 Real-time Global Data Sync
+  useEffect(() => {
+    if (!currentUser) return;
+
+    console.log('🔄 [DataSync] Setting up global realtime synchronization...');
+
+    const channel = supabase
+      .channel('global-data-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'academies' }, (p) => {
+        console.log('🔄 [DataSync] academies changed:', p.eventType);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, (p) => {
+        console.log('🔄 [DataSync] events changed:', p.eventType);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_academies' }, (p) => {
+        console.log('🔄 [DataSync] event_academies changed:', p.eventType);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits' }, (p) => {
+        console.log('🔄 [DataSync] visits changed:', p.eventType);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vouchers' }, (p) => {
+        console.log('🔄 [DataSync] vouchers changed:', p.eventType);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'finance_records' }, (p) => {
+        console.log('🔄 [DataSync] finance_records changed:', p.eventType);
+        loadData();
+      })
+      .subscribe((status) => {
+        console.log('🔄 [DataSync] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔄 [DataSync] Cleaning up global synchronization');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id, loadData]);
 
   const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('app_users')
         .select('*')
         .eq('id', userId)
         .single();
@@ -190,7 +302,7 @@ const App: React.FC = () => {
         setCurrentUser({
           id: data.id,
           name: data.name,
-          email: '', // Not stored in profiles, but available in auth.user
+          email: data.email,
           role: data.role as UserRole
         });
         setActiveTab(data.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
@@ -207,15 +319,24 @@ const App: React.FC = () => {
   };
 
   const fetchUsers = async () => {
-    const { data: salesData } = await supabase.from('app_users').select('*').eq('role', UserRole.SALES);
+    // Buscar apenas usuários ATIVOS da tabela app_users
+    const { data: salesData } = await supabase
+      .from('app_users')
+      .select('*')
+      .eq('role', UserRole.SALES)
+      .eq('status', 'ACTIVE');
     if (salesData) setSellers(salesData as User[]);
 
-    const { data: adminData } = await supabase.from('app_users').select('*').eq('role', UserRole.ADMIN);
+    const { data: adminData } = await supabase
+      .from('app_users')
+      .select('*')
+      .eq('role', UserRole.ADMIN)
+      .eq('status', 'ACTIVE');
     if (adminData) setAdmins(adminData as User[]);
   };
 
   useEffect(() => {
-    if (currentUser?.role === UserRole.ADMIN) {
+    if (currentUser) {
       fetchUsers();
     }
   }, [currentUser]);
@@ -223,20 +344,29 @@ const App: React.FC = () => {
 
   /* Restore notifyUser */
   const notifyUser = async (userId: string, message: string) => {
-    const newNotif: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId,
-      message,
-      read: false,
-      timestamp: new Date().toISOString()
-    };
-    setNotifications(prev => [newNotif, ...prev]);
+    console.log('📤 [Notifications] Sending notification:', { userId, message, currentUserId: currentUser?.id });
+
+    // Adicionamos ao estado local apenas se a notificação for para o usuário atual
+    // Notifications para outros serão processadas via banco de dados e recebidas via Realtime pelo destinatário
+    if (userId === currentUser?.id) {
+      console.log('📤 [Notifications] Adding to local state (same user)');
+      const newNotif: Notification = {
+        id: Math.random().toString(36).substr(2, 9),
+        userId,
+        message,
+        read: false,
+        timestamp: new Date().toISOString()
+      };
+      setNotifications(prev => [newNotif, ...prev]);
+    }
 
     // Persist to database
     try {
-      await DatabaseService.createNotification(userId, message);
+      console.log('📤 [Notifications] Saving to database...');
+      const result = await DatabaseService.createNotification(userId, message);
+      console.log('📤 [Notifications] Saved successfully:', result);
     } catch (error) {
-      console.error('Error saving notification:', error);
+      console.error('📤 [Notifications] Error saving notification:', error);
     }
   };
 
@@ -266,9 +396,14 @@ const App: React.FC = () => {
       }
 
       if (oldEvent && updatedEvent.salespersonId) {
-        const newAcademiesCount = updatedEvent.academiesIds.length - oldEvent.academiesIds.length;
-        if (newAcademiesCount > 0) {
-          notifyUser(updatedEvent.salespersonId, `${newAcademiesCount} novas academias atribuídas ao evento "${updatedEvent.name}".`);
+        const added = updatedEvent.academiesIds.filter(id => !oldEvent.academiesIds.includes(id));
+        if (added.length > 0) {
+          notifyUser(updatedEvent.salespersonId, `${added.length} novas academias atribuídas ao evento "${updatedEvent.name}".`);
+        }
+
+        // Notificar se detalhes básicos mudaram
+        if (oldEvent.name !== updatedEvent.name || oldEvent.city !== updatedEvent.city || oldEvent.state !== updatedEvent.state) {
+          notifyUser(updatedEvent.salespersonId, `As informações do evento "${updatedEvent.name}" foram atualizadas.`);
         }
       }
 
@@ -330,7 +465,7 @@ const App: React.FC = () => {
               {notifications.filter(n => n.userId === currentUser.id && !n.read).map((n) => (
                 <div key={n.id} className="bg-neutral-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-lg animate-in slide-in-from-top-2 border border-neutral-500">
                   <div className="flex items-center space-x-3">
-                    <Bell size={20} />
+                    <Bell size={18} strokeWidth={1.5} />
                     <span className="font-bold text-sm">{n.message}</span>
                   </div>
                   <button onClick={() => {
@@ -346,7 +481,7 @@ const App: React.FC = () => {
 
           {activeTab === 'dashboard' && currentUser.role === UserRole.ADMIN && <AdminDashboard events={events} academies={academies} visits={visits} vouchers={vouchers} finance={finance} vendedores={sellers} />}
           {activeTab === 'access_control' && currentUser.role === UserRole.ADMIN && <AccessControlManager />}
-          {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} currentUser={currentUser} />}
+          {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} currentUser={currentUser} notifyUser={notifyUser} />}
           {activeTab === 'events' && currentUser.role === UserRole.ADMIN && <EventsManager events={events} visits={visits} setEvents={setEvents} academies={academies} vendedores={sellers} onSelectEvent={(id) => { setSelectedEventId(id); setActiveTab('event_detail_admin'); }} notifyUser={notifyUser} />}
           {activeTab === 'event_detail_admin' && selectedEventId && currentUser.role === UserRole.ADMIN && (
             <EventDetailAdmin
@@ -356,6 +491,7 @@ const App: React.FC = () => {
               vendedores={sellers}
               onBack={() => setActiveTab('events')}
               onUpdateEvent={handleUpdateEvent}
+              notifyUser={notifyUser}
             />
           )}
           {activeTab === 'admin_finance' && currentUser.role === UserRole.ADMIN && (
@@ -414,6 +550,12 @@ const App: React.FC = () => {
                   try {
                     const updated = await DatabaseService.updateFinance(record.id, { ...record, status: FinanceStatus.RECEIVED, updatedAt: new Date().toISOString() });
                     setFinance(prev => prev.map(f => f.id === recordId ? updated : f));
+
+                    // Notificar admins que o vendedor recebeu o dinheiro
+                    const eventName = events.find(e => e.id === record.eventId)?.name;
+                    admins.forEach(admin => {
+                      notifyUser(admin.id, `O vendedor ${currentUser?.name} confirmou o recebimento de $ ${record.amount.toFixed(2)} referente ao evento "${eventName}".`);
+                    });
                   } catch (error) {
                     console.error("Error confirming finance:", error);
                   }
@@ -458,7 +600,7 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
     <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-4">
       <div className="max-w-xl w-full bg-neutral-800 rounded-3xl shadow-2xl border border-neutral-700 overflow-hidden">
         <div className="bg-neutral-950 p-6 text-center text-white">
-          <div className="bg-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4"><Ticket size={24} /></div>
+          <div className="bg-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4"><Ticket size={18} strokeWidth={1.5} /></div>
           <h1 className="text-xl font-bold">PBJJF Vouchers</h1>
           <p className="text-xs text-neutral-400 mt-1 uppercase tracking-widest">{academyName}</p>
         </div>
@@ -486,7 +628,7 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
             onClick={handleCopy}
             className={`w-full flex items-center justify-center space-x-2 py-4 rounded-2xl font-bold transition-all ${copied ? 'bg-emerald-600 text-white' : 'bg-white text-neutral-900 hover:bg-neutral-200'}`}
           >
-            {copied ? <CheckCircle2 size={20} /> : <Copy size={20} />}
+            {copied ? <CheckCircle2 size={18} strokeWidth={1.5} /> : <Copy size={18} strokeWidth={1.5} />}
             <span>{copied ? 'Copied to Clipboard!' : 'Copy Instructions & Codes'}</span>
           </button>
         </div>
@@ -496,7 +638,7 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
             onClick={() => window.location.hash = ''}
             className="text-neutral-500 hover:text-white text-xs font-bold uppercase flex items-center justify-center mx-auto transition-colors"
           >
-            <X size={14} className="mr-1" /> Fechar Tela
+            <X size={14} strokeWidth={1.5} className="mr-1" /> Fechar Tela
           </button>
         </div>
       </div>
@@ -546,6 +688,7 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
           retirado: "NO"
         });
       });
+
 
       const { data, error } = await supabase.functions.invoke('sync-vouchers', {
         body: { events: groupedData }
@@ -634,244 +777,174 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
         </select>
       </div>
 
-      {/* KPI Cards - Removed Revenue Card */}
-      {/* KPI Cards - Rebalanced to 4 columns */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-neutral-800 p-5 rounded-3xl border border-neutral-700 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-2">
-            <div className="p-2 bg-neutral-900/30 text-neutral-400 rounded-xl"><Calendar size={20} /></div>
-            <span className="text-[10px] font-black text-neutral-500/50 bg-neutral-900/20 px-2 py-0.5 rounded-full uppercase tracking-tighter">Eventos</span>
-          </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-black text-white">{activeEventsCount}</h3>
-            <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Eventos Ativos</p>
-          </div>
-          <div className="mt-4 pt-4 border-t border-neutral-700/50">
-            <p className="text-[10px] text-neutral-500 font-medium">Eventos em andamento</p>
-          </div>
-        </div>
-
-        <div className="bg-neutral-800 p-5 rounded-3xl border border-neutral-700 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-2">
-            <div className="p-2 bg-emerald-900/30 text-emerald-400 rounded-xl"><CheckCircle2 size={20} /></div>
-            <span className="text-[10px] font-black text-emerald-500/50 bg-emerald-900/20 px-2 py-0.5 rounded-full uppercase tracking-tighter">Sucesso</span>
-          </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-black text-white">{filteredVisits.length}</h3>
-            <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Visitas Realizadas</p>
-          </div>
-          <div className="mt-4 pt-4 border-t border-neutral-700/50">
-            <p className="text-[10px] text-neutral-500 font-medium">Total acumulado {selectedYear}</p>
-          </div>
-        </div>
-
-        <div className="bg-neutral-800 p-5 rounded-3xl border border-neutral-700 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-2">
-            <div className="p-2 bg-neutral-700 text-neutral-400 rounded-xl"><Clock size={20} /></div>
-            <span className="text-[10px] font-black text-neutral-500 bg-neutral-900/50 px-2 py-0.5 rounded-full uppercase tracking-tighter">Planejadas</span>
-          </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-black text-white">{pendingVisitsCount}</h3>
-            <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Visitas Pendentes</p>
-          </div>
-          <div className="mt-4 pt-4 border-t border-neutral-700/50">
-            <p className="text-[10px] text-neutral-500 font-medium">Aguardando atendimento</p>
-          </div>
-        </div>
-
-        <div className="bg-neutral-800 p-5 rounded-3xl border border-neutral-700 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-3xl rounded-full -mr-10 -mt-10 group-hover:bg-amber-500/10 transition-colors"></div>
-          <div className="flex justify-between items-start mb-2">
-            <div className="p-2 bg-amber-900/30 text-amber-400 rounded-xl"><Ticket size={20} /></div>
-            <button
-              onClick={handleSyncSheet}
-              disabled={syncingSheet}
-              className={`p-2 bg-neutral-900/50 rounded-lg hover:bg-neutral-900 transition-colors ${syncingSheet ? 'cursor-not-allowed opacity-50' : 'text-amber-500'}`}
-              title="Sincronizar Planilha"
-            >
-              <Share2 size={16} className={syncingSheet ? 'animate-spin' : ''} />
-            </button>
-          </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-black text-white">{filteredVouchers.length}</h3>
-            <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">Vouchers Gerados</p>
-          </div>
-          <div className="mt-4 pt-4 border-t border-neutral-700/50 flex justify-between items-center">
-            <p className="text-[10px] text-neutral-500 font-medium">Conversão de alunos</p>
-            {!syncingSheet && (
-              <button onClick={handleSyncSheet} className="text-[10px] font-black text-amber-500 uppercase hover:underline">Atualizar</button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Row - Optimized Framing */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Performance de Visitas - 3 columns for better balance */}
-        <div className="lg:col-span-3 bg-neutral-800 p-8 rounded-[2.5rem] border border-neutral-700 shadow-xl min-h-[480px] flex flex-col">
-          <div className="flex justify-between items-start mb-10">
-            <div className="space-y-1">
-              <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em]">Performance de Visitas</h3>
-              <p className="text-[10px] text-neutral-500 font-bold uppercase">Eficiência e Metas de Conversão</p>
-            </div>
-            <div className="flex flex-col items-end space-y-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
-                <span className="text-[10px] text-neutral-400 font-black uppercase tracking-tighter">Realizadas</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-neutral-600"></div>
-                <span className="text-[10px] text-neutral-400 font-black uppercase tracking-tighter">Pendentes</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 flex-1">
-            {/* Meta Card */}
-            <div className="bg-neutral-900/60 p-8 rounded-[2.5rem] border border-neutral-700/50 flex flex-col items-center justify-center relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.3em] mb-4 relative z-10">Meta Global</p>
-              <h4 className="text-7xl font-black text-white italic leading-none relative z-10">
-                {visitsInYear.length > 0 ? Math.round((filteredVisits.length / visitsInYear.length) * 100) : 0}%
-              </h4>
-              <p className="text-[10px] text-neutral-500 font-bold uppercase mt-4 relative z-10">Aproveitamento</p>
-            </div>
-
-            {/* Realizadas Card */}
-            <div className="bg-neutral-900/60 p-8 rounded-[2.5rem] border border-neutral-700/50 flex flex-col items-center justify-center relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-4 relative z-10">Concluídas</p>
-              <div className="flex items-baseline space-x-2 relative z-10">
-                <h4 className="text-7xl font-black text-white leading-none">{filteredVisits.length}</h4>
-                <span className="text-neutral-500 font-black text-xl">/ {visitsInYear.length}</span>
-              </div>
-              <div className="mt-8 w-full h-2 bg-neutral-950 rounded-full overflow-hidden p-0.5 border border-neutral-800 relative z-10">
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                  style={{ width: `${(filteredVisits.length / Math.max(visitsInYear.length, 1)) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-
-            {/* Pendentes Card */}
-            <div className="bg-neutral-900/60 p-8 rounded-[2.5rem] border border-neutral-700/50 flex flex-col items-center justify-center relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-              <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.3em] mb-4 relative z-10">Pendentes</p>
-              <h4 className="text-7xl font-black text-white leading-none relative z-10">{filteredPendingVisits.length}</h4>
-              <p className="text-[10px] text-neutral-500 font-bold uppercase mt-4 relative z-10">Restantes</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Temperatura - 2 columns */}
-        <div className="lg:col-span-2 bg-neutral-800 p-8 rounded-[2.5rem] border border-neutral-700 shadow-xl min-h-[480px] flex flex-col">
-          <div className="mb-10">
-            <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em]">Interesse das Academias</h3>
-            <p className="text-[10px] text-neutral-500 font-bold uppercase mt-1">Nível de temperatura pós-visita</p>
-          </div>
-
-          <div className="flex-1 flex flex-col justify-center">
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={temperatureData} layout="vertical" margin={{ left: -15, right: 65, top: 0, bottom: 0 }}>
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" width={80} stroke="#94a3b8" fontSize={13} fontStyle="italic" fontWeight="900" tickLine={false} axisLine={false} />
-                  <Tooltip cursor={{ fill: '#334155', opacity: 0.1 }} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '15px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)' }} />
-                  <Bar dataKey="value" radius={[0, 15, 15, 0]} barSize={45}>
-                    {temperatureData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.name === 'HOT' ? '#ef4444' : entry.name === 'WARM' ? '#f59e0b' : '#64748b'}
-                        className="filter drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]"
-                      />
-                    ))}
-                    <Label
-                      position="right"
-                      content={({ value, x, y, width, height }: any) => (
-                        <text
-                          x={Number(x) + Number(width) + 25}
-                          y={Number(y) + Number(height) / 2}
-                          fill="#fff"
-                          fontSize={32}
-                          fontWeight="900"
-                          fontStyle="italic"
-                          textAnchor="start"
-                          dominantBaseline="middle"
-                        >
-                          {value}
-                        </text>
-                      )}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="mt-10 grid grid-cols-3 gap-4">
-            {['HOT', 'WARM', 'COLD'].map(temp => (
-              <div key={temp} className="text-center group">
-                <div className={`text-[10px] font-black uppercase mb-3 tracking-widest ${temp === 'HOT' ? 'text-red-500' : temp === 'WARM' ? 'text-amber-500' : 'text-neutral-500'}`}>{temp}</div>
-                <div className="h-2 bg-neutral-950 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                  <div
-                    className={`h-full rounded-full transition-all duration-1000 ease-in-out ${temp === 'HOT' ? 'bg-red-500' : temp === 'WARM' ? 'bg-amber-500' : 'bg-neutral-500'}`}
-                    style={{ width: `${(temperatureData.find(d => d.name === temp)?.value || 0) / Math.max(filteredVisits.length, 1) * 100}%` }}
-                  ></div>
+        {[
+          { label: 'Eventos Ativos', value: activeEventsCount, icon: CalendarDays, color: 'neutral', sub: 'Eventos em andamento', tag: 'Eventos' },
+          { label: 'Visitas Realizadas', value: filteredVisits.length, icon: CheckCircle2, color: 'emerald', sub: `Total acumulado ${selectedYear}`, tag: 'Sucesso' },
+          { label: 'Visitas Pendentes', value: pendingVisitsCount, icon: Clock, color: 'neutral', sub: 'Aguardando atendimento', tag: 'Planejadas' },
+          { label: 'Vouchers Gerados', value: filteredVouchers.length, icon: Ticket, color: 'amber', tag: 'Vouchers', sync: true, noIcon: true }
+        ].map((kpi, i) => (
+          <div key={i} className="bg-neutral-800 p-5 rounded-3xl border border-neutral-700 shadow-sm relative overflow-hidden group flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                {!kpi.noIcon ? (
+                  <div className={`p-2 rounded-xl ${kpi.color === 'emerald' ? 'bg-emerald-900/30 text-emerald-400' : kpi.color === 'amber' ? 'bg-amber-900/30 text-amber-400' : 'bg-neutral-900/30 text-neutral-400'}`}>
+                    <kpi.icon size={18} strokeWidth={1.5} />
+                  </div>
+                ) : <div />}
+                <div className="flex items-center space-x-2">
+                  {kpi.sync && !kpi.noIcon && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleSyncSheet(); }}
+                      disabled={syncingSheet}
+                      className="p-1.5 bg-neutral-900/50 rounded-lg hover:bg-neutral-900 transition-colors text-amber-500"
+                    >
+                      <RefreshCw size={14} strokeWidth={2} className={syncingSheet ? 'animate-spin' : ''} />
+                    </button>
+                  )}
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${kpi.color === 'emerald' ? 'bg-emerald-900/20 text-emerald-500/50' : kpi.color === 'amber' ? 'bg-amber-900/20 text-amber-500/50' : 'bg-neutral-900/50 text-neutral-500'}`}>
+                    {kpi.tag}
+                  </span>
                 </div>
               </div>
-            ))}
+              <div className="mt-4">
+                <h3 className="text-3xl font-black text-white">{kpi.value}</h3>
+                <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">{kpi.label}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-neutral-700/50">
+              {kpi.sync && kpi.noIcon ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleSyncSheet(); }}
+                  disabled={syncingSheet}
+                  className="w-full flex items-center justify-center space-x-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-900/20"
+                >
+                  <RefreshCw size={14} strokeWidth={2} className={syncingSheet ? 'animate-spin' : ''} />
+                  <span>{syncingSheet ? 'Sincronizando...' : 'Atualizar Planilha'}</span>
+                </button>
+              ) : (
+                <p className="text-[10px] text-neutral-500 font-medium">{kpi.sub || 'Período atual'}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Performance & Temperature Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+        {/* Performance Section */}
+        <div className="bg-neutral-800 p-8 rounded-[2.5rem] border border-neutral-700 shadow-xl flex flex-col">
+          <div className="mb-8">
+            <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] mb-1">Performance de Visitas</h3>
+            <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Métricas de Atendimento</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-6 mb-12">
+            <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-700/30">
+              <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest block mb-2">Meta Global</span>
+              <div className="flex items-baseline space-x-1">
+                <span className="text-4xl font-black text-white">{visitsInYear.length > 0 ? Math.round((filteredVisits.length / visitsInYear.length) * 100) : 0}</span>
+                <span className="text-lg font-black text-neutral-500">%</span>
+              </div>
+            </div>
+
+            <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-700/30">
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block mb-2">Concluídas</span>
+              <div className="flex items-baseline space-x-1">
+                <span className="text-4xl font-black text-white">{filteredVisits.length}</span>
+                <span className="text-xs font-black text-neutral-500">/ {visitsInYear.length}</span>
+              </div>
+            </div>
+
+            <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-700/30">
+              <span className="text-[10px] font-black text-red-400 uppercase tracking-widest block mb-2">Pendentes</span>
+              <div className="text-4xl font-black text-white">{filteredPendingVisits.length}</div>
+            </div>
+          </div>
+
+          <div className="border-t border-neutral-700/50 pt-8">
+            <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] mb-6">Indicador Geral de Temperatura</h3>
+            <div className="grid grid-cols-3 gap-6">
+              {[
+                { label: 'Quente', key: AcademyTemperature.HOT, color: 'text-red-500' },
+                { label: 'Morno', key: AcademyTemperature.WARM, color: 'text-blue-500' },
+                { label: 'Frio', key: AcademyTemperature.COLD, color: 'text-neutral-500' }
+              ].map((temp) => {
+                const count = temperatureData.find(t => t.name === temp.key)?.value || 0;
+                const totalCount = Math.max(filteredVisits.length, 1);
+                const percent = Math.round((count / totalCount) * 100);
+                return (
+                  <div key={temp.key} className="flex flex-col group">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className={`w-2 h-2 rounded-full ${temp.key === AcademyTemperature.HOT ? 'bg-red-500' : temp.key === AcademyTemperature.WARM ? 'bg-blue-500' : 'bg-neutral-500'}`}></div>
+                      <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{temp.label}</span>
+                    </div>
+                    <div className="flex items-baseline space-x-2">
+                      <span className={`text-4xl font-black transition-all group-hover:scale-105 ${temp.color}`}>{count > 0 ? `${percent}%` : '0%'}</span>
+                      <span className="text-[10px] font-black text-neutral-500 uppercase tracking-tighter">{count} Classificações</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Seller Leaderboard (Updated) & Latest Activity */}
+      {/* Leaderboard & Latest Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-neutral-800 p-6 rounded-3xl border border-neutral-700 shadow-sm">
           <h3 className="text-lg font-bold text-white mb-4">Top Vendedores</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-neutral-700">
-                  <th className="pb-3 text-xs font-bold text-neutral-500 uppercase">Vendedor</th>
-                  <th className="pb-3 text-xs font-bold text-neutral-500 uppercase text-right">Visitas</th>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-neutral-700 text-xs text-neutral-500 uppercase font-black">
+                <th className="pb-3">Vendedor</th>
+                <th className="pb-3 text-right">Visitas</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-700/50">
+              {sellerLeaderboard.map((seller, idx) => (
+                <tr key={idx} className="hover:bg-neutral-700/30">
+                  <td className="py-3 text-sm font-bold text-white flex items-center">
+                    <span className="w-6 h-6 rounded-lg bg-neutral-700 flex items-center justify-center mr-3 text-xs">{idx + 1}</span>
+                    {seller.name}
+                  </td>
+                  <td className="py-3 text-sm text-neutral-400 text-right">{seller.visits}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-700/50">
-                {sellerLeaderboard.map((seller, idx) => (
-                  <tr key={idx} className="group hover:bg-neutral-700/30 transition-colors">
-                    <td className="py-3 text-sm font-bold text-white flex items-center">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 text-[10px] font-black ${idx === 0 ? 'bg-yellow-500 text-yellow-900' : idx === 1 ? 'bg-neutral-400 text-neutral-900' : idx === 2 ? 'bg-orange-700 text-orange-200' : 'bg-neutral-700 text-neutral-400'}`}>
-                        {idx + 1}
-                      </div>
-                      {seller.name}
-                    </td>
-                    <td className="py-3 text-sm text-neutral-400 text-right">{seller.visits}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         <div className="bg-neutral-800 p-6 rounded-3xl border border-neutral-700 shadow-sm">
           <h3 className="text-lg font-bold text-white mb-4">Últimos Lançamentos</h3>
           <div className="space-y-4">
-            {finance.slice(0, 5).map(f => (
-              <div key={f.id} className="flex items-center justify-between p-3 bg-neutral-900/50 rounded-xl border border-neutral-800">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-emerald-900/30 text-emerald-500 p-2 rounded-lg"><DollarSign size={16} /></div>
-                  <div>
-                    <p className="text-sm font-bold text-white">{events.find(e => e.id === f.eventId)?.name}</p>
-                    <p className="text-xs text-neutral-500">{new Date(f.updatedAt).toLocaleDateString()}</p>
+            {[...finance]
+              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+              .slice(0, 5)
+              .map(f => (
+                <div key={f.id} className="flex items-center justify-between p-3 bg-neutral-900/50 rounded-2xl border border-neutral-800">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-emerald-900/30 text-emerald-500 p-2 rounded-lg"><Wallet size={16} strokeWidth={1.5} /></div>
+                    <div>
+                      <p className="text-sm font-bold text-white tracking-tight">{events.find(e => e.id === f.eventId)?.name || 'Evento'}</p>
+                      <p className="text-[10px] text-neutral-500">{new Date(f.updatedAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-white">${f.amount.toFixed(2)}</p>
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase ${f.status === FinanceStatus.PENDING ? 'bg-amber-900/20 text-amber-500' :
+                      f.status === FinanceStatus.PAID ? 'bg-neutral-900/40 text-neutral-500' :
+                        'bg-emerald-900/20 text-emerald-500'
+                      }`}>
+                      {f.status}
+                    </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-black text-white">${f.amount}</p>
-                  <span className="text-[10px] text-neutral-400 uppercase tracking-widest">{f.status}</span>
-                </div>
-              </div>
-            ))}
-            {finance.length === 0 && <p className="text-neutral-500 text-center py-4">Nenhum lançamento recente.</p>}
+              ))}
+            {finance.length === 0 && <p className="text-neutral-500 text-sm text-center py-4">Nenhum lançamento recente.</p>}
           </div>
         </div>
       </div>
@@ -879,7 +952,7 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
   );
 };
 
-const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dispatch<React.SetStateAction<Academy[]>>, currentUser: User }> = ({ academies, setAcademies, currentUser }) => {
+const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dispatch<React.SetStateAction<Academy[]>>, currentUser: User, notifyUser: (uid: string, msg: string) => void }> = ({ academies, setAcademies, currentUser, notifyUser }) => {
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'view' | 'edit'>('create');
   const [academyForm, setAcademyForm] = useState<Partial<Academy>>({ state: 'SP' });
@@ -976,7 +1049,7 @@ const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dis
   return (
     <div className="space-y-6">
       {toast && <div className="fixed top-20 right-8 z-[200] bg-neutral-900 text-white px-6 py-4 rounded-xl shadow-2xl animate-in slide-in-from-right flex items-center space-x-3 border border-neutral-700">
-        {toast.type === 'success' ? <CheckCircle2 size={20} className="text-emerald-400" /> : <AlertCircle size={20} className="text-red-400" />}
+        {toast.type === 'success' ? <CheckCircle2 size={18} strokeWidth={1.5} className="text-emerald-400" /> : <AlertCircle size={18} strokeWidth={1.5} className="text-red-400" />}
         <span className="font-bold">{toast.message}</span>
       </div>}
 
@@ -987,12 +1060,12 @@ const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dis
         </div>
         <div className="flex items-center space-x-3">
           <label className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 hover:bg-emerald-700 transition-colors shadow-lg cursor-pointer">
-            <Upload size={20} />
+            <Upload size={18} strokeWidth={1.5} />
             <span>Importar CSV</span>
             <input type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
           </label>
           <button onClick={() => openModal('create')} className="bg-white text-neutral-900 px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 hover:bg-neutral-200 transition-colors shadow-lg">
-            <Plus size={20} />
+            <Plus size={18} strokeWidth={1.5} />
             <span>Nova Academia</span>
           </button>
         </div>
@@ -1049,7 +1122,7 @@ const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dis
                 <td className="px-6 py-4">
                   <div className="font-bold text-white">{a.name}</div>
                   <div className="text-xs text-neutral-400 leading-relaxed font-medium flex items-center">
-                    <MapPin size={12} className="mr-1 text-neutral-500" />
+                    <MapPin size={14} strokeWidth={1.5} className="mr-1 text-neutral-500" />
                     {a.city} - {a.state}
                   </div>
                   {a.phone && <div className="text-[10px] text-neutral-400/70 mt-0.5">{a.phone}</div>}
@@ -1075,7 +1148,7 @@ const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dis
           <div className="bg-neutral-800 rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col border border-neutral-700">
             <div className="p-6 border-b border-neutral-700 flex justify-between items-center">
               <h3 className="text-xl font-bold text-white">{modalMode === 'create' ? 'Nova Academia' : modalMode === 'edit' ? 'Editar Academia' : 'Detalhes'}</h3>
-              <button onClick={() => setShowModal(false)} className="text-neutral-400 hover:text-white"><X size={24} /></button>
+              <button onClick={() => setShowModal(false)} className="text-neutral-400 hover:text-white"><X size={18} strokeWidth={1.5} /></button>
             </div>
             <div className="p-6 overflow-y-auto">
               <div className="space-y-4">
@@ -1098,6 +1171,12 @@ const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dis
                         const created = await DatabaseService.createAcademy(academyForm);
                         setAcademies(prev => [created, ...prev]);
                         showToast("Academia criada com sucesso!");
+
+                        // Notify all admins about new academy
+                        const adminIds = (await supabase.from('profiles').select('id').eq('role', UserRole.ADMIN)).data?.map(a => a.id) || [];
+                        adminIds.forEach(id => {
+                          if (id !== currentUser.id) notifyUser(id, `Nova academia cadastrada: "${created.name}".`);
+                        });
                       }
                       setShowModal(false);
                     } catch (error) {
@@ -1168,7 +1247,7 @@ const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any
       <div className="flex justify-between items-center">
         <p className="text-neutral-400">Gestão de eventos e distribuição de vendedores.</p>
         <button onClick={() => setShowModal(true)} className="bg-white text-neutral-900 px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 shadow-lg hover:bg-neutral-200 transition-colors">
-          <Plus size={20} /><span>Novo Evento</span>
+          <Plus size={18} strokeWidth={1.5} /><span>Novo Evento</span>
         </button>
       </div>
 
@@ -1195,7 +1274,7 @@ const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any
                 <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${isExpired ? 'bg-neutral-700 text-neutral-400' : isOngoing ? 'bg-emerald-900/50 text-emerald-400' : 'bg-neutral-900/50 text-neutral-400'}`}>
                   {isExpired ? 'Encerrado' : isOngoing ? 'Em Andamento' : e.status}
                 </span>
-                <button onClick={(ev) => handleDeleteEvent(ev, e.id, e.name)} className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg"><Trash2 size={16} /></button>
+                <button onClick={(ev) => handleDeleteEvent(ev, e.id, e.name)} className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg"><Trash2 size={16} strokeWidth={1.5} /></button>
               </div>
 
               <div className="flex-1">
@@ -1203,7 +1282,7 @@ const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any
                 <p className="text-sm text-neutral-400 mb-2">{e.city} - {e.state}</p>
 
                 <div className="flex items-center space-x-2 text-[10px] font-bold text-neutral-500 uppercase mb-4">
-                  <Calendar size={12} className="text-neutral-500" />
+                  <CalendarDays size={14} strokeWidth={1.5} className="text-neutral-500" />
                   <span>
                     {e.startDate === e.endDate
                       ? new Date(e.startDate).toLocaleDateString('pt-BR')
@@ -1239,7 +1318,7 @@ const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any
           <div className="bg-neutral-800 rounded-3xl w-full max-w-2xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col border border-neutral-700">
             <div className="p-6 border-b border-neutral-700 flex justify-between items-center">
               <h3 className="text-xl font-bold text-white">Novo Evento</h3>
-              <button onClick={() => setShowModal(false)} className="text-neutral-400 hover:text-white"><X size={24} /></button>
+              <button onClick={() => setShowModal(false)} className="text-neutral-400 hover:text-white"><X size={18} strokeWidth={1.5} /></button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <input type="text" placeholder="Nome do Evento" className="w-full border border-neutral-600 bg-neutral-700 text-white p-3 rounded-xl placeholder:text-neutral-400 focus:border-white outline-none" onChange={e => setNewEvent({ ...newEvent, name: e.target.value })} />
@@ -1283,7 +1362,7 @@ const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any
   );
 };
 
-const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: Visit[], vendedores: User[], onBack: any, onUpdateEvent: any }> = ({ event, academies, visits, vendedores, onBack, onUpdateEvent }) => {
+const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: Visit[], vendedores: User[], onBack: any, onUpdateEvent: any, notifyUser: (uid: string, msg: string) => void }> = ({ event, academies, visits, vendedores, onBack, onUpdateEvent, notifyUser }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [cityFilter, setCityFilter] = useState('');
@@ -1335,7 +1414,15 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
   };
 
   const handleSalespersonChange = (newSalespersonId: string) => {
+    const oldSalespersonId = event.salespersonId;
     onUpdateEvent({ ...event, salespersonId: newSalespersonId || undefined });
+
+    if (newSalespersonId && newSalespersonId !== oldSalespersonId) {
+      notifyUser(newSalespersonId, `Você foi atribuído ao evento "${event.name}".`);
+    }
+    if (oldSalespersonId && oldSalespersonId !== newSalespersonId) {
+      notifyUser(oldSalespersonId, `Você não é mais o responsável pelo evento "${event.name}".`);
+    }
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -1352,14 +1439,14 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-2">
         <button onClick={onBack} className="flex items-center text-neutral-500 font-bold hover:underline transition-all hover:text-neutral-400">
-          <ChevronLeft size={20} className="mr-1" /> Voltar para Eventos
+          <ChevronLeft size={18} strokeWidth={1.5} className="mr-1" /> Voltar para Eventos
         </button>
         {!isEditing && (
           <button
             onClick={() => { setEditForm({ ...event }); setIsEditing(true); }}
             className="flex items-center space-x-2 bg-neutral-700 hover:bg-neutral-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all"
           >
-            <Edit3 size={16} />
+            <Edit3 size={16} strokeWidth={1.5} />
             <span>Editar Informações</span>
           </button>
         )}
@@ -1407,7 +1494,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                   <div className="flex items-center space-x-2">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 bg-neutral-900/50 px-2 py-1 rounded-full">{event.status}</span>
                     <span className="text-[10px] font-bold text-neutral-500 uppercase flex items-center">
-                      <Calendar size={12} className="mr-1" />
+                      <CalendarDays size={14} strokeWidth={1.5} className="mr-1" />
                       {event.startDate === event.endDate
                         ? new Date(event.startDate).toLocaleDateString('pt-BR')
                         : `${new Date(event.startDate).toLocaleDateString('pt-BR')} - ${new Date(event.endDate).toLocaleDateString('pt-BR')}`
@@ -1416,7 +1503,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                   </div>
                   <h3 className="text-3xl font-black text-white mt-2">{event.name}</h3>
                   <p className="text-neutral-400 flex items-center font-medium mt-1">
-                    <MapPin size={16} className="mr-1 text-neutral-500" />
+                    <MapPin size={16} strokeWidth={1.5} className="mr-1 text-neutral-500" />
                     {event.city} - {event.state}
                   </p>
                 </div>
@@ -1434,7 +1521,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                   onClick={() => { setSelectedIds([]); setShowAddModal(true); }}
                   className="bg-white hover:bg-neutral-200 text-white text-[10px] font-bold uppercase px-3 py-1.5 rounded-lg flex items-center transition-all shadow-lg active:scale-95"
                 >
-                  <Plus size={14} className="mr-1.5" /> Adicionar Academia
+                  <Plus size={14} strokeWidth={1.5} className="mr-1.5" /> Adicionar Academia
                 </button>
               </div>
               <div className="bg-neutral-900 rounded-2xl border border-neutral-700 overflow-hidden">
@@ -1455,7 +1542,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                           {visit ? (
                             <div className="flex items-center space-x-2">
                               <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${visit.temperature === AcademyTemperature.HOT ? 'bg-red-900/30 text-red-400' : 'bg-neutral-900/30 text-neutral-400'}`}>{visit.temperature}</span>
-                              <span className="bg-emerald-900/30 text-emerald-400 p-1 rounded-full"><CheckCircle2 size={14} /></span>
+                              <span className="bg-emerald-900/30 text-emerald-400 p-1 rounded-full"><CheckCircle2 size={14} strokeWidth={1.5} /></span>
                             </div>
                           ) : (
                             <span className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest">Pendente</span>
@@ -1465,7 +1552,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                             className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
                             title="Remover Vinculo"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={14} strokeWidth={1.5} />
                           </button>
                         </div>
                       </div>
@@ -1481,7 +1568,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
           <div className="bg-neutral-800 p-6 rounded-3xl border border-neutral-700 shadow-sm space-y-6">
             <div className="space-y-1">
               <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest flex items-center">
-                <UserCheck size={16} className="mr-2 text-neutral-500" />
+                <UserCheck size={16} strokeWidth={1.5} className="mr-2 text-neutral-500" />
                 Vendedor Responsável
               </h4>
               <p className="text-[10px] text-neutral-400 mb-3 italic">Defina quem executará as visitas</p>
@@ -1499,7 +1586,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
 
               <div className="mt-4 p-3 bg-neutral-900/30 border border-neutral-800/50 rounded-xl">
                 <div className="flex items-start space-x-2">
-                  <Info size={14} className="text-neutral-400 mt-0.5" />
+                  <Info size={14} strokeWidth={1.5} className="text-neutral-400 mt-0.5" />
                   <p className="text-[10px] text-neutral-300 leading-relaxed font-medium">
                     Ao alterar o vendedor, ele receberá uma notificação instantânea e o evento passará a aparecer em seu dashboard exclusivo.
                   </p>
@@ -1517,14 +1604,14 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
               <div>
                 <h3 className="text-xl font-bold text-white">Vincular Academias</h3>
                 <p className="text-xs text-neutral-400 mt-1 flex items-center">
-                  <Info size={12} className="mr-1" /> Selecione as academias e clique em Vincular Selecionadas.
+                  <Info size={14} strokeWidth={1.5} className="mr-1" /> Selecione as academias e clique em Vincular Selecionadas.
                 </p>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
                 className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-xl transition-colors"
               >
-                <X size={24} />
+                <X size={18} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -1574,7 +1661,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                     >
                       <div className={`w-6 h-6 rounded-lg mr-4 flex items-center justify-center transition-all ${isSelected ? 'bg-white text-neutral-900' : 'bg-neutral-900 border border-neutral-600 text-transparent'
                         }`}>
-                        <CheckCircle2 size={16} />
+                        <CheckCircle2 size={16} strokeWidth={1.5} />
                       </div>
                       <div className="flex-1">
                         <p className={`font-bold transition-colors ${isSelected ? 'text-neutral-400' : 'text-white'}`}>{a.name}</p>
@@ -1590,7 +1677,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
               ) : (
                 <div className="py-20 text-center space-y-4">
                   <div className="bg-neutral-900/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-neutral-700 text-opacity-30">
-                    <School size={32} />
+                    <Building2 size={32} />
                   </div>
                   <p className="text-neutral-500 font-medium">Nenhuma academia disponível com estes critérios.</p>
                 </div>
@@ -1638,7 +1725,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                 onClick={() => setSelectedVisit(null)}
                 className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-xl transition-colors"
               >
-                <X size={24} />
+                <X size={18} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -1647,13 +1734,13 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                 <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-700/50">
                   <p className="text-[10px] font-bold text-neutral-500 uppercase mb-1">Status</p>
                   <span className="text-sm font-bold text-emerald-400 flex items-center">
-                    <CheckCircle2 size={14} className="mr-1.5" /> {selectedVisit.status}
+                    <CheckCircle2 size={14} strokeWidth={1.5} className="mr-1.5" /> {selectedVisit.status}
                   </span>
                 </div>
                 <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-700/50">
                   <p className="text-[10px] font-bold text-neutral-500 uppercase mb-1">Temperatura</p>
                   <span className={`text-sm font-bold flex items-center ${selectedVisit.temperature === AcademyTemperature.HOT ? 'text-red-400' : 'text-neutral-400'}`}>
-                    <Thermometer size={14} className="mr-1.5" /> {selectedVisit.temperature}
+                    <Thermometer size={14} strokeWidth={1.5} className="mr-1.5" /> {selectedVisit.temperature}
                   </span>
                 </div>
               </div>
@@ -1721,6 +1808,9 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
         };
         const updated = await DatabaseService.updateFinance(updatedPayload.id, updatedPayload);
         setFinance((prev: FinanceRecord[]) => prev.map(f => f.id === updated.id ? updated : f));
+
+        const eventName = events.find(e => e.id === updated.eventId)?.name;
+        notifyUser(updated.salespersonId, `Lançamento financeiro do evento "${eventName}" foi atualizado.`);
       } else {
         const payload: Partial<FinanceRecord> = {
           eventId: formRecord.eventId!,
@@ -1730,7 +1820,6 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
           updatedAt: new Date().toISOString()
         };
         const created = await DatabaseService.createFinance(payload);
-        const createdView = { ...created, eventId: created.event_id, salespersonId: created.salesperson_id, updatedAt: created.updated_at };
         setFinance((prev: FinanceRecord[]) => [created, ...prev]);
 
         const eventName = events.find(e => e.id === payload.eventId)?.name;
@@ -1785,7 +1874,7 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
       <div className="flex justify-between items-center">
         <p className="text-neutral-400">Controle de comissões.</p>
         <button onClick={() => { setSelectedRecord(null); setFormRecord({ status: FinanceStatus.PENDING }); setShowModal(true); }} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 shadow-lg hover:bg-emerald-700 transition-colors">
-          <Plus size={20} />
+          <Plus size={18} strokeWidth={1.5} />
           <span>Lançar Pagamento</span>
         </button>
       </div>
@@ -1836,7 +1925,7 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
           <div className="bg-neutral-800 rounded-3xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 border border-neutral-700">
             <div className="p-6 border-b border-neutral-700 flex justify-between items-center">
               <h3 className="text-xl font-bold text-white">{selectedRecord ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
-              <button onClick={() => setShowModal(false)} className="text-neutral-400 hover:text-white"><X size={24} /></button>
+              <button onClick={() => setShowModal(false)} className="text-neutral-400 hover:text-white"><X size={18} strokeWidth={1.5} /></button>
             </div>
             <div className="p-6 space-y-4">
               <select className="w-full border border-neutral-600 p-3 rounded-xl bg-neutral-700 text-white focus:border-white outline-none" value={formRecord.eventId || ''} onChange={e => setFormRecord({ ...formRecord, eventId: e.target.value })}>
@@ -1856,7 +1945,7 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
                     disabled={isSubmitting}
                     className="flex-1 bg-red-900/30 text-red-500 py-4 rounded-2xl font-bold hover:bg-red-900/50 transition-colors border border-red-900/50 flex items-center justify-center disabled:opacity-50"
                   >
-                    <Trash2 size={20} className="mr-2" /> Excluir
+                    <Trash2 size={18} strokeWidth={1.5} className="mr-2" /> Excluir
                   </button>
                 )}
                 <button
@@ -1865,7 +1954,7 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
                   className={`flex-[2] bg-white text-neutral-900 py-4 rounded-2xl font-bold hover:bg-neutral-200 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {isSubmitting ? (
-                    <><RefreshCw className="animate-spin mr-2" size={20} /> Salvando...</>
+                    <><RefreshCw className="animate-spin mr-2" size={18} strokeWidth={1.5} /> Salvando...</>
                   ) : (
                     selectedRecord ? 'Salvar Alterações' : 'Lançar Pagamento'
                   )}
@@ -2078,21 +2167,21 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
           <div key={e.id} className="bg-neutral-800 rounded-2xl border border-neutral-700 overflow-hidden shadow-sm">
             <div className="bg-neutral-950 p-4 text-white font-bold flex items-center justify-between">
               <div className="flex items-center">
-                <Calendar size={18} className="mr-2 text-neutral-400" /> {e.name}
+                <CalendarDays size={18} className="mr-2 text-neutral-400" /> {e.name}
               </div>
               <span className="text-[10px] font-bold uppercase tracking-widest bg-neutral-800 px-2 py-1 rounded text-neutral-300">{e.status}</span>
             </div>
             <div className="p-4 space-y-6">
               <div>
                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 flex items-center">
-                  <Clock size={14} className="mr-2" /> Academias Pendentes ({pendingAcademies.length})
+                  <Clock size={14} strokeWidth={1.5} className="mr-2" /> Academias Pendentes ({pendingAcademies.length})
                 </h4>
                 <div className="grid grid-cols-1 gap-2">
                   {pendingAcademies.map(a => (
                     <div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-4 flex justify-between items-center bg-neutral-700/50 rounded-xl hover:bg-neutral-700 cursor-pointer group transition-colors border border-neutral-600/50">
                       <div className="flex items-center space-x-4">
                         <div className="p-2 rounded-xl bg-neutral-800 text-neutral-400 group-hover:bg-neutral-900/30 group-hover:text-neutral-400">
-                          <School size={20} />
+                          <Building2 size={18} strokeWidth={1.5} />
                         </div>
                         <div>
                           <p className="font-bold text-white text-sm">{a.name}</p>
@@ -2107,7 +2196,7 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
               {finishedAcademies.length > 0 && (
                 <div className="pt-4 border-t border-neutral-700">
                   <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 flex items-center">
-                    <CheckCircle2 size={14} className="mr-2 text-emerald-500" /> Academias Concluídas ({finishedAcademies.length})
+                    <CheckCircle2 size={14} strokeWidth={1.5} className="mr-2 text-emerald-500" /> Academias Concluídas ({finishedAcademies.length})
                   </h4>
                   <div className="grid grid-cols-1 gap-2">
                     {finishedAcademies.map(a => {
@@ -2116,7 +2205,7 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
                         <div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-4 flex justify-between items-center bg-neutral-800 rounded-xl hover:bg-neutral-700 cursor-pointer group transition-colors border border-neutral-700 opacity-75">
                           <div className="flex items-center space-x-4">
                             <div className="p-2 rounded-xl bg-emerald-900/20 text-emerald-500">
-                              <CheckCircle2 size={20} />
+                              <CheckCircle2 size={18} strokeWidth={1.5} />
                             </div>
                             <div>
                               <p className="font-bold text-white text-sm">{a.name}</p>
@@ -2128,7 +2217,7 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
                               </div>
                             </div>
                           </div>
-                          <Eye size={16} className="text-neutral-500" />
+                          <Eye size={16} strokeWidth={1.5} className="text-neutral-500" />
                         </div>
                       );
                     })}
@@ -2170,7 +2259,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
   return (
     <div className="max-w-xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 transition-all">{toast && <div className="fixed top-20 right-8 bg-neutral-900 text-white p-4 rounded-xl shadow-2xl animate-in slide-in-from-right z-50 flex items-center space-x-2 border border-neutral-700"><CheckCircle2 size={18} className="text-emerald-400" /><span>{toast}</span></div>}
       <div className="bg-neutral-800 p-8 rounded-3xl border border-neutral-700 shadow-sm relative overflow-hidden">
-        <div className="flex justify-between items-start mb-8 z-10 relative"><div><h3 className="text-2xl font-bold text-white">{academy.name}</h3><p className="text-neutral-400 font-medium">{academy.city} - {academy.state}</p></div><button onClick={onCancel} className="text-neutral-500 hover:text-neutral-300 transition-colors"><X size={24} /></button></div>
+        <div className="flex justify-between items-start mb-8 z-10 relative"><div><h3 className="text-2xl font-bold text-white">{academy.name}</h3><p className="text-neutral-400 font-medium">{academy.city} - {academy.state}</p></div><button onClick={onCancel} className="text-neutral-500 hover:text-neutral-300 transition-colors"><X size={18} strokeWidth={1.5} /></button></div>
 
         {step === 'START' && (
           <div className="text-center py-8 space-y-6 animate-in zoom-in-95">
@@ -2195,9 +2284,9 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
         {step === 'VOUCHERS' && (
           <div className="space-y-6 animate-in slide-in-from-right-4 text-center">
             <div className="bg-neutral-700 p-6 rounded-2xl flex items-center justify-center space-x-8 border border-neutral-600">
-              <button onClick={() => adjust(-1)} className="bg-neutral-600 p-3 rounded-full border border-neutral-500 shadow-sm active:scale-90 text-white hover:bg-neutral-500"><Minus size={24} /></button>
+              <button onClick={() => adjust(-1)} className="bg-neutral-600 p-3 rounded-full border border-neutral-500 shadow-sm active:scale-90 text-white hover:bg-neutral-500"><Minus size={18} strokeWidth={1.5} /></button>
               <span className="text-4xl font-black text-white tabular-nums">{visit.vouchersGenerated?.length || 0}</span>
-              <button onClick={() => adjust(1)} className="bg-neutral-600 p-3 rounded-full border border-neutral-500 shadow-sm active:scale-90 text-white hover:bg-neutral-500"><Plus size={24} /></button>
+              <button onClick={() => adjust(1)} className="bg-neutral-600 p-3 rounded-full border border-neutral-500 shadow-sm active:scale-90 text-white hover:bg-neutral-500"><Plus size={18} strokeWidth={1.5} /></button>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
               {visit.vouchersGenerated?.map((c, i) => (
@@ -2205,7 +2294,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
               ))}
             </div>
             <button onClick={handleFinishWithQr} className="w-full bg-neutral-950 text-white py-4 rounded-2xl font-bold shadow-xl flex items-center justify-center space-x-2 border border-neutral-700">
-              <QrCode size={20} />
+              <QrCode size={18} strokeWidth={1.5} />
               <span>Gerar QR Code para o Dono</span>
             </button>
           </div>
@@ -2235,14 +2324,14 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 }}
                 className="flex-1 bg-neutral-700 text-neutral-300 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 text-sm hover:bg-neutral-600"
               >
-                <Copy size={16} />
+                <Copy size={16} strokeWidth={1.5} />
                 <span>Copiar Link</span>
               </button>
               <button
                 onClick={() => window.open(generateShareLink(), '_blank')}
                 className="flex-1 bg-neutral-900/30 text-neutral-400 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 text-sm hover:bg-neutral-900/50"
               >
-                <ExternalLink size={16} />
+                <ExternalLink size={16} strokeWidth={1.5} />
                 <span>Visualizar Tela</span>
               </button>
             </div>
@@ -2275,10 +2364,10 @@ const SalesFinance: React.FC<{ finance: FinanceRecord[], events: Event[], onConf
       {finance.length === 0 && <p className="col-span-2 text-center text-neutral-400 font-medium py-10">Nenhum registro financeiro.</p>}
       {finance.map(f => (
         <div key={f.id} className="bg-neutral-800 p-6 rounded-2xl border border-neutral-700 shadow-sm flex flex-col justify-between">
-          <div><div className="flex justify-between items-start mb-4"><div className="bg-emerald-900/30 text-emerald-500 p-3 rounded-2xl"><DollarSign size={24} /></div><span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full ${f.status === FinanceStatus.PAID ? 'bg-neutral-900/30 text-neutral-400' : f.status === FinanceStatus.RECEIVED ? 'bg-emerald-900/30 text-emerald-400' : 'bg-amber-900/30 text-amber-400'}`}>{f.status === FinanceStatus.RECEIVED ? 'CONCLUÍDO' : f.status}</span></div><h4 className="text-lg font-bold text-white mb-1">{events.find(e => e.id === f.eventId)?.name}</h4><p className="text-3xl font-black text-white mb-6 tabular-nums">$ {f.amount.toFixed(2)}</p></div>
+          <div><div className="flex justify-between items-start mb-4"><div className="bg-emerald-900/30 text-emerald-500 p-3 rounded-2xl"><Wallet size={18} strokeWidth={1.5} /></div><span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full ${f.status === FinanceStatus.PAID ? 'bg-neutral-900/30 text-neutral-400' : f.status === FinanceStatus.RECEIVED ? 'bg-emerald-900/30 text-emerald-400' : 'bg-amber-900/30 text-amber-400'}`}>{f.status === FinanceStatus.RECEIVED ? 'CONCLUÍDO' : f.status}</span></div><h4 className="text-lg font-bold text-white mb-1">{events.find(e => e.id === f.eventId)?.name}</h4><p className="text-3xl font-black text-white mb-6 tabular-nums">$ {f.amount.toFixed(2)}</p></div>
           {f.status === FinanceStatus.PAID && (<button onClick={() => onConfirm(f.id)} className="w-full bg-white text-neutral-900 py-4 rounded-2xl font-bold shadow-lg flex items-center justify-center space-x-2 hover:bg-neutral-200 transition-colors"><CheckCircle2 size={18} /><span>Confirmar Recebimento</span></button>)}
-          {f.status === FinanceStatus.RECEIVED && (<div className="w-full bg-neutral-700 text-neutral-400 py-3 rounded-xl font-bold text-center text-xs flex items-center justify-center space-x-2"><CheckCircle2 size={14} /><span>RECEBIDO E CONCLUÍDO</span></div>)}
-          {f.status === FinanceStatus.PENDING && (<div className="w-full bg-amber-900/20 text-amber-500 py-3 rounded-xl font-bold text-center text-xs border border-amber-900/30 flex items-center justify-center space-x-2"><Clock size={14} /><span>AGUARDANDO PAGAMENTO...</span></div>)}
+          {f.status === FinanceStatus.RECEIVED && (<div className="w-full bg-neutral-700 text-neutral-400 py-3 rounded-xl font-bold text-center text-xs flex items-center justify-center space-x-2"><CheckCircle2 size={14} strokeWidth={1.5} /><span>RECEBIDO E CONCLUÍDO</span></div>)}
+          {f.status === FinanceStatus.PENDING && (<div className="w-full bg-amber-900/20 text-amber-500 py-3 rounded-xl font-bold text-center text-xs border border-amber-900/30 flex items-center justify-center space-x-2"><Clock size={14} strokeWidth={1.5} /><span>AGUARDANDO PAGAMENTO...</span></div>)}
         </div>
       ))}
     </div>
@@ -2317,10 +2406,13 @@ const AccessControlManager: React.FC = () => {
 
   const toggleStatus = async (id: string, current: string) => {
     try {
-      await AuthService.toggleAllowlistStatus(id, current);
-      loadData();
-    } catch (error) {
-      console.error(error);
+      const result = await AuthService.toggleAllowlistStatus(id, current);
+      console.log('Toggle result:', result);
+      await loadData();
+      alert(`Status alterado com sucesso para ${result.status === 'ACTIVE' ? 'ATIVO' : 'INATIVO'}`);
+    } catch (error: any) {
+      console.error('Erro ao alterar status:', error);
+      alert('Erro ao alterar status: ' + (error.message || 'Erro desconhecido'));
     }
   };
 
@@ -2385,7 +2477,7 @@ const AccessControlManager: React.FC = () => {
           <div className="bg-neutral-800 rounded-3xl border border-neutral-700 overflow-hidden h-full flex flex-col">
             <div className="p-4 bg-neutral-900/50 border-b border-neutral-700 flex justify-between items-center">
               <h3 className="font-bold text-white text-sm uppercase tracking-wider">Logs de Autenticação</h3>
-              <button onClick={loadData} className="text-neutral-400 hover:text-white"><RefreshCw size={16} /></button>
+              <button onClick={loadData} className="text-neutral-400 hover:text-white"><RefreshCw size={16} strokeWidth={1.5} /></button>
             </div>
             <div className="flex-1 overflow-y-auto max-h-[600px] p-2 space-y-2">
               {logs.map(log => (

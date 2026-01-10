@@ -1,15 +1,14 @@
 import React from 'react';
 import {
   Menu,
-  School,
-  LayoutDashboard,
-  Calendar,
-  DollarSign,
-  FileText,
-  ClipboardList,
+  Building2,
+  BarChart3,
+  CalendarDays,
+  Wallet,
+  FileBarChart,
+  Shield,
   LogOut,
-  X,
-  ShieldCheck
+  X
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 
@@ -47,8 +46,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
           }`}
       >
-        <Icon size={20} />
-        <span className="font-medium">{label}</span>
+        <Icon size={16} strokeWidth={1.5} />
+        <span className="text-sm font-medium">{label}</span>
       </button>
     );
   };
@@ -58,25 +57,25 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex flex-col h-full p-4">
         <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center space-x-3">
-            <div className="bg-white p-2 rounded-lg text-neutral-900"><School size={24} /></div>
-            <span className="text-xl font-bold tracking-tight">BJJVisits</span>
+            <img src="/oss_logo.jpg" alt="Logo" className="w-10 h-10 object-contain mix-blend-screen filter invert hue-rotate-180 brightness-110 contrast-125 saturate-150" />
+            <span className="text-lg font-semibold tracking-tight">BJJVisits</span>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden"><X size={24} /></button>
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden"><X size={20} strokeWidth={1.5} /></button>
         </div>
         <nav className="flex-1 space-y-1">
           {currentUser.role === UserRole.ADMIN ? (
             <>
-              <SidebarItem id="dashboard" icon={LayoutDashboard} label="Dashboard" />
-              <SidebarItem id="academies" icon={School} label="Academias" />
-              <SidebarItem id="events" icon={Calendar} label="Eventos" />
-              <SidebarItem id="admin_finance" icon={DollarSign} label="Financeiro" />
-              <SidebarItem id="reports" icon={FileText} label="Relatórios" />
-              <SidebarItem id="access_control" icon={ShieldCheck} label="Gestão de Acessos" />
+              <SidebarItem id="dashboard" icon={BarChart3} label="Dashboard" />
+              <SidebarItem id="academies" icon={Building2} label="Academias" />
+              <SidebarItem id="events" icon={CalendarDays} label="Eventos" />
+              <SidebarItem id="admin_finance" icon={Wallet} label="Financeiro" />
+              <SidebarItem id="reports" icon={FileBarChart} label="Relatórios" />
+              <SidebarItem id="access_control" icon={Shield} label="Gestão de Acessos" />
             </>
           ) : (
             <>
-              <SidebarItem id="my_events" icon={Calendar} label="Meus Eventos" />
-              <SidebarItem id="sales_finance" icon={DollarSign} label="Meu Financeiro" />
+              <SidebarItem id="my_events" icon={CalendarDays} label="Meus Eventos" />
+              <SidebarItem id="sales_finance" icon={Wallet} label="Meu Financeiro" />
             </>
           )}
         </nav>
@@ -87,8 +86,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="text-[10px] text-neutral-400 font-bold">{currentUser.role}</p>
           </div>
           <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors">
-            <LogOut size={20} />
-            <span className="font-medium">Sair</span>
+            <LogOut size={16} strokeWidth={1.5} />
+            <span className="text-sm font-medium">Sair</span>
           </button>
         </div>
       </div>

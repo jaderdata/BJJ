@@ -228,13 +228,13 @@ export const DatabaseService = {
 
     // FINANCE
     async getFinance() {
-        const { data, error } = await supabase.from('finance_records').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('finance_records').select('*').order('updated_at', { ascending: false });
         if (error) throw error;
         return data.map((f: any) => ({
             ...f,
             eventId: f.event_id,
             salespersonId: f.salesperson_id,
-            updatedAt: f.updated_at
+            updatedAt: f.updated_at || f.created_at
         }));
     },
 
@@ -247,17 +247,19 @@ export const DatabaseService = {
             updated_at: record.updatedAt
         }).select().single();
         if (error) throw error;
-        return { ...data, eventId: data.event_id, salespersonId: data.salesperson_id, updatedAt: data.updated_at };
+        return { ...data, eventId: data.event_id, salespersonId: data.salesperson_id, updatedAt: data.updated_at || data.created_at };
     },
 
     async updateFinance(id: string, record: Partial<FinanceRecord>) {
         const { data, error } = await supabase.from('finance_records').update({
+            event_id: record.eventId,
+            salesperson_id: record.salespersonId,
             amount: record.amount,
             status: record.status,
             updated_at: record.updatedAt
         }).eq('id', id).select().single();
         if (error) throw error;
-        return { ...data, eventId: data.event_id, salespersonId: data.salesperson_id, updatedAt: data.updated_at };
+        return { ...data, eventId: data.event_id, salespersonId: data.salesperson_id, updatedAt: data.updated_at || data.created_at };
     },
 
     async deleteFinance(id: string) {
