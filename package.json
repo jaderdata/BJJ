@@ -1,7 +1,8 @@
 {
   "name": "bjjvisits---controle-de-visitas",
   "private": true,
-  "version": "1.0.11",
+  "version": "1.0.12",
+  "deployName": "Display System Version Info",
   "type": "module",
   "scripts": {
     "dev": "vite",

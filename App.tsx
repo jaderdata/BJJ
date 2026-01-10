@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   BarChart3,
@@ -69,6 +69,7 @@ import {
 } from './data';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import CustomAuth from './components/CustomAuth';
 import { ProgressBar } from './components/ProgressBar';
 import { supabase, DatabaseService, AuthService } from './lib/supabase';
@@ -99,479 +100,10 @@ interface Notification {
   timestamp: string;
 }
 
-const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const [academies, setAcademies] = useState<Academy[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [visits, setVisits] = useState<Visit[]>([]);
-  const [finance, setFinance] = useState<FinanceRecord[]>([]);
-  const [vouchers, setVouchers] = useState<Voucher[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [sellers, setSellers] = useState<User[]>([]);
-  const [admins, setAdmins] = useState<User[]>([]);
-
-  const [selectedAcademyId, setSelectedAcademyId] = useState<string | null>(null);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-
-  const [hash, setHash] = useState(window.location.hash);
-
-  useEffect(() => {
-    const handleHashChange = () => setHash(window.location.hash);
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
-  // Limpar campos de seleção ao mudar para abas principais (não detalhes)
-  useEffect(() => {
-    const detailTabs = ['visit_detail', 'event_detail_admin'];
-
-    // Só limpamos se não estivermos indo para uma tela de detalhes
-    if (!detailTabs.includes(activeTab)) {
-      setSelectedEventId(null);
-      setSelectedAcademyId(null);
-    }
-
-    // Verificação de Segurança de Perfil (Role Protection)
-    if (currentUser) {
-      const adminTabs = ['dashboard', 'access_control', 'academies', 'events', 'admin_finance', 'reports', 'event_detail_admin'];
-      if (currentUser.role !== UserRole.ADMIN && adminTabs.includes(activeTab)) {
-        setActiveTab('my_events');
-      }
-      if (currentUser.role === UserRole.ADMIN && activeTab === 'visit_detail') {
-        setActiveTab('dashboard');
-      }
-    }
-  }, [activeTab, currentUser?.role]);
-
-  useEffect(() => {
-    // Check local session
-    const storedUser = localStorage.getItem('bjj_user');
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        setCurrentUser(parsed);
-      } catch (e) {
-        localStorage.removeItem('bjj_user');
-      }
-    }
-  }, []);
-
-  const handleLogin = (user: User) => {
-    setCurrentUser(user);
-    localStorage.setItem('bjj_user', JSON.stringify(user));
-    // Reset state and set initial tab
-    setSelectedEventId(null);
-    setSelectedAcademyId(null);
-    setActiveTab(user.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
-  };
-
-  // Fetch initial data
-  useEffect(() => {
-    if (currentUser) {
-      loadData();
-    }
-  }, [currentUser?.id]); // Use ID to be safe
-
-  const loadData = React.useCallback(async () => {
-    try {
-      const dbAcademies = await DatabaseService.getAcademies();
-      setAcademies(dbAcademies);
-
-      const dbEvents = await DatabaseService.getEvents();
-      // Need to fetch academies for each event (junction)
-      const eventsWithAcademies = await Promise.all(dbEvents.map(async (e: any) => {
-        const ids = await DatabaseService.getEventAcademies(e.id);
-        return { ...e, academiesIds: ids };
-      }));
-      setEvents(eventsWithAcademies);
-
-      const dbVisits = await DatabaseService.getVisits();
-      setVisits(dbVisits);
-
-      const dbFinance = await DatabaseService.getFinance();
-      setFinance(dbFinance);
-
-      const dbVouchers = await DatabaseService.getVouchers();
-      setVouchers(dbVouchers);
-
-      if (currentUser) {
-        const dbNotifications = await DatabaseService.getNotifications(currentUser.id);
-        setNotifications(dbNotifications);
-      }
-
-    } catch (error) {
-      console.error("Error loading data:", error);
-    }
-  }, [currentUser?.id]);
-
-  // Real-time Notifications Subscription
-  useEffect(() => {
-    if (!currentUser) return;
-
-    console.log('🔔 [Notifications] Setting up realtime subscription for user:', currentUser.id);
-
-    const channel = supabase
-      .channel(`user-notifs-${currentUser.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${currentUser.id}`
-        },
-        (payload) => {
-          console.log('🔔 [Notifications] Received realtime notification:', payload);
-          const newN = payload.new;
-          const mapped: Notification = {
-            id: newN.id,
-            userId: newN.user_id,
-            message: newN.message,
-            read: newN.read,
-            timestamp: newN.created_at
-          };
-          console.log('🔔 [Notifications] Adding to state:', mapped);
-          setNotifications(prev => [mapped, ...prev]);
-        }
-      )
-      .subscribe((status) => {
-        console.log('🔔 [Notifications] Subscription status:', status);
-      });
-
-    return () => {
-      console.log('🔔 [Notifications] Cleaning up subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [currentUser?.id]);
-
-  // 🔄 Real-time Global Data Sync
-  useEffect(() => {
-    if (!currentUser) return;
-
-    console.log('🔄 [DataSync] Setting up global realtime synchronization...');
-
-    const channel = supabase
-      .channel('global-data-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'academies' }, (p) => {
-        console.log('🔄 [DataSync] academies changed:', p.eventType);
-        loadData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, (p) => {
-        console.log('🔄 [DataSync] events changed:', p.eventType);
-        loadData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_academies' }, (p) => {
-        console.log('🔄 [DataSync] event_academies changed:', p.eventType);
-        loadData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits' }, (p) => {
-        console.log('🔄 [DataSync] visits changed:', p.eventType);
-        loadData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vouchers' }, (p) => {
-        console.log('🔄 [DataSync] vouchers changed:', p.eventType);
-        loadData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'finance_records' }, (p) => {
-        console.log('🔄 [DataSync] finance_records changed:', p.eventType);
-        loadData();
-      })
-      .subscribe((status) => {
-        console.log('🔄 [DataSync] Subscription status:', status);
-      });
-
-    return () => {
-      console.log('🔄 [DataSync] Cleaning up global synchronization');
-      supabase.removeChannel(channel);
-    };
-  }, [currentUser?.id, loadData]);
-
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('app_users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-      if (data) {
-        setCurrentUser({
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          role: data.role as UserRole
-        });
-        setActiveTab(data.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
-      }
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-    }
-  };
-
-  const logout = async () => {
-    localStorage.removeItem('bjj_user');
-    setCurrentUser(null);
-    window.location.reload();
-  };
-
-  const fetchUsers = async () => {
-    // Buscar apenas usuários ATIVOS da tabela app_users
-    const { data: salesData } = await supabase
-      .from('app_users')
-      .select('*')
-      .eq('role', UserRole.SALES)
-      .eq('status', 'ACTIVE');
-    if (salesData) setSellers(salesData as User[]);
-
-    const { data: adminData } = await supabase
-      .from('app_users')
-      .select('*')
-      .eq('role', UserRole.ADMIN)
-      .eq('status', 'ACTIVE');
-    if (adminData) setAdmins(adminData as User[]);
-  };
-
-  useEffect(() => {
-    if (currentUser) {
-      fetchUsers();
-    }
-  }, [currentUser]);
-
-
-  /* Restore notifyUser */
-  const notifyUser = async (userId: string, message: string) => {
-    console.log('📤 [Notifications] Sending notification:', { userId, message, currentUserId: currentUser?.id });
-
-    // Adicionamos ao estado local apenas se a notificação for para o usuário atual
-    // Notifications para outros serão processadas via banco de dados e recebidas via Realtime pelo destinatário
-    if (userId === currentUser?.id) {
-      console.log('📤 [Notifications] Adding to local state (same user)');
-      const newNotif: Notification = {
-        id: Math.random().toString(36).substr(2, 9),
-        userId,
-        message,
-        read: false,
-        timestamp: new Date().toISOString()
-      };
-      setNotifications(prev => [newNotif, ...prev]);
-    }
-
-    // Persist to database
-    try {
-      console.log('📤 [Notifications] Saving to database...');
-      const result = await DatabaseService.createNotification(userId, message);
-      console.log('📤 [Notifications] Saved successfully:', result);
-    } catch (error) {
-      console.error('📤 [Notifications] Error saving notification:', error);
-    }
-  };
-
-  const handleUpdateEvent = async (updatedEvent: Event) => {
-    try {
-      const oldEvent = events.find(e => e.id === updatedEvent.id);
-
-      // 1. Update the main event record
-      await DatabaseService.updateEvent(updatedEvent.id, updatedEvent);
-
-      // 2. Sync academies (Junction Table)
-      if (oldEvent) {
-        const added = updatedEvent.academiesIds.filter(id => !oldEvent.academiesIds.includes(id));
-        const removed = oldEvent.academiesIds.filter(id => !updatedEvent.academiesIds.includes(id));
-
-        // Execute junction updates
-        for (const id of added) await DatabaseService.addEventAcademy(updatedEvent.id, id);
-        for (const id of removed) await DatabaseService.removeEventAcademy(updatedEvent.id, id);
-      }
-
-      // 3. Update local state
-      setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
-
-      // 4. Notifications (Legacy Logic adapted)
-      if (oldEvent && oldEvent.salespersonId !== updatedEvent.salespersonId && updatedEvent.salespersonId) {
-        notifyUser(updatedEvent.salespersonId, `Você é o novo responsável pelo evento "${updatedEvent.name}".`);
-      }
-
-      if (oldEvent && updatedEvent.salespersonId) {
-        const added = updatedEvent.academiesIds.filter(id => !oldEvent.academiesIds.includes(id));
-        if (added.length > 0) {
-          notifyUser(updatedEvent.salespersonId, `${added.length} novas academias atribuídas ao evento "${updatedEvent.name}".`);
-        }
-
-        // Notificar se detalhes básicos mudaram
-        if (oldEvent.name !== updatedEvent.name || oldEvent.city !== updatedEvent.city || oldEvent.state !== updatedEvent.state) {
-          notifyUser(updatedEvent.salespersonId, `As informações do evento "${updatedEvent.name}" foram atualizadas.`);
-        }
-      }
-
-    } catch (error) {
-      console.error("Error updating event:", error);
-      alert("Erro ao atualizar evento.");
-    }
-  };
-
-  // Se o hash contiver public-voucher, renderiza a tela pública
-  if (hash.startsWith('#/public-voucher/')) {
-    const rawHash = hash.replace('#/public-voucher/', '');
-    // Tenta dividir por pipe literal, ou pipe encoded (%7C) se o browser/scanner codificou
-    let voucherData = rawHash.split('|');
-    if (voucherData.length < 3 && rawHash.includes('%7C')) {
-      voucherData = rawHash.split('%7C');
-    }
-    const academyName = decodeURIComponent(voucherData[0] || '');
-    const codesStr = decodeURIComponent(voucherData[1] || '');
-    const timestamp = parseInt(voucherData[2] || '0');
-
-    return (
-      <PublicVoucherLanding
-        academyName={academyName}
-        codes={codesStr.split(',')}
-        createdAt={timestamp}
-      />
-    );
-  }
-
-
-  // Se não estiver logado, exibe a tela de Auth
-  if (!currentUser) {
-    return <CustomAuth onLogin={handleLogin} />;
-  }
-
-  return (
-    <div className="flex min-h-screen bg-neutral-900 text-neutral-100">
-      <Sidebar
-        currentUser={currentUser}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        logout={logout}
-      />
-
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        <Navbar
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          activeTab={activeTab}
-        />
-
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0">
-          {/* Global Notifications */}
-          {notifications.filter(n => n.userId === currentUser.id && !n.read).length > 0 && (
-            <div className="mb-6 space-y-3">
-              {notifications.filter(n => n.userId === currentUser.id && !n.read).map((n) => (
-                <div key={n.id} className="bg-neutral-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-lg animate-in slide-in-from-top-2 border border-neutral-500">
-                  <div className="flex items-center space-x-3">
-                    <Bell size={18} strokeWidth={1.5} />
-                    <span className="font-bold text-sm">{n.message}</span>
-                  </div>
-                  <button onClick={() => {
-                    setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
-                    DatabaseService.markNotificationAsRead(n.id).catch(err => console.error("Error marking read:", err));
-                  }} className="hover:bg-white/20 p-1 rounded-lg">
-                    <X size={18} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeTab === 'dashboard' && currentUser.role === UserRole.ADMIN && <AdminDashboard events={events} academies={academies} visits={visits} vouchers={vouchers} finance={finance} vendedores={sellers} />}
-          {activeTab === 'access_control' && currentUser.role === UserRole.ADMIN && <AccessControlManager />}
-          {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} currentUser={currentUser} notifyUser={notifyUser} />}
-          {activeTab === 'events' && currentUser.role === UserRole.ADMIN && <EventsManager events={events} visits={visits} setEvents={setEvents} academies={academies} vendedores={sellers} onSelectEvent={(id) => { setSelectedEventId(id); setActiveTab('event_detail_admin'); }} notifyUser={notifyUser} />}
-          {activeTab === 'event_detail_admin' && selectedEventId && currentUser.role === UserRole.ADMIN && (
-            <EventDetailAdmin
-              event={events.find(e => e.id === selectedEventId)!}
-              academies={academies}
-              visits={visits}
-              vendedores={sellers}
-              onBack={() => setActiveTab('events')}
-              onUpdateEvent={handleUpdateEvent}
-              notifyUser={notifyUser}
-            />
-          )}
-          {activeTab === 'admin_finance' && currentUser.role === UserRole.ADMIN && (
-            <AdminFinance
-              finance={finance}
-              setFinance={setFinance}
-              events={events}
-              vendedores={sellers}
-              notifyUser={notifyUser}
-            />
-          )}
-          {activeTab === 'reports' && currentUser.role === UserRole.ADMIN && <AdminReports visits={visits} academies={academies} events={events} vouchers={vouchers} vendedores={sellers} />}
-
-          {activeTab === 'my_events' && <SalespersonEvents events={events.filter(e => e.salespersonId === currentUser.id)} academies={academies} visits={visits} notifications={notifications.filter(n => n.userId === currentUser.id && !n.read)} onDismissNotif={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))} onSelectAcademy={(eventId, academyId) => { setSelectedEventId(eventId); setSelectedAcademyId(academyId); setActiveTab('visit_detail'); }} />}
-          {activeTab === 'visit_detail' && selectedEventId && selectedAcademyId && (
-            <VisitDetail eventId={selectedEventId} academy={academies.find(a => a.id === selectedAcademyId)!} event={events.find(e => e.id === selectedEventId)!} existingVisit={visits.find(v => v.eventId === selectedEventId && v.academyId === selectedAcademyId)} onFinish={async (visit) => {
-              try {
-                // Save Visit
-                const savedVisit = await DatabaseService.upsertVisit(visit);
-                setVisits(prev => [...prev.filter(v => !(v.eventId === visit.eventId && v.academyId === visit.academyId)), savedVisit]);
-
-                // Save Vouchers
-                const newVoucherObjects: Voucher[] = (visit.vouchersGenerated || []).map(code => ({
-                  code,
-                  eventId: visit.eventId,
-                  academyId: visit.academyId,
-                  visitId: savedVisit.id,
-                  createdAt: new Date().toISOString()
-                }));
-                if (newVoucherObjects.length > 0) {
-                  await DatabaseService.createVouchers(newVoucherObjects);
-                  setVouchers(prev => [...prev, ...newVoucherObjects]);
-                }
-
-                // Notify Admins
-                admins.forEach(admin => {
-                  notifyUser(admin.id, `O vendedor ${currentUser.name} concluiu uma visita na academia "${academies.find(a => a.id === selectedAcademyId)?.name}".`);
-                });
-
-                setActiveTab('my_events');
-              } catch (error) {
-                console.error("Error saving visit:", error);
-                alert("Erro ao salvar visita.");
-              }
-            }}
-              onCancel={() => setActiveTab('my_events')}
-            />
-          )}
-          {activeTab === 'sales_finance' && (
-            <SalesFinance
-              finance={finance.filter(f => f.salespersonId === currentUser.id)}
-              events={events}
-              onConfirm={async (recordId) => {
-                const record = finance.find(f => f.id === recordId);
-                if (record) {
-                  try {
-                    const updated = await DatabaseService.updateFinance(record.id, { ...record, status: FinanceStatus.RECEIVED, updatedAt: new Date().toISOString() });
-                    setFinance(prev => prev.map(f => f.id === recordId ? updated : f));
-
-                    // Notificar admins que o vendedor recebeu o dinheiro
-                    const eventName = events.find(e => e.id === record.eventId)?.name;
-                    admins.forEach(admin => {
-                      notifyUser(admin.id, `O vendedor ${currentUser?.name} confirmou o recebimento de $ ${record.amount.toFixed(2)} referente ao evento "${eventName}".`);
-                    });
-                  } catch (error) {
-                    console.error("Error confirming finance:", error);
-                  }
-                }
-              }}
-            />
-          )}
-        </div>
-      </main>
-    </div>
-  );
-};
-
 // --- COMPONENTE PÚBLICO DE LANDING PAGE DE VOUCHERS ---
 const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], createdAt: number }> = ({ academyName, codes, createdAt }) => {
   const [copied, setCopied] = useState(false);
+  const [isClosed, setIsClosed] = useState(false);
   const now = Date.now();
   const expirationTime = 24 * 60 * 60 * 1000; // 24 hours
   const isExpired = createdAt > 0 && (now - createdAt > expirationTime);
@@ -583,6 +115,24 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleClose = () => {
+    setIsClosed(true);
+    // Tenta fechar a janela se possível (funciona em alguns contextos de mobile/pwa)
+    window.close();
+  };
+
+  if (isClosed) {
+    return (
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full bg-neutral-800 p-10 rounded-3xl shadow-xl border border-neutral-700 space-y-4">
+          <div className="bg-emerald-900/30 text-emerald-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 size={32} /></div>
+          <h1 className="text-2xl font-bold text-white">Vouchers Salvos!</h1>
+          <p className="text-neutral-400 leading-relaxed">Você já pode fechar esta tela.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isExpired) {
     return (
@@ -635,7 +185,7 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
         <div className="bg-neutral-900 p-4 border-t border-neutral-800 text-center space-y-4">
           <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Expira em 24 horas • Secure BJJVisits Token</p>
           <button
-            onClick={() => window.location.hash = ''}
+            onClick={handleClose}
             className="text-neutral-500 hover:text-white text-xs font-bold uppercase flex items-center justify-center mx-auto transition-colors"
           >
             <X size={14} strokeWidth={1.5} className="mr-1" /> Fechar Tela
@@ -723,6 +273,39 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
   const pendingVisitsCount = filteredPendingVisits.length;
   const activeEventsCount = filteredEvents.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING).length;
 
+  const activePerformance = useMemo(() => {
+    const activeEvents = events.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING);
+    const activeEventIds = new Set(activeEvents.map(e => e.id));
+
+    // Sum of all academies expected to be visited in active events
+    let totalAssignments = 0;
+    activeEvents.forEach(e => {
+      totalAssignments += (e.academiesIds?.length || 0);
+    });
+
+    const activeVs = visits.filter(v => activeEventIds.has(v.eventId));
+    const visitedCount = activeVs.filter(v => v.status === VisitStatus.VISITED).length;
+
+    const counts = { [AcademyTemperature.HOT]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.COLD]: 0 };
+    activeVs.filter(v => v.status === VisitStatus.VISITED).forEach(v => {
+      if (v.temperature) counts[v.temperature]++;
+    });
+
+    const percent = totalAssignments > 0 ? Math.round((visitedCount / totalAssignments) * 100) : 0;
+
+    return {
+      completed: visitedCount,
+      pending: Math.max(0, totalAssignments - visitedCount),
+      total: totalAssignments,
+      percent,
+      temperatureData: Object.entries(counts).map(([name, value]) => ({ name, value })),
+      chartData: [
+        { name: 'Concluídas', value: visitedCount, color: '#10b981' },
+        { name: 'Pendentes', value: Math.max(0, totalAssignments - visitedCount), color: '#ef4444' }
+      ]
+    };
+  }, [events, visits]);
+
   // Chart Data: Academy Temperature
   const temperatureData = useMemo(() => {
     const counts = { [AcademyTemperature.HOT]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.COLD]: 0 };
@@ -785,15 +368,16 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
           { label: 'Visitas Pendentes', value: pendingVisitsCount, icon: Clock, color: 'neutral', sub: 'Aguardando atendimento', tag: 'Planejadas' },
           { label: 'Vouchers Gerados', value: filteredVouchers.length, icon: Ticket, color: 'amber', tag: 'Vouchers', sync: true, noIcon: true }
         ].map((kpi, i) => (
-          <div key={i} className="bg-neutral-800 p-5 rounded-3xl border border-neutral-700 shadow-sm relative overflow-hidden group flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-start mb-2">
-                {!kpi.noIcon ? (
-                  <div className={`p-2 rounded-xl ${kpi.color === 'emerald' ? 'bg-emerald-900/30 text-emerald-400' : kpi.color === 'amber' ? 'bg-amber-900/30 text-amber-400' : 'bg-neutral-900/30 text-neutral-400'}`}>
-                    <kpi.icon size={18} strokeWidth={1.5} />
-                  </div>
-                ) : <div />}
+          <div key={i} className="bg-neutral-800 p-6 rounded-3xl border border-neutral-700 shadow-sm relative overflow-hidden group flex flex-col items-center text-center justify-between">
+            <div className="w-full flex flex-col items-center">
+              <div className="flex justify-between items-start mb-2 w-full">
+                <div className="w-8" /> {/* Placeholder for balance */}
                 <div className="flex items-center space-x-2">
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${kpi.color === 'emerald' ? 'bg-emerald-900/20 text-emerald-500/50' : kpi.color === 'amber' ? 'bg-amber-900/20 text-amber-500/50' : 'bg-neutral-900/50 text-neutral-500'}`}>
+                    {kpi.tag}
+                  </span>
+                </div>
+                <div className="w-8 flex justify-end">
                   {kpi.sync && !kpi.noIcon && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleSyncSheet(); }}
@@ -803,18 +387,22 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
                       <RefreshCw size={14} strokeWidth={2} className={syncingSheet ? 'animate-spin' : ''} />
                     </button>
                   )}
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${kpi.color === 'emerald' ? 'bg-emerald-900/20 text-emerald-500/50' : kpi.color === 'amber' ? 'bg-amber-900/20 text-amber-500/50' : 'bg-neutral-900/50 text-neutral-500'}`}>
-                    {kpi.tag}
-                  </span>
                 </div>
               </div>
-              <div className="mt-4">
-                <h3 className="text-3xl font-black text-white">{kpi.value}</h3>
+
+              {!kpi.noIcon && (
+                <div className={`p-3 rounded-2xl mb-4 ${kpi.color === 'emerald' ? 'bg-emerald-900/30 text-emerald-400' : kpi.color === 'amber' ? 'bg-amber-900/30 text-amber-400' : 'bg-neutral-900/30 text-neutral-400'}`}>
+                  <kpi.icon size={24} strokeWidth={1.5} />
+                </div>
+              )}
+
+              <div className="mt-2 text-center">
+                <h3 className="text-4xl font-black text-white">{kpi.value}</h3>
                 <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">{kpi.label}</p>
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-neutral-700/50">
+            <div className="mt-6 pt-4 border-t border-neutral-700/50 w-full flex flex-col items-center">
               {kpi.sync && kpi.noIcon ? (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleSyncSheet(); }}
@@ -833,61 +421,146 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
       </div>
 
       {/* Performance & Temperature Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-        {/* Performance Section */}
-        <div className="bg-neutral-800 p-8 rounded-[2.5rem] border border-neutral-700 shadow-xl flex flex-col">
-          <div className="mb-8">
-            <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] mb-1">Performance de Visitas</h3>
-            <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Métricas de Atendimento</p>
-          </div>
+      <div className="grid grid-cols-1 gap-6">
+        <div className="bg-neutral-800 p-8 rounded-[2.5rem] border border-neutral-700 shadow-xl relative overflow-hidden">
+          {/* Background Decoration */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] -mr-32 -mt-32 rounded-full"></div>
 
-          <div className="grid grid-cols-3 gap-6 mb-12">
-            <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-700/30">
-              <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest block mb-2">Meta Global</span>
-              <div className="flex items-baseline space-x-1">
-                <span className="text-4xl font-black text-white">{visitsInYear.length > 0 ? Math.round((filteredVisits.length / visitsInYear.length) * 100) : 0}</span>
-                <span className="text-lg font-black text-neutral-500">%</span>
-              </div>
-            </div>
+          <div className="relative z-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+              <div className="flex-1 space-y-6">
+                <div>
+                  <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] mb-1">Performance de Visitas</h3>
+                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Acompanhamento de eventos ativos</p>
+                </div>
 
-            <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-700/30">
-              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block mb-2">Concluídas</span>
-              <div className="flex items-baseline space-x-1">
-                <span className="text-4xl font-black text-white">{filteredVisits.length}</span>
-                <span className="text-xs font-black text-neutral-500">/ {visitsInYear.length}</span>
-              </div>
-            </div>
-
-            <div className="bg-neutral-900/40 p-6 rounded-2xl border border-neutral-700/30">
-              <span className="text-[10px] font-black text-red-400 uppercase tracking-widest block mb-2">Pendentes</span>
-              <div className="text-4xl font-black text-white">{filteredPendingVisits.length}</div>
-            </div>
-          </div>
-
-          <div className="border-t border-neutral-700/50 pt-8">
-            <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] mb-6">Indicador Geral de Temperatura</h3>
-            <div className="grid grid-cols-3 gap-6">
-              {[
-                { label: 'Quente', key: AcademyTemperature.HOT, color: 'text-red-500' },
-                { label: 'Morno', key: AcademyTemperature.WARM, color: 'text-blue-500' },
-                { label: 'Frio', key: AcademyTemperature.COLD, color: 'text-neutral-500' }
-              ].map((temp) => {
-                const count = temperatureData.find(t => t.name === temp.key)?.value || 0;
-                const totalCount = Math.max(filteredVisits.length, 1);
-                const percent = Math.round((count / totalCount) * 100);
-                return (
-                  <div key={temp.key} className="flex flex-col group">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className={`w-2 h-2 rounded-full ${temp.key === AcademyTemperature.HOT ? 'bg-red-500' : temp.key === AcademyTemperature.WARM ? 'bg-blue-500' : 'bg-neutral-500'}`}></div>
-                      <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{temp.label}</span>
-                    </div>
-                    <div className="flex items-baseline space-x-2">
-                      <span className={`text-4xl font-black transition-all group-hover:scale-105 ${temp.color}`}>{count > 0 ? `${percent}%` : '0%'}</span>
-                      <span className="text-[10px] font-black text-neutral-500 uppercase tracking-tighter">{count} Classificações</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-neutral-900/60 backdrop-blur-md p-6 rounded-3xl border border-neutral-700/50 flex flex-col justify-between group hover:border-emerald-500/30 transition-all">
+                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4">Concluídas</span>
+                    <div>
+                      <div className="flex items-baseline space-x-2">
+                        <span className="text-5xl font-black text-white">{activePerformance.completed}</span>
+                        <span className="text-sm font-bold text-neutral-500"></span>
+                      </div>
+                      <p className="text-[10px] text-neutral-500 font-medium mt-2">Visitas registradas com sucesso</p>
                     </div>
                   </div>
-                );
-              })}
+
+                  <div className="bg-neutral-900/60 backdrop-blur-md p-6 rounded-3xl border border-neutral-700/50 flex flex-col justify-between group hover:border-amber-500/30 transition-all">
+                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-4">Pendentes</span>
+                    <div>
+                      <div className="flex items-baseline space-x-2">
+                        <span className="text-5xl font-black text-white/50 group-hover:text-white transition-colors">{activePerformance.pending}</span>
+                        <span className="text-sm font-bold text-neutral-500"></span>
+                      </div>
+                      <p className="text-[10px] text-neutral-500 font-medium mt-2">Aguardando atendimento oficial</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Progresso Total das Visitas</span>
+                    <span className="text-xs font-black text-white">{activePerformance.percent}%</span>
+                  </div>
+                  <div className="h-2 bg-neutral-900 rounded-full overflow-hidden border border-neutral-700/50 p-0.5">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-1000"
+                      style={{ width: `${activePerformance.percent}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Visual Performance Horizontal Bar Chart */}
+              <div className="flex-1 min-w-[300px] space-y-4">
+                <div className="w-full h-32">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={activePerformance.chartData}
+                      layout="vertical"
+                      margin={{ top: 0, right: 30, left: 80, bottom: 0 }}
+                    >
+                      <XAxis type="number" hide />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#737373', fontSize: 10, fontWeight: 'bold' }}
+                      />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-neutral-900 border border-neutral-700 p-2 rounded-xl shadow-2xl animate-in fade-in zoom-in-95">
+                                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">{payload[0].payload.name}</p>
+                                <p className="text-lg font-black text-white">{payload[0].value} <span className="text-[10px] text-neutral-500 font-bold">academias</span></p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar
+                        dataKey="value"
+                        radius={[0, 8, 8, 0]}
+                        barSize={24}
+                      >
+                        {activePerformance.chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex justify-between items-center px-4">
+                  <div className="flex items-center space-x-6">
+                    <div className="text-left">
+                      <p className="text-[8px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1">CONCLUÍDO</p>
+                      <p className="text-xl font-black text-emerald-500 leading-none">{activePerformance.percent}%</p>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[8px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1">PENDENTE</p>
+                      <p className="text-xl font-black text-red-500 leading-none">{100 - activePerformance.percent}%</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-12 border-t border-neutral-700/50 pt-8">
+              <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] mb-6">Indicador de Interesse</h3>
+              <div className="grid grid-cols-3 gap-8">
+                {[
+                  { label: 'Quente', key: AcademyTemperature.HOT, color: 'text-red-500', bg: 'bg-red-500' },
+                  { label: 'Morno', key: AcademyTemperature.WARM, color: 'text-blue-500', bg: 'bg-blue-500' },
+                  { label: 'Frio', key: AcademyTemperature.COLD, color: 'text-neutral-400', bg: 'bg-neutral-600' }
+                ].map((temp) => {
+                  const count = activePerformance.temperatureData.find(t => t.name === temp.key)?.value || 0;
+                  const totalCount = Math.max(activePerformance.completed, 1);
+                  const percent = Math.round((count / totalCount) * 100);
+                  return (
+                    <div key={temp.key} className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-1.5 h-1.5 rounded-full ${temp.bg}`}></div>
+                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">{temp.label}</span>
+                        </div>
+                        <span className="text-[10px] font-black text-neutral-300">{count}</span>
+                      </div>
+                      <div className="h-1 bg-neutral-900 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${temp.bg} opacity-80 rounded-full transition-all duration-1000`}
+                          style={{ width: `${percent}%` }}
+                        ></div>
+                      </div>
+                      <p className={`text-xl font-black ${temp.color}`}>{count > 0 ? `${percent}%` : '0%'}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -1374,6 +1047,10 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
 
   const eventAcademies = academies.filter(a => event.academiesIds.includes(a.id));
 
+  const finishedIds = visits.filter(v => v.eventId === event.id).map(v => v.academyId);
+  const pendingAcademies = eventAcademies.filter(a => !finishedIds.includes(a.id));
+  const finishedAcademies = eventAcademies.filter(a => finishedIds.includes(a.id));
+
   // Available = not in event AND matches search AND matches filters
   const availableAcademies = useMemo(() => {
     return academies.filter(a => {
@@ -1524,41 +1201,83 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                   <Plus size={14} strokeWidth={1.5} className="mr-1.5" /> Adicionar Academia
                 </button>
               </div>
-              <div className="bg-neutral-900 rounded-2xl border border-neutral-700 overflow-hidden">
-                <div className="divide-y divide-neutral-800">
-                  {eventAcademies.map(a => {
-                    const visit = visits.find(v => v.academyId === a.id && v.eventId === event.id);
-                    return (
-                      <div
-                        key={a.id}
-                        onClick={() => visit && setSelectedVisit(visit)}
-                        className={`p-4 flex justify-between items-center bg-neutral-800 hover:bg-neutral-700 transition-colors ${visit ? 'cursor-pointer' : ''}`}
-                      >
-                        <div>
-                          <p className="font-bold text-white text-sm">{a.name}</p>
-                          <p className="text-[10px] text-neutral-400">{a.city} - Resp: {a.responsible}</p>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          {visit ? (
-                            <div className="flex items-center space-x-2">
-                              <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${visit.temperature === AcademyTemperature.HOT ? 'bg-red-900/30 text-red-400' : 'bg-neutral-900/30 text-neutral-400'}`}>{visit.temperature}</span>
-                              <span className="bg-emerald-900/30 text-emerald-400 p-1 rounded-full"><CheckCircle2 size={14} strokeWidth={1.5} /></span>
-                            </div>
-                          ) : (
+              <div className="space-y-6">
+                {/* Academias Pendentes */}
+                <div>
+                  <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 flex items-center">
+                    <Clock size={14} strokeWidth={1.5} className="mr-2" /> Academias Pendentes ({pendingAcademies.length})
+                  </h4>
+                  <div className="bg-neutral-900 rounded-2xl border border-neutral-700 overflow-hidden">
+                    <div className="divide-y divide-neutral-800">
+                      {pendingAcademies.length > 0 ? pendingAcademies.map(a => (
+                        <div
+                          key={a.id}
+                          className="p-4 flex justify-between items-center bg-neutral-800 hover:bg-neutral-700 transition-colors"
+                        >
+                          <div>
+                            <p className="font-bold text-white text-sm">{a.name}</p>
+                            <p className="text-[10px] text-neutral-400">{a.city} - Resp: {a.responsible}</p>
+                          </div>
+                          <div className="flex items-center space-x-3">
                             <span className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest">Pendente</span>
-                          )}
-                          <button
-                            onClick={() => handleRemoveAcademy(a.id)}
-                            className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
-                            title="Remover Vinculo"
-                          >
-                            <Trash2 size={14} strokeWidth={1.5} />
-                          </button>
+                            <button
+                              onClick={() => handleRemoveAcademy(a.id)}
+                              className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
+                              title="Remover Vinculo"
+                            >
+                              <Trash2 size={14} strokeWidth={1.5} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      )) : (
+                        <div className="p-4 text-center text-neutral-500 text-xs italic">Nenhuma academia pendente.</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
+
+                {/* Academias Concluídas */}
+                {finishedAcademies.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 flex items-center">
+                      <CheckCircle2 size={14} strokeWidth={1.5} className="mr-2 text-emerald-500" /> Academias Concluídas ({finishedAcademies.length})
+                    </h4>
+                    <div className="bg-neutral-900 rounded-2xl border border-neutral-700 overflow-hidden">
+                      <div className="divide-y divide-neutral-800">
+                        {finishedAcademies.map(a => {
+                          const visit = visits.find(v => v.academyId === a.id && v.eventId === event.id);
+                          return (
+                            <div
+                              key={a.id}
+                              onClick={() => visit && setSelectedVisit(visit)}
+                              className="p-4 flex justify-between items-center bg-neutral-800 hover:bg-neutral-700 transition-colors cursor-pointer"
+                            >
+                              <div>
+                                <p className="font-bold text-white text-sm">{a.name}</p>
+                                <p className="text-[10px] text-neutral-400">{a.city} - Resp: {a.responsible}</p>
+                              </div>
+                              <div className="flex items-center space-x-3">
+                                {visit && (
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${visit.temperature === AcademyTemperature.HOT ? 'bg-red-900/30 text-red-400' : 'bg-neutral-900/30 text-neutral-400'}`}>{visit.temperature}</span>
+                                    <span className="bg-emerald-900/30 text-emerald-400 p-1 rounded-full"><CheckCircle2 size={14} strokeWidth={1.5} /></span>
+                                  </div>
+                                )}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleRemoveAcademy(a.id); }}
+                                  className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
+                                  title="Remover Vinculo"
+                                >
+                                  <Trash2 size={14} strokeWidth={1.5} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2154,8 +1873,11 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
   ).length;
 
   return (
-    <div className="space-y-6">
-      <ProgressBar total={totalAcademies} completed={completedVisitsCount} />
+    <div className="space-y-6 pb-20"> {/* pb-20 to ensure content is above bottom nav */}
+      <div className="bg-neutral-800 p-4 rounded-2xl border border-neutral-700 shadow-sm">
+        <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2">Seu Progresso de Visitas</h3>
+        <ProgressBar total={totalAcademies} completed={completedVisitsCount} />
+      </div>
 
       {events.map(e => {
         const allAcademies = e.academiesIds.map(aid => academies.find(a => a.id === aid)).filter(Boolean) as Academy[];
@@ -2167,57 +1889,66 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
           <div key={e.id} className="bg-neutral-800 rounded-2xl border border-neutral-700 overflow-hidden shadow-sm">
             <div className="bg-neutral-950 p-4 text-white font-bold flex items-center justify-between">
               <div className="flex items-center">
-                <CalendarDays size={18} className="mr-2 text-neutral-400" /> {e.name}
+                <CalendarDays size={18} className="mr-2 text-neutral-400" />
+                <span className="truncate max-w-[200px]">{e.name}</span>
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest bg-neutral-800 px-2 py-1 rounded text-neutral-300">{e.status}</span>
+              <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${e.status === EventStatus.IN_PROGRESS ? 'bg-emerald-900/30 text-emerald-400' : 'bg-neutral-800 text-neutral-300'}`}>
+                {e.status === EventStatus.IN_PROGRESS ? 'ATIVO' : e.status}
+              </span>
             </div>
             <div className="p-4 space-y-6">
               <div>
                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 flex items-center">
-                  <Clock size={14} strokeWidth={1.5} className="mr-2" /> Academias Pendentes ({pendingAcademies.length})
+                  <Clock size={14} strokeWidth={1.5} className="mr-2" />
+                  <span className="mr-1">Pendentes</span>
+                  <span className="bg-neutral-700 text-white px-1.5 py-0.5 rounded text-[10px]">{pendingAcademies.length}</span>
                 </h4>
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-3">
                   {pendingAcademies.map(a => (
-                    <div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-4 flex justify-between items-center bg-neutral-700/50 rounded-xl hover:bg-neutral-700 cursor-pointer group transition-colors border border-neutral-600/50">
-                      <div className="flex items-center space-x-4">
-                        <div className="p-2 rounded-xl bg-neutral-800 text-neutral-400 group-hover:bg-neutral-900/30 group-hover:text-neutral-400">
-                          <Building2 size={18} strokeWidth={1.5} />
+                    <div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-4 flex justify-between items-center bg-neutral-700/30 rounded-xl active:bg-neutral-700 active:scale-[0.98] cursor-pointer group transition-all border border-neutral-700 hover:border-neutral-500">
+                      <div className="flex items-center space-x-3 w-full">
+                        <div className="p-2.5 rounded-xl bg-neutral-800 text-neutral-400 shrink-0">
+                          <Building2 size={20} strokeWidth={1.5} />
                         </div>
-                        <div>
-                          <p className="font-bold text-white text-sm">{a.name}</p>
-                          <p className="text-[10px] text-neutral-400">{a.city} - {a.responsible}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-white text-sm truncate">{a.name}</p>
+                          <p className="text-xs text-neutral-400 truncate">{a.city} • <span className="text-neutral-500">{a.responsible}</span></p>
                         </div>
                       </div>
-                      <ChevronRight size={18} className="text-neutral-500 group-hover:text-neutral-400 transition-colors" />
+                      <ChevronRight size={18} className="text-neutral-500 shrink-0" />
                     </div>
                   ))}
+                  {pendingAcademies.length === 0 && <p className="text-center text-xs text-neutral-500 italic py-2">Nenhuma academia pendente neste evento.</p>}
                 </div>
               </div>
+
               {finishedAcademies.length > 0 && (
                 <div className="pt-4 border-t border-neutral-700">
                   <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 flex items-center">
-                    <CheckCircle2 size={14} strokeWidth={1.5} className="mr-2 text-emerald-500" /> Academias Concluídas ({finishedAcademies.length})
+                    <CheckCircle2 size={14} strokeWidth={1.5} className="mr-2 text-emerald-500" />
+                    <span className="mr-1">Concluídas</span>
+                    <span className="bg-emerald-900/30 text-emerald-500 px-1.5 py-0.5 rounded text-[10px]">{finishedAcademies.length}</span>
                   </h4>
                   <div className="grid grid-cols-1 gap-2">
                     {finishedAcademies.map(a => {
                       const visit = visits.find(v => v.eventId === e.id && v.academyId === a.id);
                       return (
-                        <div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-4 flex justify-between items-center bg-neutral-800 rounded-xl hover:bg-neutral-700 cursor-pointer group transition-colors border border-neutral-700 opacity-75">
-                          <div className="flex items-center space-x-4">
-                            <div className="p-2 rounded-xl bg-emerald-900/20 text-emerald-500">
-                              <CheckCircle2 size={18} strokeWidth={1.5} />
+                        <div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-3 flex justify-between items-center bg-neutral-800/50 rounded-xl border border-neutral-800">
+                          <div className="flex items-center space-x-3 min-w-0">
+                            <div className="p-1.5 rounded-lg bg-emerald-900/10 text-emerald-600/50">
+                              <CheckCircle2 size={16} strokeWidth={1.5} />
                             </div>
-                            <div>
-                              <p className="font-bold text-white text-sm">{a.name}</p>
-                              <div className="flex items-center space-x-2">
-                                <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${visit?.temperature === AcademyTemperature.HOT ? 'bg-red-900/30 text-red-500' : 'bg-neutral-900/30 text-neutral-500'}`}>
-                                  {visit?.temperature}
-                                </span>
-                                <p className="text-[10px] text-neutral-400 tabular-nums">{visit?.vouchersGenerated?.length || 0} vouchers</p>
+                            <div className="min-w-0">
+                              <p className="font-bold text-white text-sm opacity-50 truncate">{a.name}</p>
+                              <div className="flex items-center space-x-2 mt-0.5">
+                                {visit?.temperature && (
+                                  <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${visit.temperature === AcademyTemperature.HOT ? 'bg-red-900/20 text-red-500/70' : 'bg-neutral-900/30 text-neutral-600'}`}>
+                                    {visit.temperature}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
-                          <Eye size={16} strokeWidth={1.5} className="text-neutral-500" />
                         </div>
                       );
                     })}
@@ -2228,6 +1959,9 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
           </div>
         );
       })}
+
+      {/* Spacer for bottom nav */}
+      <div className="h-12"></div>
     </div>
   );
 };
@@ -2257,102 +1991,115 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 transition-all">{toast && <div className="fixed top-20 right-8 bg-neutral-900 text-white p-4 rounded-xl shadow-2xl animate-in slide-in-from-right z-50 flex items-center space-x-2 border border-neutral-700"><CheckCircle2 size={18} className="text-emerald-400" /><span>{toast}</span></div>}
-      <div className="bg-neutral-800 p-8 rounded-3xl border border-neutral-700 shadow-sm relative overflow-hidden">
-        <div className="flex justify-between items-start mb-8 z-10 relative"><div><h3 className="text-2xl font-bold text-white">{academy.name}</h3><p className="text-neutral-400 font-medium">{academy.city} - {academy.state}</p></div><button onClick={onCancel} className="text-neutral-500 hover:text-neutral-300 transition-colors"><X size={18} strokeWidth={1.5} /></button></div>
+    <div className="fixed inset-0 z-[60] bg-neutral-900 overflow-y-auto animate-in slide-in-from-right duration-300">
+      {/* Fixed Header */}
+      <div className="sticky top-0 bg-neutral-900/95 backdrop-blur-sm p-4 border-b border-neutral-800 z-10 flex justify-between items-center shadow-lg">
+        <div>
+          <h3 className="text-xl font-bold text-white leading-none">{academy.name}</h3>
+          <p className="text-neutral-400 text-xs font-medium mt-1">{academy.city} - {academy.state}</p>
+        </div>
+        <button onClick={onCancel} className="bg-neutral-800 hover:bg-neutral-700 text-white p-2 rounded-full transition-colors">
+          <X size={20} strokeWidth={1.5} />
+        </button>
+      </div>
 
-        {step === 'START' && (
-          <div className="text-center py-8 space-y-6 animate-in zoom-in-95">
-            <div className="w-20 h-20 bg-neutral-900/30 text-neutral-500 rounded-full flex items-center justify-center mx-auto animate-pulse"><Clock size={40} /></div>
-            <div className="space-y-1"><h4 className="font-bold text-white">Pronto para começar?</h4><p className="text-sm text-neutral-400">Atendimento oficial para registro.</p></div>
-            <button onClick={() => { setVisit(p => ({ ...p, startedAt: new Date().toISOString() })); setStep('ACTIVE'); }} className="w-full bg-white text-neutral-900 py-4 rounded-2xl font-bold shadow-xl shadow-neutral-900/20 hover:bg-neutral-200 transition-all">Iniciar Visita Agora</button>
-          </div>
-        )}
+      <div className="p-4 pb-32 space-y-6 max-w-lg mx-auto">
+        {toast && <div className="fixed top-20 left-4 right-4 bg-neutral-900 text-white p-4 rounded-xl shadow-2xl animate-in slide-in-from-top z-[70] flex items-center space-x-2 border border-neutral-700 justify-center"><CheckCircle2 size={18} className="text-emerald-400" /><span>{toast}</span></div>}
 
-        {step === 'ACTIVE' && (
-          <div className="space-y-6 animate-in fade-in">
-            <textarea placeholder="Observações..." className="w-full h-32 border border-neutral-600 bg-neutral-700 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-500 focus:border-white" value={visit.notes} onChange={e => setVisit(p => ({ ...p, notes: e.target.value }))} />
-            <div className="grid grid-cols-3 gap-3">
-              {[AcademyTemperature.COLD, AcademyTemperature.WARM, AcademyTemperature.HOT].map(t => (
-                <button key={t} onClick={() => setVisit(p => ({ ...p, temperature: t }))} className={`py-3 rounded-xl font-bold transition-all border ${visit.temperature === t ? 'bg-white text-neutral-900 border-white' : 'bg-neutral-700 text-neutral-400 border-neutral-600 hover:bg-neutral-600'}`}>{t}</button>
-              ))}
-            </div>
-            <button onClick={handleFinalize} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-colors">Gerar Vouchers</button>
-          </div>
-        )}
+        {/* Content Container - removed heavy borders for mobile full screen feel */}
+        <div className="relative">
 
-        {step === 'VOUCHERS' && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 text-center">
-            <div className="bg-neutral-700 p-6 rounded-2xl flex items-center justify-center space-x-8 border border-neutral-600">
-              <button onClick={() => adjust(-1)} className="bg-neutral-600 p-3 rounded-full border border-neutral-500 shadow-sm active:scale-90 text-white hover:bg-neutral-500"><Minus size={18} strokeWidth={1.5} /></button>
-              <span className="text-4xl font-black text-white tabular-nums">{visit.vouchersGenerated?.length || 0}</span>
-              <button onClick={() => adjust(1)} className="bg-neutral-600 p-3 rounded-full border border-neutral-500 shadow-sm active:scale-90 text-white hover:bg-neutral-500"><Plus size={18} strokeWidth={1.5} /></button>
+          {step === 'START' && (
+            <div className="text-center py-8 space-y-6 animate-in zoom-in-95">
+              <div className="w-20 h-20 bg-neutral-900/30 text-neutral-500 rounded-full flex items-center justify-center mx-auto animate-pulse"><Clock size={40} /></div>
+              <div className="space-y-1"><h4 className="font-bold text-white">Pronto para começar?</h4><p className="text-sm text-neutral-400">Atendimento oficial para registro.</p></div>
+              <button onClick={() => { setVisit(p => ({ ...p, startedAt: new Date().toISOString() })); setStep('ACTIVE'); }} className="w-full bg-white text-neutral-900 py-4 rounded-2xl font-bold shadow-xl shadow-neutral-900/20 hover:bg-neutral-200 transition-all">Iniciar Visita Agora</button>
             </div>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {visit.vouchersGenerated?.map((c, i) => (
-                <span key={i} className="bg-neutral-900/30 text-neutral-400 border border-neutral-800/50 px-3 py-1 rounded-lg font-mono font-bold">{c}</span>
-              ))}
-            </div>
-            <button onClick={handleFinishWithQr} className="w-full bg-neutral-950 text-white py-4 rounded-2xl font-bold shadow-xl flex items-center justify-center space-x-2 border border-neutral-700">
-              <QrCode size={18} strokeWidth={1.5} />
-              <span>Gerar QR Code para o Dono</span>
-            </button>
-          </div>
-        )}
+          )}
 
-        {step === 'QR_CODE' && (
-          <div className="space-y-6 animate-in zoom-in-95 text-center">
-            <div className="space-y-2">
-              <h4 className="font-bold text-white">Apresente para o Dono</h4>
-              <p className="text-xs text-neutral-400">Ele deve apontar a câmera do celular para este QR Code.</p>
+          {step === 'ACTIVE' && (
+            <div className="space-y-6 animate-in fade-in">
+              <textarea placeholder="Observações..." className="w-full h-32 border border-neutral-600 bg-neutral-700 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-500 focus:border-white" value={visit.notes} onChange={e => setVisit(p => ({ ...p, notes: e.target.value }))} />
+              <div className="grid grid-cols-3 gap-3">
+                {[AcademyTemperature.COLD, AcademyTemperature.WARM, AcademyTemperature.HOT].map(t => (
+                  <button key={t} onClick={() => setVisit(p => ({ ...p, temperature: t }))} className={`py-3 rounded-xl font-bold transition-all border ${visit.temperature === t ? 'bg-white text-neutral-900 border-white' : 'bg-neutral-700 text-neutral-400 border-neutral-600 hover:bg-neutral-600'}`}>{t}</button>
+                ))}
+              </div>
+              <button onClick={handleFinalize} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-colors">Gerar Vouchers</button>
             </div>
-            <div className="bg-white p-4 rounded-2xl border-2 border-neutral-200 inline-block shadow-lg">
-              {/* Usando o serviço qrserver para gerar o QR code dinamicamente */}
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(generateShareLink())}`}
-                alt="Voucher QR Code"
-                className="w-48 h-48 mx-auto"
-              />
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  const landingText = `Thank you for being part of the upcoming PBJJF event! 🥋\n\nYour academy (${academy.name}) has received the following vouchers:\n👉 ${visit.vouchersGenerated?.join(', ')}\n\nTo redeem, please send a text message to (407) 633-9166 with the academy name and the voucher codes listed above.`;
-                  navigator.clipboard.writeText(landingText);
-                  setToast("Copiado com sucesso!");
-                  setTimeout(() => setToast(null), 2000);
-                }}
-                className="flex-1 bg-neutral-700 text-neutral-300 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 text-sm hover:bg-neutral-600"
-              >
-                <Copy size={16} strokeWidth={1.5} />
-                <span>Copiar Link</span>
-              </button>
-              <button
-                onClick={() => window.open(generateShareLink(), '_blank')}
-                className="flex-1 bg-neutral-900/30 text-neutral-400 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 text-sm hover:bg-neutral-900/50"
-              >
-                <ExternalLink size={16} strokeWidth={1.5} />
-                <span>Visualizar Tela</span>
+          )}
+
+          {step === 'VOUCHERS' && (
+            <div className="space-y-6 animate-in slide-in-from-right-4 text-center">
+              <div className="bg-neutral-700 p-6 rounded-2xl flex items-center justify-center space-x-8 border border-neutral-600">
+                <button onClick={() => adjust(-1)} className="bg-neutral-600 p-3 rounded-full border border-neutral-500 shadow-sm active:scale-90 text-white hover:bg-neutral-500"><Minus size={18} strokeWidth={1.5} /></button>
+                <span className="text-4xl font-black text-white tabular-nums">{visit.vouchersGenerated?.length || 0}</span>
+                <button onClick={() => adjust(1)} className="bg-neutral-600 p-3 rounded-full border border-neutral-500 shadow-sm active:scale-90 text-white hover:bg-neutral-500"><Plus size={18} strokeWidth={1.5} /></button>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {visit.vouchersGenerated?.map((c, i) => (
+                  <span key={i} className="bg-neutral-900/30 text-neutral-400 border border-neutral-800/50 px-3 py-1 rounded-lg font-mono font-bold">{c}</span>
+                ))}
+              </div>
+              <button onClick={handleFinishWithQr} className="w-full bg-neutral-950 text-white py-4 rounded-2xl font-bold shadow-xl flex items-center justify-center space-x-2 border border-neutral-700">
+                <QrCode size={18} strokeWidth={1.5} />
+                <span>Gerar QR Code para o Dono</span>
               </button>
             </div>
-            <button onClick={() => onFinish(visit)} className="w-full bg-white text-neutral-900 py-4 rounded-2xl font-bold mt-4 hover:bg-neutral-200 transition-colors">Concluir e Voltar</button>
-          </div>
-        )}
+          )}
 
-        {step === 'SUMMARY' && (
-          <div className="space-y-6 animate-in zoom-in-95">
-            <div className="bg-emerald-900/30 text-emerald-400 p-4 rounded-2xl font-bold text-center border border-emerald-800/50">VISITA REGISTRADA</div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600"><span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">Vouchers</span><span className="font-bold text-white tabular-nums">{visit.vouchersGenerated?.length}</span></div>
-              <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600"><span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">Interesse</span><span className={`font-bold ${visit.temperature === AcademyTemperature.HOT ? 'text-red-400' : 'text-neutral-400'}`}>{visit.temperature}</span></div>
+          {step === 'QR_CODE' && (
+            <div className="space-y-6 animate-in zoom-in-95 text-center">
+              <div className="space-y-2">
+              </div>
+              <div className="bg-white p-4 rounded-2xl border-2 border-neutral-200 inline-block shadow-lg">
+                {/* Usando o serviço qrserver para gerar o QR code dinamicamente */}
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(generateShareLink())}`}
+                  alt="Voucher QR Code"
+                  className="w-48 h-48 mx-auto"
+                />
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => {
+                    const landingText = `Thank you for being part of the upcoming PBJJF event! 🥋\n\nYour academy (${academy.name}) has received the following vouchers:\n👉 ${visit.vouchersGenerated?.join(', ')}\n\nTo redeem, please send a text message to (407) 633-9166 with the academy name and the voucher codes listed above.`;
+                    navigator.clipboard.writeText(landingText);
+                    setToast("Copiado com sucesso!");
+                    setTimeout(() => setToast(null), 2000);
+                  }}
+                  className="flex-1 bg-neutral-700 text-neutral-300 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 text-sm hover:bg-neutral-600"
+                >
+                  <Copy size={16} strokeWidth={1.5} />
+                  <span>Copiar Link</span>
+                </button>
+                <button
+                  onClick={() => window.open(generateShareLink(), '_blank')}
+                  className="flex-1 bg-neutral-900/30 text-neutral-400 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 text-sm hover:bg-neutral-900/50"
+                >
+                  <ExternalLink size={16} strokeWidth={1.5} />
+                  <span>Visualizar Tela</span>
+                </button>
+              </div>
+              <button onClick={() => onFinish(visit)} className="w-full bg-white text-neutral-900 py-4 rounded-2xl font-bold mt-4 hover:bg-neutral-200 transition-colors">Concluir e Voltar</button>
             </div>
-            <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600 text-sm text-neutral-300 italic">"{visit.notes}"</div>
-            <div className="flex space-x-2">
-              <button onClick={() => setStep('QR_CODE')} className="flex-1 bg-neutral-950 text-white py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 border border-neutral-700"><QrCode size={18} /><span>Reexibir QR</span></button>
-              <button onClick={() => setStep('ACTIVE')} className="flex-1 bg-neutral-700 text-neutral-300 py-4 rounded-2xl font-bold hover:bg-neutral-600">Editar Relatório</button>
+          )}
+
+          {step === 'SUMMARY' && (
+            <div className="space-y-6 animate-in zoom-in-95">
+              <div className="bg-emerald-900/30 text-emerald-400 p-4 rounded-2xl font-bold text-center border border-emerald-800/50">VISITA REGISTRADA</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600"><span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">Vouchers</span><span className="font-bold text-white tabular-nums">{visit.vouchersGenerated?.length}</span></div>
+                <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600"><span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">Interesse</span><span className={`font-bold ${visit.temperature === AcademyTemperature.HOT ? 'text-red-400' : 'text-neutral-400'}`}>{visit.temperature}</span></div>
+              </div>
+              <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600 text-sm text-neutral-300 italic">"{visit.notes}"</div>
+              <div className="flex space-x-2">
+                <button onClick={() => setStep('QR_CODE')} className="flex-1 bg-neutral-950 text-white py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 border border-neutral-700"><QrCode size={18} /><span>Reexibir QR</span></button>
+                <button onClick={() => setStep('ACTIVE')} className="flex-1 bg-neutral-700 text-neutral-300 py-4 rounded-2xl font-bold hover:bg-neutral-600">Editar Relatório</button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -2500,4 +2247,512 @@ const AccessControlManager: React.FC = () => {
   );
 };
 
+
+const App: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [academies, setAcademies] = useState<Academy[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [finance, setFinance] = useState<FinanceRecord[]>([]);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [sellers, setSellers] = useState<User[]>([]);
+  const [admins, setAdmins] = useState<User[]>([]);
+
+  const [selectedAcademyId, setSelectedAcademyId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  const [hash, setHash] = useState(window.location.hash);
+
+  useEffect(() => {
+    const handleHashChange = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Limpar campos de seleção ao mudar para abas principais (não detalhes)
+  useEffect(() => {
+    const detailTabs = ['visit_detail', 'event_detail_admin'];
+
+    // Só limpamos se não estivermos indo para uma tela de detalhes
+    if (!detailTabs.includes(activeTab)) {
+      setSelectedEventId(null);
+      setSelectedAcademyId(null);
+    }
+
+    // Verificação de Segurança de Perfil (Role Protection)
+    if (currentUser) {
+      const adminTabs = ['dashboard', 'access_control', 'academies', 'events', 'admin_finance', 'reports', 'event_detail_admin'];
+      if (currentUser.role !== UserRole.ADMIN && adminTabs.includes(activeTab)) {
+        setActiveTab('my_events');
+      }
+      if (currentUser.role === UserRole.ADMIN && activeTab === 'visit_detail') {
+        setActiveTab('dashboard');
+      }
+    }
+  }, [activeTab, currentUser?.role]);
+
+  useEffect(() => {
+    // Check local session
+    const storedUser = localStorage.getItem('bjj_user');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        setCurrentUser(parsed);
+      } catch (e) {
+        localStorage.removeItem('bjj_user');
+      }
+    }
+  }, []);
+
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+    localStorage.setItem('bjj_user', JSON.stringify(user));
+    // Reset state and set initial tab
+    setSelectedEventId(null);
+    setSelectedAcademyId(null);
+    setActiveTab(user.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
+  };
+
+  // Fetch initial data
+  useEffect(() => {
+    if (currentUser) {
+      loadData();
+    }
+  }, [currentUser?.id]); // Use ID to be safe
+
+  const loadData = React.useCallback(async () => {
+    try {
+      const dbAcademies = await DatabaseService.getAcademies();
+      setAcademies(dbAcademies);
+
+      const dbEvents = await DatabaseService.getEvents();
+      // Need to fetch academies for each event (junction)
+      const eventsWithAcademies = await Promise.all(dbEvents.map(async (e: any) => {
+        const ids = await DatabaseService.getEventAcademies(e.id);
+        return { ...e, academiesIds: ids };
+      }));
+      setEvents(eventsWithAcademies);
+
+      const dbVisits = await DatabaseService.getVisits();
+      setVisits(dbVisits);
+
+      const dbFinance = await DatabaseService.getFinance();
+      setFinance(dbFinance);
+
+      const dbVouchers = await DatabaseService.getVouchers();
+      setVouchers(dbVouchers);
+
+      if (currentUser) {
+        const dbNotifications = await DatabaseService.getNotifications(currentUser.id);
+        setNotifications(dbNotifications);
+      }
+
+    } catch (error) {
+      console.error("Error loading data:", error);
+    }
+  }, [currentUser?.id]);
+
+  // Real-time Notifications Subscription
+  useEffect(() => {
+    if (!currentUser) return;
+
+    console.log('🔔 [Notifications] Setting up realtime subscription for user:', currentUser.id);
+
+    const channel = supabase
+      .channel(`user-notifs-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${currentUser.id}`
+        },
+        (payload) => {
+          console.log('🔔 [Notifications] Received realtime notification:', payload);
+          const newN = payload.new;
+          const mapped: Notification = {
+            id: newN.id,
+            userId: newN.user_id,
+            message: newN.message,
+            read: newN.read,
+            timestamp: newN.created_at
+          };
+          console.log('🔔 [Notifications] Adding to state:', mapped);
+          setNotifications(prev => [mapped, ...prev]);
+        }
+      )
+      .subscribe((status) => {
+        console.log('🔔 [Notifications] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔔 [Notifications] Cleaning up subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
+
+  // 🔄 Real-time Global Data Sync
+  useEffect(() => {
+    if (!currentUser) return;
+
+    console.log('🔄 [DataSync] Setting up global realtime synchronization...');
+
+    const channel = supabase
+      .channel('global-data-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'academies' }, (p) => {
+        console.log('🔄 [DataSync] academies changed:', p.eventType);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, (p) => {
+        console.log('🔄 [DataSync] events changed:', p.eventType);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_academies' }, (p) => {
+        console.log('🔄 [DataSync] event_academies changed:', p.eventType);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits' }, (p) => {
+        console.log('🔄 [DataSync] visits changed:', p.eventType);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vouchers' }, (p) => {
+        console.log('🔄 [DataSync] vouchers changed:', p.eventType);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'finance_records' }, (p) => {
+        console.log('🔄 [DataSync] finance_records changed:', p.eventType);
+        loadData();
+      })
+      .subscribe((status) => {
+        console.log('🔄 [DataSync] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔄 [DataSync] Cleaning up global synchronization');
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id, loadData]);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setCurrentUser({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role as UserRole
+        });
+        setActiveTab(data.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    }
+  };
+
+  const logout = async () => {
+    localStorage.removeItem('bjj_user');
+    setCurrentUser(null);
+    window.location.reload();
+  };
+
+  const fetchUsers = async () => {
+    // Buscar apenas usuários ATIVOS da tabela app_users
+    const { data: salesData } = await supabase
+      .from('app_users')
+      .select('*')
+      .eq('role', UserRole.SALES)
+      .eq('status', 'ACTIVE');
+    if (salesData) setSellers(salesData as User[]);
+
+    const { data: adminData } = await supabase
+      .from('app_users')
+      .select('*')
+      .eq('role', UserRole.ADMIN)
+      .eq('status', 'ACTIVE');
+    if (adminData) setAdmins(adminData as User[]);
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchUsers();
+    }
+  }, [currentUser]);
+
+
+  /* Restore notifyUser */
+  const notifyUser = async (userId: string, message: string) => {
+    console.log('📤 [Notifications] Sending notification:', { userId, message, currentUserId: currentUser?.id });
+
+    // Adicionamos ao estado local apenas se a notificação for para o usuário atual
+    // Notifications para outros serão processadas via banco de dados e recebidas via Realtime pelo destinatário
+    if (userId === currentUser?.id) {
+      console.log('📤 [Notifications] Adding to local state (same user)');
+      const newNotif: Notification = {
+        id: Math.random().toString(36).substr(2, 9),
+        userId,
+        message,
+        read: false,
+        timestamp: new Date().toISOString()
+      };
+      setNotifications(prev => [newNotif, ...prev]);
+    }
+
+    // Persist to database
+    try {
+      console.log('📤 [Notifications] Saving to database...');
+      const result = await DatabaseService.createNotification(userId, message);
+      console.log('📤 [Notifications] Saved successfully:', result);
+    } catch (error) {
+      console.error('📤 [Notifications] Error saving notification:', error);
+    }
+  };
+
+  const handleUpdateEvent = async (updatedEvent: Event) => {
+    try {
+      const oldEvent = events.find(e => e.id === updatedEvent.id);
+
+      // 1. Update the main event record
+      await DatabaseService.updateEvent(updatedEvent.id, updatedEvent);
+
+      // 2. Sync academies (Junction Table)
+      if (oldEvent) {
+        const added = updatedEvent.academiesIds.filter(id => !oldEvent.academiesIds.includes(id));
+        const removed = oldEvent.academiesIds.filter(id => !updatedEvent.academiesIds.includes(id));
+
+        // Execute junction updates
+        for (const id of added) await DatabaseService.addEventAcademy(updatedEvent.id, id);
+        for (const id of removed) await DatabaseService.removeEventAcademy(updatedEvent.id, id);
+      }
+
+      // 3. Update local state
+      setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+
+      // 4. Notifications (Legacy Logic adapted)
+      if (oldEvent && oldEvent.salespersonId !== updatedEvent.salespersonId && updatedEvent.salespersonId) {
+        notifyUser(updatedEvent.salespersonId, `Você é o novo responsável pelo evento "${updatedEvent.name}".`);
+      }
+
+      if (oldEvent && updatedEvent.salespersonId) {
+        const added = updatedEvent.academiesIds.filter(id => !oldEvent.academiesIds.includes(id));
+        if (added.length > 0) {
+          notifyUser(updatedEvent.salespersonId, `${added.length} novas academias atribuídas ao evento "${updatedEvent.name}".`);
+        }
+
+        // Notificar se detalhes básicos mudaram
+        if (oldEvent.name !== updatedEvent.name || oldEvent.city !== updatedEvent.city || oldEvent.state !== updatedEvent.state) {
+          notifyUser(updatedEvent.salespersonId, `As informações do evento "${updatedEvent.name}" foram atualizadas.`);
+        }
+      }
+
+    } catch (error) {
+      console.error("Error updating event:", error);
+      alert("Erro ao atualizar evento.");
+    }
+  };
+
+  // Se o hash contiver public-voucher, renderiza a tela pública
+  if (hash.startsWith('#/public-voucher/')) {
+    const rawHash = hash.replace('#/public-voucher/', '');
+    // Tenta dividir por pipe literal, ou pipe encoded (%7C) se o browser/scanner codificou
+    let voucherData = rawHash.split('|');
+    if (voucherData.length < 3 && rawHash.includes('%7C')) {
+      voucherData = rawHash.split('%7C');
+    }
+    const academyName = decodeURIComponent(voucherData[0] || '');
+    const codesStr = decodeURIComponent(voucherData[1] || '');
+    const timestamp = parseInt(voucherData[2] || '0');
+
+    return (
+      <PublicVoucherLanding
+        academyName={academyName}
+        codes={codesStr.split(',')}
+        createdAt={timestamp}
+      />
+    );
+  }
+
+
+  // Se não estiver logado, exibe a tela de Auth
+  if (!currentUser) {
+    return <CustomAuth onLogin={handleLogin} />;
+  }
+
+  return (
+    <div className="flex h-screen bg-neutral-900 font-sans text-neutral-100 overflow-hidden">
+      {/* Sidebar - Only for Admin */}
+      {
+        currentUser.role === UserRole.ADMIN && (
+          <Sidebar
+            currentUser={currentUser}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            logout={logout}
+          />
+        )
+      }
+
+      {/* Main Content Area */}
+      <main className={`flex-1 flex flex-col h-screen overflow-hidden ${currentUser.role === UserRole.SALES ? 'pb-16' : ''}`}> {/* Add padding bottom for mobile nav */}
+
+        {/* Navbar - Only for Admin (Salesperson uses simplified header or just content) */}
+        {currentUser.role === UserRole.ADMIN ? (
+          <Navbar
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            activeTab={activeTab}
+          />
+        ) : (
+          /* Salesperson Header */
+          <header className="bg-neutral-900 border-b border-neutral-800 p-4 shrink-0 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <img src="/oss_logo.jpg" alt="Logo" className="w-8 h-8 object-contain mix-blend-screen filter invert hue-rotate-180 brightness-110 contrast-125 saturate-150" />
+              <h1 className="text-lg font-bold text-white tracking-tight">BJJVisits</h1>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">{currentUser.name}</p>
+            </div>
+          </header>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0">
+          {/* Global Notifications */}
+          {notifications.filter(n => n.userId === currentUser.id && !n.read).length > 0 && (
+            <div className="mb-6 space-y-3">
+              {notifications.filter(n => n.userId === currentUser.id && !n.read).map((n) => (
+                <div key={n.id} className="bg-neutral-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-lg animate-in slide-in-from-top-2 border border-neutral-500">
+                  <div className="flex items-center space-x-3">
+                    <Bell size={18} strokeWidth={1.5} />
+                    <span className="font-bold text-sm">{n.message}</span>
+                  </div>
+                  <button onClick={() => {
+                    setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
+                    DatabaseService.markNotificationAsRead(n.id).catch(err => console.error("Error marking read:", err));
+                  }} className="hover:bg-white/20 p-1 rounded-lg">
+                    <X size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'dashboard' && currentUser.role === UserRole.ADMIN && <AdminDashboard events={events} academies={academies} visits={visits} vouchers={vouchers} finance={finance} vendedores={sellers} />}
+          {activeTab === 'access_control' && currentUser.role === UserRole.ADMIN && <AccessControlManager />}
+          {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} currentUser={currentUser} notifyUser={notifyUser} />}
+          {activeTab === 'events' && currentUser.role === UserRole.ADMIN && <EventsManager events={events} visits={visits} setEvents={setEvents} academies={academies} vendedores={sellers} onSelectEvent={(id) => { setSelectedEventId(id); setActiveTab('event_detail_admin'); }} notifyUser={notifyUser} />}
+          {activeTab === 'event_detail_admin' && selectedEventId && currentUser.role === UserRole.ADMIN && (
+            <EventDetailAdmin
+              event={events.find(e => e.id === selectedEventId)!}
+              academies={academies}
+              visits={visits}
+              vendedores={sellers}
+              onBack={() => setActiveTab('events')}
+              onUpdateEvent={handleUpdateEvent}
+              notifyUser={notifyUser}
+            />
+          )}
+          {activeTab === 'admin_finance' && currentUser.role === UserRole.ADMIN && (
+            <AdminFinance
+              finance={finance}
+              setFinance={setFinance}
+              events={events}
+              vendedores={sellers}
+              notifyUser={notifyUser}
+            />
+          )}
+          {activeTab === 'reports' && currentUser.role === UserRole.ADMIN && <AdminReports visits={visits} academies={academies} events={events} vouchers={vouchers} vendedores={sellers} />}
+
+          {activeTab === 'my_events' && <SalespersonEvents events={events.filter(e => e.salespersonId === currentUser.id)} academies={academies} visits={visits} notifications={notifications.filter(n => n.userId === currentUser.id && !n.read)} onDismissNotif={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))} onSelectAcademy={(eventId, academyId) => { setSelectedEventId(eventId); setSelectedAcademyId(academyId); setActiveTab('visit_detail'); }} />}
+          {activeTab === 'visit_detail' && selectedEventId && selectedAcademyId && (
+            <VisitDetail eventId={selectedEventId} academy={academies.find(a => a.id === selectedAcademyId)!} event={events.find(e => e.id === selectedEventId)!} existingVisit={visits.find(v => v.eventId === selectedEventId && v.academyId === selectedAcademyId)} onFinish={async (visit) => {
+              try {
+                // Save Visit
+                const savedVisit = await DatabaseService.upsertVisit(visit);
+                setVisits(prev => [...prev.filter(v => !(v.eventId === visit.eventId && v.academyId === visit.academyId)), savedVisit]);
+
+                // Save Vouchers
+                const currentVoucherCodes = new Set(vouchers.map(v => v.code));
+                const newVoucherObjects: Voucher[] = (visit.vouchersGenerated || [])
+                  .filter(code => !currentVoucherCodes.has(code))
+                  .map(code => ({
+                    code,
+                    eventId: visit.eventId,
+                    academyId: visit.academyId,
+                    visitId: savedVisit.id,
+                    createdAt: new Date().toISOString()
+                  }));
+
+                if (newVoucherObjects.length > 0) {
+                  await DatabaseService.createVouchers(newVoucherObjects);
+                  setVouchers(prev => [...prev, ...newVoucherObjects]);
+                }
+
+                // Notify Admins (Only if completely new visit or status changed to VISITED first time)
+                // Simplified: notify every time for now or check if it was already visited?
+                // Defaulting to keeping existing notification logic but safe from errors
+                admins.forEach(admin => {
+                  notifyUser(admin.id, `O vendedor ${currentUser.name} concluiu uma visita na academia "${academies.find(a => a.id === selectedAcademyId)?.name}".`);
+                });
+
+                setActiveTab('my_events');
+              } catch (error) {
+                console.error("Error saving visit:", error);
+                alert("Erro ao salvar visita.");
+              }
+            }}
+              onCancel={() => setActiveTab('my_events')}
+            />
+          )}
+          {activeTab === 'sales_finance' && (
+            <SalesFinance
+              finance={finance.filter(f => f.salespersonId === currentUser.id)}
+              events={events}
+              onConfirm={async (recordId) => {
+                const record = finance.find(f => f.id === recordId);
+                if (record) {
+                  try {
+                    const updated = await DatabaseService.updateFinance(record.id, { ...record, status: FinanceStatus.RECEIVED, updatedAt: new Date().toISOString() });
+                    setFinance(prev => prev.map(f => f.id === recordId ? updated : f));
+
+                    // Notificar admins que o vendedor recebeu o dinheiro
+                    const eventName = events.find(e => e.id === record.eventId)?.name;
+                    admins.forEach(admin => {
+                      notifyUser(admin.id, `O vendedor ${currentUser?.name} confirmou o recebimento de $ ${record.amount.toFixed(2)} referente ao evento "${eventName}".`);
+                    });
+                  } catch (error) {
+                    console.error("Error confirming finance:", error);
+                  }
+                }
+              }}
+            />
+          )}
+        </div>
+      </main>
+
+      {/* Mobile Bottom Nav - Only for Salesperson */}
+      {
+        currentUser.role === UserRole.SALES && (
+          <MobileBottomNav
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            logout={logout}
+          />
+        )
+      }
+    </div>
+  );
+};
 export default App;
