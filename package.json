@@ -1,8 +1,8 @@
 {
   "name": "bjjvisits---controle-de-visitas",
   "private": true,
-  "version": "1.0.14",
-  "deployName": "Simplified UI Icons",
+  "version": "1.0.15",
+  "deployName": "Fix User Deletion and RLS",
   "type": "module",
   "scripts": {
     "dev": "vite",

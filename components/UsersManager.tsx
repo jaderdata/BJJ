@@ -89,14 +89,25 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
             return;
         }
 
+        const userToDelete = users.find(u => u.id === id);
+        if (!userToDelete) return;
+
         if (window.confirm(`Deseja realmente excluir o usuário "${name}"?`)) {
             try {
+                setLoading(true);
+                // 1. Delete from app_users
                 await DatabaseService.deleteUser(id);
+
+                // 2. Delete from allowlist so they can be invited/request access again
+                await DatabaseService.deleteFromAllowlist(userToDelete.email);
+
                 setUsers(prev => prev.filter(u => u.id !== id));
                 alert("Usuário excluído com sucesso.");
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error deleting user:", error);
-                alert("Erro ao excluir usuário");
+                alert(`Erro ao excluir usuário: ${error.message}`);
+            } finally {
+                setLoading(false);
             }
         }
     };
@@ -122,10 +133,14 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
     const handleRevokeInvite = async (email: string) => {
         if (window.confirm(`Deseja revogar o convite para ${email}?`)) {
             try {
+                setLoading(true);
                 await AuthService.revokeInvite(email);
+                await DatabaseService.deleteFromAllowlist(email);
                 loadPendingInvites();
             } catch (error) {
                 console.error("Error revoking invite:", error);
+            } finally {
+                setLoading(false);
             }
         }
     };

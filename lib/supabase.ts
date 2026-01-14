@@ -341,6 +341,13 @@ export const DatabaseService = {
             .delete()
             .eq('id', id);
         if (error) throw error;
+    },
+    async deleteFromAllowlist(email: string) {
+        const { error } = await supabase
+            .from('app_allowlist')
+            .delete()
+            .eq('email', email);
+        if (error) throw error;
     }
 };
 
