@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": [
+      "deno.window",
+      "deno.ns"
+    ],
+    "strict": true,
+    "types": [
+      "./deno.d.ts",
+      "./google-auth.d.ts"
+    ]
+  },
+  "imports": {
+    "google-auth-library": "npm:google-auth-library@^9.0.0",
+    "google-auth-library/": "npm:/google-auth-library@^9.0.0/"
+  }
+}

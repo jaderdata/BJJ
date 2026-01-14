@@ -1,0 +1,77 @@
+========================================================================
+ESTRATÉGIA DE REDESIGN: RELATÓRIOS E KPIs AVANÇADOS - BJJ VISITS
+========================================================================
+Analista Responsável: Antigravity (Senior AI Analyst)
+Objetivo: Transformar a tela de relatórios em um Centro de Inteligência
+Status: Planejamento Técnico e Arquitetural (Fase 0)
+
+1. VISÃO GERAL DO SISTEMA (DATA MAPPING)
+------------------------------------------------------------------------
+O sistema atual possui cinco pilares de dados que hoje estão subutilizados
+na tela de relatórios. O novo design consolidará:
+
+- OPERACIONAL: Fluxo de Atribuição -> Início de Visita -> Fim de Visita.
+- CONVERSÃO: Visitas Efetuadas vs. Vouchers Gerados.
+- FINANCEIRO: Valores recebidos por Vendedor/Evento vs. Custo Operacional.
+- GEOGRÁFICO: Performance de distribuição por Cidade/Estado.
+- QUALITATIVO: Temperatura das Academias (Cold/Warm/Hot) e Notas Técnicas.
+
+2. ARQUITETURA DA NOVA TELA (MODULARIZAÇÃO)
+------------------------------------------------------------------------
+A tela deixará de ser uma "listagem" para ser um "Dashboard de Decisão".
+
+ESTRUTURA PROPOSTA:
+[A] Header Inteligente: Filtros globais (Data Range Picker, Multiselect
+    Sellers/Events) + Export Center (XLSX, PDF, CSV, Sync Google Sheets).
+[B] Command Center (KPI Cards):
+    - Total de Vouchers (Volume Bruto)
+    - Taxa de Conversão (Visitas -> Vouchers) [%]
+    - Receita Total Realizada (Integrado ao Finance) [R$]
+    - Ticket Médio de Ativação (Receita/Vouchers)
+    - Lead Time Médio (Tempo médio de duração das visitas)
+[C] Seção de Performance de Funil:
+    - Gráfico Funil: Academias Atribuídas -> Visitas Realizadas -> Vouchers.
+[D] Seção de Tendências:
+    - Gráfico de Linha: Evolução diária/semanal de ativações vs visitas.
+[E] Seção de Inteligência Comercial (Leaderboards):
+    - Ranking de Vendedores por Conversão (não apenas volume).
+    - Ranking de Academias por "Temperatura" e Frequência.
+[F] Seção Geográfica:
+    - Map Chart ou Treemap de performance por Estado/Cidade.
+[G] Raw Data Explorer:
+    - Tabela avançada com agrupamento (Group by Event/Seller) e Drill-down.
+
+3. KPIs E MÉTRICAS SENIOR (O QUE O MERCADO EXIGE)
+------------------------------------------------------------------------
+Para uma gestão profissional, incluiremos:
+
+- SENTIMENTO DE MERCADO: Gráfico de Pizza de Temperaturas das Academias.
+- TAXA DE PENDÊNCIA: % de visitas atribuídas que não foram realizadas.
+- EFICIÊNCIA TEMPORAL: Horários de maior pico de geração de vouchers.
+
+4. REQUISITOS TÉCNICOS E BOAS PRÁTICAS
+------------------------------------------------------------------------
+- STATE MANAGEMENT: Utilização de estados colocalizados para filtros e
+  seleções complexas.
+- PERFORMANCE: Implementação de Deep Memoization para evitar Recalculation
+  Lag em datasets superiores a 5000 registros.
+- VISUALIZAÇÃO: Uso de Recharts para gráficos interativos com Tooltips
+  formatados e legendas dinâmicas.
+- UX/UI: Manutenção do padrão Glassmorphism, mas com layout focado em
+  densidade de informação sem poluição visual (Dashboard "Clean & Heavy").
+- ACCESSIBILITY: Contraste WCAG AA+, suporte completo a Screen Readers nas
+  tabelas e labels descritivos.
+
+5. PLANO DE IMPLEMENTAÇÃO (RESUMO)
+------------------------------------------------------------------------
+Passo 1: Reestruturação do componente Reports.tsx para padrão de Grid 12 colunas.
+Passo 2: Implementação do Data Transformation Layer (Transformadores de dados
+         puros para modelos de gráficos).
+Passo 3: Integração do Módulo Financeiro à lógica de relatórios.
+Passo 4: Implementação de Gráficos de Evolução e Funil.
+Passo 5: Refatoração da Tabela para Suporte a Agrupamento e Ordenação Multi-nível.
+Passo 6: Upgrade do Exportador PDF para incluir Captura de Gráficos.
+
+========================================================================
+FIM DO PLANO DE ANÁLISE
+========================================================================

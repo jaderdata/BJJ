@@ -312,6 +312,36 @@ export const DatabaseService = {
         if (error) throw error;
     },
 
+    async getPendingInvites() {
+        const { data, error } = await supabase
+            .from('auth_tokens')
+            .select('*')
+            .eq('type', 'ACTIVATION')
+            .eq('used', false)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data as any[];
+    },
+
+    async updateUser(id: string, updates: any) {
+        const { data, error } = await supabase
+            .from('app_users')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteUser(id: string) {
+        const { error } = await supabase
+            .from('app_users')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+    }
 };
 
 export const AuthService = {
@@ -337,6 +367,23 @@ export const AuthService = {
             p_token: token,
             p_password: password,
             p_name: name
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    async generateInvite(email: string, role: string) {
+        const { data, error } = await supabase.rpc('auth_generate_invite', {
+            p_email: email.trim().toLowerCase(),
+            p_role: role
+        });
+        if (error) throw error;
+        return data;
+    },
+
+    async revokeInvite(email: string) {
+        const { data, error } = await supabase.rpc('auth_revoke_invite', {
+            p_email: email.trim().toLowerCase()
         });
         if (error) throw error;
         return data;
@@ -389,3 +436,4 @@ export const AuthService = {
         return data;
     }
 };
+

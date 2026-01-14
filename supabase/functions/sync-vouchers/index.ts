@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { JWT } from "npm:google-auth-library@9";
+import { JWT } from "npm:google-auth-library@^9.0.0";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
