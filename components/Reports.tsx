@@ -583,27 +583,6 @@ export const Reports: React.FC<ReportsProps> = ({
                         iconColor: 'text-purple-400'
                     },
                     {
-                        label: 'Taxa Conversão',
-                        value: `${efficiencyMetrics.conversionRate}%`,
-                        subValue: 'Visitas -> Vouchers',
-                        iconBg: 'bg-emerald-500/20',
-                        iconColor: 'text-emerald-400'
-                    },
-                    {
-                        label: 'Receita Líquida',
-                        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialAnalytic.balance),
-                        subValue: `Rec: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialAnalytic.received)}`,
-                        iconBg: 'bg-blue-500/20',
-                        iconColor: 'text-blue-400'
-                    },
-                    {
-                        label: 'Ticket Médio',
-                        value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(filteredVouchers.length > 0 ? financialAnalytic.received / filteredVouchers.length : 0),
-                        subValue: 'Por Voucher',
-                        iconBg: 'bg-amber-500/20',
-                        iconColor: 'text-amber-400'
-                    },
-                    {
                         label: 'Lead Time Médio',
                         value: `${efficiencyMetrics.avgDuration} min`,
                         subValue: 'Duração Visita',
@@ -639,46 +618,10 @@ export const Reports: React.FC<ReportsProps> = ({
                 ))}
             </div>
 
-            {/* Charts Row 1 - Funnel & Timeline */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:hidden">
-                {/* Funnel Chart */}
-                <div className="lg:col-span-4 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center space-x-2">
-                            <h3 className="text-sm font-black text-white uppercase tracking-wider">Funil de Conversão</h3>
-                        </div>
-                    </div>
-
-                    <div className="h-[250px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={funnelData} layout="vertical" margin={{ left: -20, right: 20 }}>
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" hide />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                    itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
-                                />
-                                <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={40}>
-                                    {funnelData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-
-                    <div className="mt-4 space-y-2">
-                        {funnelData.map((item, i) => (
-                            <div key={i} className="flex justify-between items-center text-xs">
-                                <span className="text-white/40 font-medium">{item.name}</span>
-                                <span className="text-white font-black">{item.value}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
+            {/* Charts Row 1 - Timeline Evolution */}
+            <div className="grid grid-cols-1 gap-6 print:hidden">
                 {/* Timeline Area Chart */}
-                <div className="lg:col-span-8 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center space-x-2">
                             <h3 className="text-sm font-black text-white uppercase tracking-wider">Evolução Temporal</h3>
@@ -741,10 +684,10 @@ export const Reports: React.FC<ReportsProps> = ({
                 </div>
             </div>
 
-            {/* Charts Row 2 - Sentiment & Efficiency */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:hidden">
+            {/* Charts Row 2 - Sentiment Analysis */}
+            <div className="grid grid-cols-1 gap-6 print:hidden">
                 {/* Sentiment Pie Chart */}
-                <div className="lg:col-span-4 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center space-x-2">
                             <h3 className="text-sm font-black text-white uppercase tracking-wider">Sentimento de Mercado</h3>
@@ -785,49 +728,6 @@ export const Reports: React.FC<ReportsProps> = ({
                                 <span className="text-white font-black">{item.value}</span>
                             </div>
                         ))}
-                    </div>
-                </div>
-
-                {/* Growth/Balance Indicator - Efficiency Leaderboard placeholder for now */}
-                <div className="lg:col-span-8 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
-                    <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center space-x-2">
-                            <div className="p-2 bg-emerald-500/20 rounded-lg">
-                                <BarChartIcon size={18} className="text-emerald-400" />
-                            </div>
-                            <h3 className="text-sm font-black text-white uppercase tracking-wider">Performance de Balanço</h3>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
-                        <div className="flex flex-col justify-center items-center p-4 bg-white/5 rounded-2xl border border-white/10 group-hover:bg-emerald-500/10 transition-colors">
-                            <p className="text-[10px] font-bold text-white/40 uppercase mb-2">Total Recebido</p>
-                            <p className="text-2xl font-black text-emerald-400">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialAnalytic.received)}
-                            </p>
-                            <div className="mt-4 w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-emerald-400" style={{ width: '100%' }}></div>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col justify-center items-center p-4 bg-white/5 rounded-2xl border border-white/10 group-hover:bg-rose-500/10 transition-colors">
-                            <p className="text-[10px] font-bold text-white/40 uppercase mb-2">Total Pago</p>
-                            <p className="text-2xl font-black text-rose-400">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialAnalytic.paid)}
-                            </p>
-                            <div className="mt-4 w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-rose-400" style={{ width: `${(financialAnalytic.paid / (financialAnalytic.received || 1)) * 100}%` }}></div>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col justify-center items-center p-4 bg-[hsl(262,83%,58%)]/20 rounded-2xl border border-white/20 relative group-hover:scale-105 transition-all">
-                            <Zap className="absolute top-2 right-2 text-white/20" size={32} strokeWidth={1} />
-                            <p className="text-[10px] font-bold text-white/60 uppercase mb-2">Saldo Líquido</p>
-                            <p className="text-3xl font-black text-white">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialAnalytic.balance)}
-                            </p>
-                            <p className="text-[10px] font-medium text-white/40 mt-2">Margem Operacional Ativa</p>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -889,9 +789,6 @@ export const Reports: React.FC<ReportsProps> = ({
             <div className="relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
                 <div className="p-4 border-b border-white/10 flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                        <div className="p-1.5 bg-purple-500/20 rounded-lg">
-                            <Ticket size={16} className="text-purple-400" strokeWidth={2} />
-                        </div>
                         <h3 className="text-lg font-black text-white">
                             Explorador de Dados ({sortedVouchers.length})
                         </h3>
@@ -1121,6 +1018,6 @@ export const Reports: React.FC<ReportsProps> = ({
                     </table>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

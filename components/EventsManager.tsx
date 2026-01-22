@@ -77,8 +77,13 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
         e.stopPropagation();
         if (window.confirm(`Deseja realmente excluir o evento "${eventName}"?`)) {
             try {
+                const eventToDelete = events.find(ev => ev.id === eventId);
                 await DatabaseService.deleteEvent(eventId);
                 setEvents((prev: Event[]) => prev.filter(ev => ev.id !== eventId));
+
+                if (eventToDelete?.salespersonId) {
+                    notifyUser(eventToDelete.salespersonId, `O evento "${eventName}" foi removido pelo administrador.`);
+                }
             } catch (error) {
                 console.error("Error deleting event:", error);
                 alert("Erro ao excluir evento");

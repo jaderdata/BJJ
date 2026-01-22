@@ -9,7 +9,7 @@ import {
     User as UserIcon,
     Edit3
 } from 'lucide-react';
-import { Academy, User } from '../types';
+import { Academy, User, Event } from '../types';
 import { DatabaseService } from '../lib/supabase';
 
 interface AcademiesManagerProps {
@@ -17,13 +17,15 @@ interface AcademiesManagerProps {
     setAcademies: React.Dispatch<React.SetStateAction<Academy[]>>;
     currentUser: User;
     notifyUser: (uid: string, msg: string) => void;
+    events: Event[];
 }
 
 export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
     academies,
     setAcademies,
     currentUser,
-    notifyUser
+    notifyUser,
+    events
 }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingAcademy, setEditingAcademy] = useState<Academy | null>(null);
@@ -40,6 +42,14 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
             if (editingAcademy) {
                 const updated = await DatabaseService.updateAcademy(editingAcademy.id, formData);
                 setAcademies(prev => prev.map(a => a.id === updated.id ? updated : a));
+
+                // Notify salespeople of events where this academy is present
+                const relatedEvents = events.filter(e => e.academiesIds.includes(updated.id));
+                const salespeopleToNotify = new Set(relatedEvents.map(e => e.salespersonId).filter(Boolean) as string[]);
+
+                salespeopleToNotify.forEach(sid => {
+                    notifyUser(sid, `Os dados da academia "${updated.name}" foram atualizados pelo administrador.`);
+                });
             } else {
                 const created = await DatabaseService.createAcademy(formData);
                 setAcademies(prev => [created, ...prev]);

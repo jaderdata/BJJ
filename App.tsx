@@ -45,7 +45,8 @@ import {
   Copy,
   ExternalLink,
   Thermometer,
-  Share2
+  Share2,
+  TrendingUp
 } from 'lucide-react';
 import {
   User,
@@ -79,6 +80,7 @@ import { AcademiesManager } from './components/AcademiesManager';
 import { UsersManager } from './components/UsersManager';
 import { SalesFinance } from './components/SalesFinance';
 import { supabase, DatabaseService, AuthService } from './lib/supabase';
+import { designTokens, cn } from './lib/designTokens';
 import {
   LineChart,
   Line,
@@ -122,19 +124,13 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleClose = () => {
-    setIsClosed(true);
-    // Tenta fechar a janela se possível (funciona em alguns contextos de mobile/pwa)
-    window.close();
-  };
-
   if (isClosed) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-6 text-center">
-        <div className="max-w-md w-full bg-neutral-800 p-10 rounded-3xl shadow-xl border border-neutral-700 space-y-4">
-          <div className="bg-emerald-900/30 text-emerald-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 size={32} /></div>
-          <h1 className="text-2xl font-bold text-white">Vouchers Salvos!</h1>
-          <p className="text-neutral-400 leading-relaxed">Você já pode fechar esta tela.</p>
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-6 text-center animate-in fade-in duration-500">
+        <div className="bg-neutral-800 border border-neutral-700 max-w-md w-full p-10 rounded-[2rem] space-y-4 shadow-2xl">
+          <div className="text-emerald-500 font-black text-4xl mb-4 animate-bounce">OSS!</div>
+          <h1 className="text-2xl font-black text-white">Vouchers Saved!</h1>
+          <p className="text-neutral-400">You can now close this screen.</p>
         </div>
       </div>
     );
@@ -142,58 +138,82 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
 
   if (isExpired) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-6 text-center">
-        <div className="max-w-md w-full bg-neutral-800 p-10 rounded-3xl shadow-xl border border-neutral-700 space-y-4">
-          <div className="bg-red-900/30 text-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto"><Clock size={32} /></div>
-          <h1 className="text-2xl font-bold text-white">Link Expirado</h1>
-          <p className="text-neutral-400 leading-relaxed">Este link de vouchers expirou após 24 horas por razões de segurança. Por favor, solicite um novo código ao representante.</p>
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-6 text-center animate-in fade-in duration-500">
+        <div className="bg-neutral-800 border border-neutral-700 max-w-md w-full p-10 rounded-[2rem] space-y-4 shadow-2xl">
+          <div className="bg-red-500/20 text-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto"><Clock size={32} /></div>
+          <h1 className="text-2xl font-black text-white">Expired Link</h1>
+          <p className="text-neutral-400">This voucher link expired after 24 hours for security reasons. Please request a new code from your representative.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-4">
-      <div className="max-w-xl w-full bg-neutral-800 rounded-3xl shadow-2xl border border-neutral-700 overflow-hidden">
-        <div className="bg-neutral-950 p-6 text-center text-white">
-          <h1 className="text-xl font-bold">PBJJF Vouchers</h1>
-          <p className="text-xs text-neutral-400 mt-1 uppercase tracking-widest">{academyName}</p>
+    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+      <div className="max-w-xl w-full bg-neutral-900 border border-neutral-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col items-center">
+        {/* Header */}
+        <div className="pt-12 pb-8 flex flex-col items-center space-y-4 px-6 text-center w-full">
+          <div className="w-48 h-20 flex items-center justify-center mb-2">
+            <img src="/PBJJF_logo.jpeg" alt="PBJJF" className="h-full w-auto opacity-90" />
+          </div>
+          <h1 className="text-2xl font-black text-white tracking-tight">PBJJF Vouchers</h1>
+          <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] leading-relaxed max-w-xs">{academyName}</p>
         </div>
-        <div className="p-8 space-y-8">
-          <div className="space-y-4 text-center">
-            <h2 className="text-xl font-bold text-white leading-snug">Thank you for being part of the upcoming PBJJF event! 🥋</h2>
-            <div className="py-6 px-4 bg-neutral-900/30 rounded-2xl border border-neutral-800 space-y-2">
-              <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Your Vouchers</p>
-              <div className="flex flex-wrap gap-2 justify-center">
+
+        <div className="w-full h-px bg-white/5 mx-auto max-w-xs"></div>
+
+        <div className="p-8 md:p-10 w-full space-y-10">
+          <div className="space-y-8 text-center">
+            <h2 className="text-xl font-bold text-white leading-snug px-4">
+              Thank you for being part of the upcoming PBJJF event! 🥋
+            </h2>
+
+            {/* Voucher Box */}
+            <div className="bg-white/[0.03] border border-white/5 rounded-[2rem] p-8 space-y-6">
+              <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Your Vouchers</p>
+              <div className="flex flex-wrap gap-4 justify-center">
                 {codes.map((c, i) => (
-                  <span key={i} className="bg-neutral-900 border border-neutral-900/50 px-3 py-1.5 rounded-lg font-mono font-bold text-neutral-400 shadow-sm">{c}</span>
+                  <div key={i} className="bg-black/40 border border-white/10 text-white px-8 py-4 rounded-2xl font-mono font-black text-xl md:text-2xl shadow-inner uppercase">
+                    {c}
+                  </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="bg-neutral-900 p-6 rounded-2xl border border-neutral-700 text-sm text-neutral-400 leading-relaxed">
-              To redeem, please send a text message to <span className="font-bold text-white">(407) 633-9166</span> with the academy name and the voucher codes listed above.
+          <div className="space-y-6">
+            <div className="bg-neutral-800/40 p-6 rounded-2xl border border-neutral-700/50 text-xs md:text-sm text-neutral-400 leading-relaxed text-center">
+              To redeem, please send a text message to <span className="text-white font-bold">(407) 633-9166</span> with the academy name and the voucher codes listed above.
             </div>
-            <p className="text-center text-sm font-medium text-neutral-500 italic">We appreciate the partnership and wish you a great event!</p>
+            <p className="text-center text-[10px] font-bold text-neutral-500 italic">We appreciate the partnership and wish you a great event!</p>
+          </div>
+
+          <div className="space-y-4">
+            <button
+              onClick={handleCopy}
+              className={`w-full flex items-center justify-center space-x-2 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl ${copied ? 'bg-emerald-600 text-white' : 'bg-white text-neutral-900 hover:bg-neutral-200'
+                }`}
+            >
+              {copied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+              <span>{copied ? 'Link Copied!' : 'Copy Instructions & Codes'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="w-full bg-black/30 p-8 border-t border-white/5 space-y-6">
+          <div className="flex justify-center items-center space-x-2 text-[8px] md:text-[10px] text-white/20 font-black uppercase tracking-[0.2em]">
+            <span>Expires in 24 hours</span>
+            <span className="text-white/10">•</span>
+            <span>Secure BJJVisits Token</span>
           </div>
 
           <button
-            onClick={handleCopy}
-            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-2xl font-bold transition-all ${copied ? 'bg-emerald-600 text-white' : 'bg-white text-neutral-900 hover:bg-neutral-200'}`}
+            onClick={() => setIsClosed(true)}
+            className="w-full flex items-center justify-center space-x-2 text-white/40 hover:text-white transition-colors text-[10px] font-black uppercase tracking-[0.2em]"
           >
-            {copied ? <CheckCircle2 size={18} strokeWidth={1.5} /> : <Copy size={18} strokeWidth={1.5} />}
-            <span>{copied ? 'Copied to Clipboard!' : 'Copy Instructions & Codes'}</span>
-          </button>
-        </div>
-        <div className="bg-neutral-900 p-4 border-t border-neutral-800 text-center space-y-4">
-          <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Expira em 24 horas • Secure BJJVisits Token</p>
-          <button
-            onClick={handleClose}
-            className="text-neutral-500 hover:text-white text-xs font-bold uppercase flex items-center justify-center mx-auto transition-colors"
-          >
-            <X size={14} strokeWidth={1.5} className="mr-1" /> Fechar Tela
+            <X size={14} />
+            <span>Close Screen</span>
           </button>
         </div>
       </div>
@@ -271,8 +291,28 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
     return visits.filter(v => eventIds.has(v.eventId));
   }, [visits, filteredEvents]);
 
-  const filteredVisits = useMemo(() => visitsInYear.filter(v => v.status === VisitStatus.VISITED), [visitsInYear]);
-  const filteredPendingVisits = useMemo(() => visitsInYear.filter(v => v.status === VisitStatus.PENDING), [visitsInYear]);
+  const filteredVisits = useMemo(() => {
+    const map = new Map<string, Visit>();
+    visitsInYear.forEach(v => {
+      if (v.status === VisitStatus.VISITED) {
+        const event = filteredEvents.find(e => e.id === v.eventId);
+        if (event?.academiesIds.includes(v.academyId)) {
+          const key = `${v.eventId}-${v.academyId}`;
+          if (!map.has(key) || (v.finishedAt && map.get(key)?.finishedAt && v.finishedAt > (map.get(key)?.finishedAt || ''))) {
+            map.set(key, v);
+          }
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [visitsInYear, filteredEvents]);
+
+  const filteredPendingVisits = useMemo(() => {
+    // Total assignments in filtered events
+    const totalAssignments = filteredEvents.reduce((acc, e) => acc + (e.academiesIds?.length || 0), 0);
+    const completedCount = filteredVisits.length;
+    return { length: Math.max(0, totalAssignments - completedCount) };
+  }, [filteredEvents, filteredVisits]);
   const filteredVouchers = useMemo(() => vouchers.filter(v => new Date(v.createdAt).getFullYear().toString() === selectedYear), [vouchers, selectedYear]);
 
   // KPIs
@@ -290,10 +330,25 @@ const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: 
     });
 
     const activeVs = visits.filter(v => activeEventIds.has(v.eventId));
-    const visitedCount = activeVs.filter(v => v.status === VisitStatus.VISITED).length;
+    
+    // Correct calculation of unique visited assignments and their data (like temperature)
+    const uniqueActiveVisits = activeEvents.flatMap(e => {
+      const inEvent = activeVs.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED);
+      const map = new Map<string, Visit>();
+      inEvent.forEach(v => {
+        if (e.academiesIds.includes(v.academyId)) {
+          if (!map.has(v.academyId) || (v.finishedAt && map.get(v.academyId)?.finishedAt && v.finishedAt > (map.get(v.academyId)?.finishedAt || ''))) {
+            map.set(v.academyId, v);
+          }
+        }
+      });
+      return Array.from(map.values());
+    });
+
+    const visitedCount = uniqueActiveVisits.length;
 
     const counts = { [AcademyTemperature.HOT]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.COLD]: 0 };
-    activeVs.filter(v => v.status === VisitStatus.VISITED).forEach(v => {
+    uniqueActiveVisits.forEach(v => {
       if (v.temperature) counts[v.temperature]++;
     });
 
@@ -1309,12 +1364,17 @@ END OF OLD ADMIN REPORTS */
 
 const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visits: Visit[], notifications: any, onDismissNotif: any, onSelectAcademy: any }> = ({ events, academies, visits, notifications, onDismissNotif, onSelectAcademy }) => {
   // Calculate global progress for the salesperson
-  const totalAcademies = events.reduce((acc, e) => acc + e.academiesIds.length, 0);
+  // totalAcademies should be the count of unique assignments (event_id, academy_id)
+  const totalAcademies = events.reduce((acc, e) => acc + (e.academiesIds?.length || 0), 0);
 
-  // Filter visits that belong to the passed events (which are already filtered by salesperson) AND are visited
-  const completedVisitsCount = visits.filter(v =>
-    events.some(e => e.id === v.eventId) && v.status === VisitStatus.VISITED
-  ).length;
+  // completedVisitsCount should be the count of unique assignments that have been visited
+  const completedVisitsCount = events.reduce((acc, e) => {
+    const visitedInEvent = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED);
+    const uniqueVisitedIds = new Set(visitedInEvent.map(v => v.academyId));
+    // Somente contamos academias que realmente fazem parte deste evento
+    const validVisitedCount = Array.from(uniqueVisitedIds).filter(aid => e.academiesIds.includes(aid)).length;
+    return acc + validVisitedCount;
+  }, 0);
 
   return (
     <div className="space-y-6 pb-20"> {/* pb-20 to ensure content is above bottom nav */}
@@ -1574,6 +1634,15 @@ const App: React.FC = () => {
 
   const [selectedAcademyId, setSelectedAcademyId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [globalToast, setGlobalToast] = useState<{ message: string, type: 'success' | 'info' | 'error' } | null>(null);
+
+  // Auto-hide toast
+  useEffect(() => {
+    if (globalToast) {
+      const timer = setTimeout(() => setGlobalToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [globalToast]);
 
   const [hash, setHash] = useState(window.location.hash);
 
@@ -1805,10 +1874,9 @@ const App: React.FC = () => {
   const notifyUser = async (userId: string, message: string) => {
     console.log('📤 [Notifications] Sending notification:', { userId, message, currentUserId: currentUser?.id });
 
-    // Adicionamos ao estado local apenas se a notificação for para o usuário atual
-    // Notifications para outros serão processadas via banco de dados e recebidas via Realtime pelo destinatário
+    // Se a notificação for para o usuário atual, mostramos um toast e adicionamos ao estado
     if (userId === currentUser?.id) {
-      console.log('📤 [Notifications] Adding to local state (same user)');
+      setGlobalToast({ message, type: 'info' });
       const newNotif: Notification = {
         id: Math.random().toString(36).substr(2, 9),
         userId,
@@ -1821,9 +1889,7 @@ const App: React.FC = () => {
 
     // Persist to database
     try {
-      console.log('📤 [Notifications] Saving to database...');
-      const result = await DatabaseService.createNotification(userId, message);
-      console.log('📤 [Notifications] Saved successfully:', result);
+      await DatabaseService.createNotification(userId, message);
     } catch (error) {
       console.error('📤 [Notifications] Error saving notification:', error);
     }
@@ -1850,8 +1916,13 @@ const App: React.FC = () => {
       setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
 
       // 4. Notifications (Legacy Logic adapted)
-      if (oldEvent && oldEvent.salespersonId !== updatedEvent.salespersonId && updatedEvent.salespersonId) {
-        notifyUser(updatedEvent.salespersonId, `Você é o novo responsável pelo evento "${updatedEvent.name}".`);
+      if (oldEvent && oldEvent.salespersonId !== updatedEvent.salespersonId) {
+        if (updatedEvent.salespersonId) {
+          notifyUser(updatedEvent.salespersonId, `Você é o novo responsável pelo evento "${updatedEvent.name}".`);
+        }
+        if (oldEvent.salespersonId) {
+          notifyUser(oldEvent.salespersonId, `Você não é mais o responsável pelo evento "${oldEvent.name}".`);
+        }
       }
 
       if (oldEvent && updatedEvent.salespersonId) {
@@ -1865,6 +1936,8 @@ const App: React.FC = () => {
           notifyUser(updatedEvent.salespersonId, `As informações do evento "${updatedEvent.name}" foram atualizadas.`);
         }
       }
+
+      setGlobalToast({ message: "Evento atualizado com sucesso!", type: 'success' });
 
     } catch (error) {
       console.error("Error updating event:", error);
@@ -1938,20 +2011,64 @@ const App: React.FC = () => {
           </header>
         )}
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0">
-          {/* Global Notifications */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0 relative">
+          {/* Real-time Toast System (Success/Info/Error for the actor) */}
+          {globalToast && (
+            <div className="fixed top-20 right-4 left-4 md:left-auto md:w-96 z-[200] animate-in slide-in-from-top-4 duration-500">
+              <div className={cn(
+                "p-4 rounded-[1.5rem] shadow-2xl border backdrop-blur-xl flex items-center space-x-3",
+                globalToast.type === 'success' ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" :
+                  globalToast.type === 'error' ? "bg-red-500/20 border-red-500/30 text-red-400" :
+                    "bg-[hsl(262,83%,58%)]/20 border-[hsl(262,83%,58%)]/30 text-white"
+              )}>
+                <div className={cn(
+                  "p-2 rounded-xl",
+                  globalToast.type === 'success' ? "bg-emerald-500/20" :
+                    globalToast.type === 'error' ? "bg-red-500/20" :
+                      "bg-white/10"
+                )}>
+                  {globalToast.type === 'success' ? <CheckCircle2 size={18} /> :
+                    globalToast.type === 'error' ? <AlertCircle size={18} /> :
+                      <Bell size={18} />}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-black leading-tight">{globalToast.message}</p>
+                </div>
+                <button onClick={() => setGlobalToast(null)} className="text-white/40 hover:text-white transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Incoming Notifications Alert Feed (Messages from other users) */}
           {notifications.filter(n => n.userId === currentUser.id && !n.read).length > 0 && (
-            <div className="mb-6 space-y-3">
+            <div className="mb-8 space-y-3 max-w-2xl">
+              <div className="flex items-center space-x-2 text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-4 ml-2">
+                <TrendingUp size={12} />
+                <span>Alertas do Sistema</span>
+              </div>
               {notifications.filter(n => n.userId === currentUser.id && !n.read).map((n) => (
-                <div key={n.id} className="bg-neutral-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-lg animate-in slide-in-from-top-2 border border-neutral-500">
-                  <div className="flex items-center space-x-3">
-                    <Bell size={18} strokeWidth={1.5} />
-                    <span className="font-bold text-sm">{n.message}</span>
+                <div key={n.id} className="group relative overflow-hidden bg-gradient-to-r from-neutral-800 to-neutral-800/50 backdrop-blur-xl border border-white/10 rounded-[1.5rem] p-4 flex justify-between items-center shadow-xl animate-in slide-in-from-left-4 duration-500 hover:border-white/20 transition-all">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                  <div className="flex items-center space-x-4 relative z-10">
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-purple-400 border border-white/5 group-hover:scale-110 transition-transform">
+                      <Bell size={18} strokeWidth={2} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white/90 leading-tight">{n.message}</p>
+                      <p className="text-[10px] text-white/30 font-medium mt-1 uppercase tracking-wider">há poucos segundos</p>
+                    </div>
                   </div>
-                  <button onClick={() => {
-                    setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
-                    DatabaseService.markNotificationAsRead(n.id).catch(err => console.error("Error marking read:", err));
-                  }} className="hover:bg-white/20 p-1 rounded-lg">
+
+                  <button
+                    onClick={() => {
+                      setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
+                      DatabaseService.markNotificationAsRead(n.id).catch(err => console.error("Error marking read:", err));
+                    }}
+                    className="relative z-10 p-2 text-white/20 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                  >
                     <X size={18} />
                   </button>
                 </div>
@@ -1965,27 +2082,17 @@ const App: React.FC = () => {
               users={[...sellers, ...admins]}
               setUsers={(newUsersOrUpdater: any) => {
                 if (typeof newUsersOrUpdater === 'function') {
-                  // Se for uma função updater, aplicamos ela e depois separamos
-                  setSellers(prevSellers => {
-                    const prevAdmins = admins;
-                    const combined = [...prevSellers, ...prevAdmins];
-                    const updatedCombined = newUsersOrUpdater(combined);
-                    // Aqui precisaríamos de lógica mais complexa para sincronizar de volta
-                    // Mas como o UsersManager atualiza via prev => prev.map/filter, vamos simplificar:
-                    // O UsersManager chamará fetchUsers() via DatabaseService na maioria dos casos,
-                    // Mas para atualização instantânea da UI, vamos forçar fetchUsers
-                    fetchUsers();
-                    return prevSellers;
-                  });
+                  fetchUsers();
                 } else {
                   setSellers(newUsersOrUpdater.filter((u: User) => u.role === UserRole.SALES));
                   setAdmins(newUsersOrUpdater.filter((u: User) => u.role === UserRole.ADMIN));
                 }
               }}
               currentUser={currentUser}
+              notifyUser={notifyUser}
             />
           )}
-          {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} currentUser={currentUser} notifyUser={notifyUser} />}
+          {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} currentUser={currentUser} notifyUser={notifyUser} events={events} />}
           {activeTab === 'events' && currentUser.role === UserRole.ADMIN && <EventsManager events={events} visits={visits} setEvents={setEvents} academies={academies} vendedores={sellers} onSelectEvent={(id) => { setSelectedEventId(id); setActiveTab('event_detail_admin'); }} notifyUser={notifyUser} />}
           {activeTab === 'event_detail_admin' && selectedEventId && currentUser.role === UserRole.ADMIN && (
             <EventDetailAdmin

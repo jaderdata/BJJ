@@ -23,12 +23,14 @@ interface UsersManagerProps {
     users: User[];
     setUsers: React.Dispatch<React.SetStateAction<User[]>>;
     currentUser: User;
+    notifyUser: (uid: string, msg: string) => void;
 }
 
 export const UsersManager: React.FC<UsersManagerProps> = ({
     users,
     setUsers,
-    currentUser
+    currentUser,
+    notifyUser
 }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -68,6 +70,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
             if (editingUser) {
                 const updated = await DatabaseService.updateUser(editingUser.id, formData);
                 setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+                notifyUser(updated.id, `Seu perfil foi atualizado pelo administrador ${currentUser.name}.`);
                 alert("Usuário atualizado com sucesso!");
             } else {
                 alert("Dica: Use o sistema de convites para novos usuários definirem suas próprias senhas.");
