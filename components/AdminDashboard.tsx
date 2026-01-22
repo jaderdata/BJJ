@@ -101,11 +101,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }, [visits, filteredEvents]);
 
     const filteredVisits = useMemo(() => visitsInYear.filter(v => v.status === VisitStatus.VISITED), [visitsInYear]);
-    const filteredPendingVisits = useMemo(() => visitsInYear.filter(v => v.status === VisitStatus.PENDING), [visitsInYear]);
+
     const filteredVouchers = useMemo(() => vouchers.filter(v => new Date(v.createdAt).getFullYear().toString() === selectedYear), [vouchers, selectedYear]);
 
     // KPIs
-    const pendingVisitsCount = filteredPendingVisits.length;
+    const totalAssignmentsInYear = useMemo(() => {
+        return filteredEvents.reduce((acc, event) => acc + (event.academiesIds?.length || 0), 0);
+    }, [filteredEvents]);
+
+    const pendingVisitsCount = Math.max(0, totalAssignmentsInYear - filteredVisits.length);
     const activeEventsCount = filteredEvents.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING).length;
 
     const activePerformance = useMemo(() => {

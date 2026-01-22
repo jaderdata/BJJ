@@ -1,8 +1,8 @@
 {
   "name": "bjjvisits---controle-de-visitas",
   "private": true,
-  "version": "1.0.16",
-  "deployName": "Codebase Cleanup and Refinement",
+  "version": "1.0.17",
+  "deployName": "Fix Admin Dashboard Metrics",
   "type": "module",
   "scripts": {
     "dev": "vite",
