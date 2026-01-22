@@ -1,8 +1,8 @@
 {
   "name": "bjjvisits---controle-de-visitas",
   "private": true,
-  "version": "1.0.19",
-  "deployName": "Clean up PDF Reports",
+  "version": "2.0.5",
+  "deployName": "Update FK Rules for Finance",
   "type": "module",
   "scripts": {
     "dev": "vite",
