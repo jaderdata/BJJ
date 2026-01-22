@@ -11,13 +11,7 @@ export interface User {
   role: UserRole;
 }
 
-export interface AcademyObservation {
-  id: string;
-  userId: string;
-  userName: string;
-  text: string;
-  timestamp: string;
-}
+
 
 export interface Academy {
   id: string;
@@ -28,7 +22,6 @@ export interface Academy {
   responsible: string;
   phone: string;
   createdAt: string;
-  observations?: AcademyObservation[];
 }
 
 export enum EventStatus {

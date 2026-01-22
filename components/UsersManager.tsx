@@ -1,20 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Users as UsersIcon,
-    Plus,
     Trash2,
     X,
     Mail,
     Shield,
-    UserCheck,
     Edit3,
     Send,
     Copy,
     CheckCircle2,
-    Clock,
-    UserPlus,
-    RefreshCw,
-    AlertCircle
+    RefreshCw
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 import { DatabaseService, AuthService } from '../lib/supabase';

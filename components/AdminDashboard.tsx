@@ -1,30 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import {
-    CalendarDays,
-    CheckCircle2,
-    Clock,
-    Ticket,
-    RefreshCw,
-    Wallet,
-    TrendingUp,
-    Users,
-    Target,
-    Zap
+    RefreshCw
 } from 'lucide-react';
-import {
-    BarChart,
-    Bar,
-    Cell,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    AreaChart,
-    Area,
-    CartesianGrid
-} from 'recharts';
+
 import {
     User,
     Academy,
@@ -38,7 +16,7 @@ import {
     Voucher
 } from '../types';
 import { supabase } from '../lib/supabase';
-import { designTokens } from '../lib/designTokens';
+
 
 interface AdminDashboardProps {
     events: Event[];
@@ -160,11 +138,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             pending: Math.max(0, totalAssignments - visitedCount),
             total: totalAssignments,
             percent,
-            temperatureData: Object.entries(counts).map(([name, value]) => ({ name, value })),
-            chartData: [
-                { name: 'Concluídas', value: visitedCount, color: '#10b981' },
-                { name: 'Pendentes', value: Math.max(0, totalAssignments - visitedCount), color: '#ef4444' }
-            ]
+            temperatureData: Object.entries(counts).map(([name, value]) => ({ name, value }))
         };
     }, [events, visits]);
 
@@ -221,7 +195,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {
                         label: 'Eventos Ativos',
                         value: activeEventsCount,
-                        icon: CalendarDays,
                         gradient: 'from-blue-500 to-cyan-500',
                         bgGlow: 'bg-blue-500/20',
                         iconBg: 'bg-blue-500/20',
@@ -230,7 +203,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {
                         label: 'Visitas Realizadas',
                         value: filteredVisits.length,
-                        icon: CheckCircle2,
                         gradient: 'from-emerald-500 to-teal-500',
                         bgGlow: 'bg-emerald-500/20',
                         iconBg: 'bg-emerald-500/20',
@@ -239,7 +211,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {
                         label: 'Visitas Pendentes',
                         value: pendingVisitsCount,
-                        icon: Clock,
                         gradient: 'from-amber-500 to-orange-500',
                         bgGlow: 'bg-amber-500/20',
                         iconBg: 'bg-amber-500/20',
@@ -248,7 +219,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {
                         label: 'Vouchers Gerados',
                         value: filteredVouchers.length,
-                        icon: Ticket,
                         gradient: 'from-purple-500 to-pink-500',
                         bgGlow: 'bg-purple-500/20',
                         iconBg: 'bg-purple-500/20',
@@ -264,10 +234,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <div className={`absolute -top-24 -right-24 w-48 h-48 ${kpi.bgGlow} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
 
                         <div className="relative z-10">
-                            {/* Icon Removed as per request */}
-                            {/* <div className={`inline-flex p-3 rounded-xl ${kpi.iconBg} ${kpi.iconColor} mb-3 group-hover:scale-110 transition-transform duration-300`}>
-                                <kpi.icon size={20} strokeWidth={2} />
-                            </div> */}
+
 
                             {/* Value */}
                             <div className="mb-2">

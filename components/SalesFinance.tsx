@@ -1,10 +1,8 @@
 import React from 'react';
 import {
-    Wallet,
     CheckCircle2,
     Clock,
-    DollarSign,
-    TrendingUp
+    DollarSign
 } from 'lucide-react';
 import { FinanceRecord, FinanceStatus, Event } from '../types';
 

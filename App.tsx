@@ -1,51 +1,26 @@
 ﻿
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  BarChart3,
-  Building2,
   CalendarDays,
-  Users,
-  Wallet,
-  FileBarChart,
-  ClipboardList,
-  LogOut,
-  Menu,
   X,
   CheckCircle2,
   Clock,
-  MapPin,
   Plus,
   Minus,
-  Download,
   AlertCircle,
   ChevronRight,
   ChevronLeft,
   Ticket,
-  Eye,
   Info,
   Bell,
   Search,
   Edit3,
   Trash2,
-  Upload,
-  Save,
-  History,
-  Phone,
-  User as UserIcon,
-  UserPlus,
   RefreshCw,
   Send,
-  Filter,
-  FileDown,
-  Printer,
-  FileSpreadsheet,
-  Wallet as WalletIcon,
-  UserCheck,
   QrCode,
   Copy,
   ExternalLink,
-  Thermometer,
-  Share2,
   TrendingUp
 } from 'lucide-react';
 import {
@@ -60,14 +35,8 @@ import {
   FinanceRecord,
   FinanceStatus,
   Voucher,
-  AcademyObservation
 } from './types';
-import {
-  INITIAL_ACADEMIES, // Keeping for fallback if needed, or remove
-  INITIAL_EVENTS,
-  INITIAL_FINANCE,
-  generateVoucherCode
-} from './data';
+
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -80,25 +49,8 @@ import { AcademiesManager } from './components/AcademiesManager';
 import { UsersManager } from './components/UsersManager';
 import { SalesFinance } from './components/SalesFinance';
 import { supabase, DatabaseService, AuthService } from './lib/supabase';
-import { designTokens, cn } from './lib/designTokens';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  Label
-} from 'recharts';
+import { cn, generateVoucherCode } from './lib/utils';
+
 
 interface Notification {
   id: string;
@@ -221,487 +173,13 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
   );
 };
 
-/* OLD ADMIN DASHBOARD - REPLACED WITH NEW MODERN DESIGN
-const AdminDashboard: React.FC<{ events: Event[], academies: Academy[], visits: Visit[], vouchers: Voucher[], finance: FinanceRecord[], vendedores: User[] }> = ({ events, academies, visits, vouchers, finance = [], vendedores = [] }) => {
-  // Years based ONLY on events as requested
-  const availableYears = useMemo(() => {
-    const yearsSet = new Set<string>();
-    events.forEach(e => { if (e.startDate) yearsSet.add(new Date(e.startDate).getFullYear().toString()); });
-    vouchers.forEach(v => { if (v.createdAt) yearsSet.add(new Date(v.createdAt).getFullYear().toString()); });
-    visits.forEach(v => { if (v.finishedAt) yearsSet.add(new Date(v.finishedAt).getFullYear().toString()); });
-
-    // Fallback to current year if no data
-    if (yearsSet.size === 0) yearsSet.add(new Date().getFullYear().toString());
-
-    return Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
-  }, [events, vouchers, visits]);
-
-  const [selectedYear, setSelectedYear] = useState<string>(availableYears[0] || new Date().getFullYear().toString());
-  const [syncingSheet, setSyncingSheet] = useState(false);
-
-  const handleSyncSheet = async () => {
-    setSyncingSheet(true);
-    try {
-      const groupedData: Record<string, any[]> = {};
-
-      filteredVouchers.forEach(v => {
-        const visit = visits.find(vis => vis.id === v.visitId);
-        const event = events.find(e => e.id === v.eventId);
-        const eventName = event?.name || 'Sem Evento';
-        const academyName = academies.find(a => a.id === v.academyId)?.name || '';
-        const sellerName = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || '';
-        const dateStr = new Date(v.createdAt).toLocaleDateString('pt-BR');
-
-        if (!groupedData[eventName]) {
-          groupedData[eventName] = [];
-        }
-
-        groupedData[eventName].push({
-          codigo: v.code,
-          data: dateStr,
-          academia: academyName,
-          vendedor: sellerName,
-          retirado: "NO"
-        });
-      });
 
 
-      const { data, error } = await supabase.functions.invoke('sync-vouchers', {
-        body: { events: groupedData }
-      });
-
-      if (error) throw error;
-      if (data && data.error) throw new Error(data.error);
-
-      alert('Sincronização concluída com sucesso!');
-    } catch (error: any) {
-      console.error('Error syncing sheet:', error);
-      alert(error.message || 'Erro inesperado na sincronização.');
-    } finally {
-      setSyncingSheet(false);
-    }
-  };
-
-  // Filter Data by Year
-  const filteredEvents = useMemo(() => events.filter(e => e.startDate && new Date(e.startDate).getFullYear().toString() === selectedYear), [events, selectedYear]);
-
-  // All visits that BELONG to events in the selected year
-  const visitsInYear = useMemo(() => {
-    const eventIds = new Set(filteredEvents.map(e => e.id));
-    return visits.filter(v => eventIds.has(v.eventId));
-  }, [visits, filteredEvents]);
-
-  const filteredVisits = useMemo(() => {
-    const map = new Map<string, Visit>();
-    visitsInYear.forEach(v => {
-      if (v.status === VisitStatus.VISITED) {
-        const event = filteredEvents.find(e => e.id === v.eventId);
-        if (event?.academiesIds.includes(v.academyId)) {
-          const key = `${v.eventId}-${v.academyId}`;
-          if (!map.has(key) || (v.finishedAt && map.get(key)?.finishedAt && v.finishedAt > (map.get(key)?.finishedAt || ''))) {
-            map.set(key, v);
-          }
-        }
-      }
-    });
-    return Array.from(map.values());
-  }, [visitsInYear, filteredEvents]);
-
-  const filteredPendingVisits = useMemo(() => {
-    // Total assignments in filtered events
-    const totalAssignments = filteredEvents.reduce((acc, e) => acc + (e.academiesIds?.length || 0), 0);
-    const completedCount = filteredVisits.length;
-    return { length: Math.max(0, totalAssignments - completedCount) };
-  }, [filteredEvents, filteredVisits]);
-  const filteredVouchers = useMemo(() => vouchers.filter(v => new Date(v.createdAt).getFullYear().toString() === selectedYear), [vouchers, selectedYear]);
-
-  // KPIs
-  const pendingVisitsCount = filteredPendingVisits.length;
-  const activeEventsCount = filteredEvents.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING).length;
-
-  const activePerformance = useMemo(() => {
-    const activeEvents = events.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING);
-    const activeEventIds = new Set(activeEvents.map(e => e.id));
-
-    // Sum of all academies expected to be visited in active events
-    let totalAssignments = 0;
-    activeEvents.forEach(e => {
-      totalAssignments += (e.academiesIds?.length || 0);
-    });
-
-    const activeVs = visits.filter(v => activeEventIds.has(v.eventId));
-    
-    // Correct calculation of unique visited assignments and their data (like temperature)
-    const uniqueActiveVisits = activeEvents.flatMap(e => {
-      const inEvent = activeVs.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED);
-      const map = new Map<string, Visit>();
-      inEvent.forEach(v => {
-        if (e.academiesIds.includes(v.academyId)) {
-          if (!map.has(v.academyId) || (v.finishedAt && map.get(v.academyId)?.finishedAt && v.finishedAt > (map.get(v.academyId)?.finishedAt || ''))) {
-            map.set(v.academyId, v);
-          }
-        }
-      });
-      return Array.from(map.values());
-    });
-
-    const visitedCount = uniqueActiveVisits.length;
-
-    const counts = { [AcademyTemperature.HOT]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.COLD]: 0 };
-    uniqueActiveVisits.forEach(v => {
-      if (v.temperature) counts[v.temperature]++;
-    });
-
-    const percent = totalAssignments > 0 ? Math.round((visitedCount / totalAssignments) * 100) : 0;
-
-    return {
-      completed: visitedCount,
-      pending: Math.max(0, totalAssignments - visitedCount),
-      total: totalAssignments,
-      percent,
-      temperatureData: Object.entries(counts).map(([name, value]) => ({ name, value })),
-      chartData: [
-        { name: 'Concluídas', value: visitedCount, color: '#10b981' },
-        { name: 'Pendentes', value: Math.max(0, totalAssignments - visitedCount), color: '#ef4444' }
-      ]
-    };
-  }, [events, visits]);
-
-  // Chart Data: Academy Temperature
-  const temperatureData = useMemo(() => {
-    const counts = { [AcademyTemperature.HOT]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.COLD]: 0 };
-    filteredVisits.forEach(v => {
-      if (v.temperature) counts[v.temperature]++;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [filteredVisits]);
-
-  // Chart Data: Visit Status
-  const visitStatusData = useMemo(() => {
-    const visited = filteredVisits.length;
-    const pending = filteredPendingVisits.length;
-    return [
-      { name: 'Realizadas', value: visited, color: '#10b981' },
-      { name: 'Pendentes', value: pending, color: '#64748b' }
-    ];
-  }, [filteredVisits, filteredPendingVisits]);
-
-  // Seller Leaderboard (Sorted by VISITS, Revenue removed)
-  const sellerLeaderboard = useMemo(() => {
-    const stats: Record<string, { name: string, visits: number }> = {};
-    vendedores.forEach(v => stats[v.id] = { name: v.name, visits: 0 });
-
-    // Revenue calc removed as per request
-
-    filteredVisits.forEach(v => {
-      if (v.salespersonId && stats[v.salespersonId]) {
-        stats[v.salespersonId].visits += 1;
-      }
-    });
-
-    return Object.values(stats).sort((a, b) => b.visits - a.visits).slice(0, 5);
-  }, [vendedores, filteredVisits]);
-
-  return (
-    <div className="space-y-6">
-      {/* Header & Year Filter *\/}
-      <div className="flex justify-between items-center bg-neutral-800 p-6 rounded-3xl border border-neutral-700 shadow-sm">
-        <div>
-          <h2 className="text-2xl font-black text-white">Dashboard</h2>
-          <p className="text-neutral-400">Visão geral de performance e métricas</p>
-        </div>
-        <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(e.target.value)}
-          className="bg-neutral-900 border border-neutral-700 text-white text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-white"
-        >
-          {availableYears.map(yr => (
-            <option key={yr} value={yr}>{yr}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* KPI Cards *\/}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Eventos Ativos', value: activeEventsCount, icon: CalendarDays, color: 'neutral', sub: 'Eventos em andamento', tag: 'Eventos' },
-          { label: 'Visitas Realizadas', value: filteredVisits.length, icon: CheckCircle2, color: 'emerald', sub: `Total acumulado ${selectedYear}`, tag: 'Sucesso' },
-          { label: 'Visitas Pendentes', value: pendingVisitsCount, icon: Clock, color: 'neutral', sub: 'Aguardando atendimento', tag: 'Planejadas' },
-          { label: 'Vouchers Gerados', value: filteredVouchers.length, icon: Ticket, color: 'amber', tag: 'Vouchers', sync: true, noIcon: true }
-        ].map((kpi, i) => (
-          <div key={i} className="bg-neutral-800 p-6 rounded-3xl border border-neutral-700 shadow-sm relative overflow-hidden group flex flex-col items-center text-center justify-between">
-            <div className="w-full flex flex-col items-center">
-              <div className="flex justify-between items-start mb-2 w-full">
-                <div className="w-8" /> {/* Placeholder for balance *\/}
-                <div className="flex items-center space-x-2">
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${kpi.color === 'emerald' ? 'bg-emerald-900/20 text-emerald-500/50' : kpi.color === 'amber' ? 'bg-amber-900/20 text-amber-500/50' : 'bg-neutral-900/50 text-neutral-500'}`}>
-                    {kpi.tag}
-                  </span>
-                </div>
-                <div className="w-8 flex justify-end">
-                  {kpi.sync && !kpi.noIcon && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleSyncSheet(); }}
-                      disabled={syncingSheet}
-                      className="p-1.5 bg-neutral-900/50 rounded-lg hover:bg-neutral-900 transition-colors text-amber-500"
-                    >
-                      <RefreshCw size={14} strokeWidth={2} className={syncingSheet ? 'animate-spin' : ''} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {!kpi.noIcon && (
-                <div className={`p-3 rounded-2xl mb-4 ${kpi.color === 'emerald' ? 'bg-emerald-900/30 text-emerald-400' : kpi.color === 'amber' ? 'bg-amber-900/30 text-amber-400' : 'bg-neutral-900/30 text-neutral-400'}`}>
-                  <kpi.icon size={24} strokeWidth={1.5} />
-                </div>
-              )}
-
-              <div className="mt-2 text-center">
-                <h3 className="text-4xl font-black text-white">{kpi.value}</h3>
-                <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest mt-1">{kpi.label}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-neutral-700/50 w-full flex flex-col items-center">
-              {kpi.sync && kpi.noIcon ? (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleSyncSheet(); }}
-                  disabled={syncingSheet}
-                  className="w-full flex items-center justify-center space-x-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-900/20"
-                >
-                  <RefreshCw size={14} strokeWidth={2} className={syncingSheet ? 'animate-spin' : ''} />
-                  <span>{syncingSheet ? 'Sincronizando...' : 'Atualizar Planilha'}</span>
-                </button>
-              ) : (
-                <p className="text-[10px] text-neutral-500 font-medium">{kpi.sub || 'Período atual'}</p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Performance & Temperature Row *\/}
-      <div className="grid grid-cols-1 gap-6">
-        <div className="bg-neutral-800 p-8 rounded-[2.5rem] border border-neutral-700 shadow-xl relative overflow-hidden">
-          {/* Background Decoration *\/}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] -mr-32 -mt-32 rounded-full"></div>
-
-          <div className="relative z-10">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-              <div className="flex-1 space-y-6">
-                <div>
-                  <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] mb-1">Performance de Visitas</h3>
-                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Acompanhamento de eventos ativos</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-neutral-900/60 backdrop-blur-md p-6 rounded-3xl border border-neutral-700/50 flex flex-col justify-between group hover:border-emerald-500/30 transition-all">
-                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4">Concluídas</span>
-                    <div>
-                      <div className="flex items-baseline space-x-2">
-                        <span className="text-5xl font-black text-white">{activePerformance.completed}</span>
-                        <span className="text-sm font-bold text-neutral-500"></span>
-                      </div>
-                      <p className="text-[10px] text-neutral-500 font-medium mt-2">Visitas registradas com sucesso</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-neutral-900/60 backdrop-blur-md p-6 rounded-3xl border border-neutral-700/50 flex flex-col justify-between group hover:border-amber-500/30 transition-all">
-                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-4">Pendentes</span>
-                    <div>
-                      <div className="flex items-baseline space-x-2">
-                        <span className="text-5xl font-black text-white/50 group-hover:text-white transition-colors">{activePerformance.pending}</span>
-                        <span className="text-sm font-bold text-neutral-500"></span>
-                      </div>
-                      <p className="text-[10px] text-neutral-500 font-medium mt-2">Aguardando atendimento oficial</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Progresso Total das Visitas</span>
-                    <span className="text-xs font-black text-white">{activePerformance.percent}%</span>
-                  </div>
-                  <div className="h-2 bg-neutral-900 rounded-full overflow-hidden border border-neutral-700/50 p-0.5">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-1000"
-                      style={{ width: `${activePerformance.percent}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Visual Performance Horizontal Bar Chart *\/}
-              <div className="flex-1 min-w-[300px] space-y-4">
-                <div className="w-full h-32">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={activePerformance.chartData}
-                      layout="vertical"
-                      margin={{ top: 0, right: 30, left: 80, bottom: 0 }}
-                    >
-                      <XAxis type="number" hide />
-                      <YAxis
-                        dataKey="name"
-                        type="category"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#737373', fontSize: 10, fontWeight: 'bold' }}
-                      />
-                      <Tooltip
-                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-neutral-900 border border-neutral-700 p-2 rounded-xl shadow-2xl animate-in fade-in zoom-in-95">
-                                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">{payload[0].payload.name}</p>
-                                <p className="text-lg font-black text-white">{payload[0].value} <span className="text-[10px] text-neutral-500 font-bold">academias</span></p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Bar
-                        dataKey="value"
-                        radius={[0, 8, 8, 0]}
-                        barSize={24}
-                      >
-                        {activePerformance.chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex justify-between items-center px-4">
-                  <div className="flex items-center space-x-6">
-                    <div className="text-left">
-                      <p className="text-[8px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1">CONCLUÍDO</p>
-                      <p className="text-xl font-black text-emerald-500 leading-none">{activePerformance.percent}%</p>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-[8px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1">PENDENTE</p>
-                      <p className="text-xl font-black text-red-500 leading-none">{100 - activePerformance.percent}%</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-12 border-t border-neutral-700/50 pt-8">
-              <h3 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] mb-6">Indicador de Interesse</h3>
-              <div className="grid grid-cols-3 gap-8">
-                {[
-                  { label: 'Quente', key: AcademyTemperature.HOT, color: 'text-red-500', bg: 'bg-red-500' },
-                  { label: 'Morno', key: AcademyTemperature.WARM, color: 'text-blue-500', bg: 'bg-blue-500' },
-                  { label: 'Frio', key: AcademyTemperature.COLD, color: 'text-neutral-400', bg: 'bg-neutral-600' }
-                ].map((temp) => {
-                  const count = activePerformance.temperatureData.find(t => t.name === temp.key)?.value || 0;
-                  const totalCount = Math.max(activePerformance.completed, 1);
-                  const percent = Math.round((count / totalCount) * 100);
-                  return (
-                    <div key={temp.key} className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${temp.bg}`}></div>
-                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">{temp.label}</span>
-                        </div>
-                        <span className="text-[10px] font-black text-neutral-300">{count}</span>
-                      </div>
-                      <div className="h-1 bg-neutral-900 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${temp.bg} opacity-80 rounded-full transition-all duration-1000`}
-                          style={{ width: `${percent}%` }}
-                        ></div>
-                      </div>
-                      <p className={`text-xl font-black ${temp.color}`}>{count > 0 ? `${percent}%` : '0%'}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Leaderboard & Latest Activity *\/}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-neutral-800 p-6 rounded-3xl border border-neutral-700 shadow-sm">
-          <h3 className="text-lg font-bold text-white mb-4">Top Vendedores</h3>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-neutral-700 text-xs text-neutral-500 uppercase font-black">
-                <th className="pb-3">Vendedor</th>
-                <th className="pb-3 text-right">Visitas</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-700/50">
-              {sellerLeaderboard.map((seller, idx) => (
-                <tr key={idx} className="hover:bg-neutral-700/30">
-                  <td className="py-3 text-sm font-bold text-white flex items-center">
-                    <span className="w-6 h-6 rounded-lg bg-neutral-700 flex items-center justify-center mr-3 text-xs">{idx + 1}</span>
-                    {seller.name}
-                  </td>
-                  <td className="py-3 text-sm text-neutral-400 text-right">{seller.visits}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="bg-neutral-800 p-6 rounded-3xl border border-neutral-700 shadow-sm">
-          <h3 className="text-lg font-bold text-white mb-4">Últimos Lançamentos</h3>
-          <div className="space-y-4">
-            {[...finance]
-              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-              .slice(0, 5)
-              .map(f => (
-                <div key={f.id} className="flex items-center justify-between p-3 bg-neutral-900/50 rounded-2xl border border-neutral-800">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-emerald-900/30 text-emerald-500 p-2 rounded-lg"><Wallet size={16} strokeWidth={1.5} /></div>
-                    <div>
-                      <p className="text-sm font-bold text-white tracking-tight">{events.find(e => e.id === f.eventId)?.name || 'Evento'}</p>
-                      <p className="text-[10px] text-neutral-500">{new Date(f.updatedAt).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-white">${f.amount.toFixed(2)}</p>
-                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase ${f.status === FinanceStatus.PENDING ? 'bg-amber-900/20 text-amber-500' :
-                      f.status === FinanceStatus.PAID ? 'bg-neutral-900/40 text-neutral-500' :
-                        'bg-emerald-900/20 text-emerald-500'
-                      }`}>
-                      {f.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            {finance.length === 0 && <p className="text-neutral-500 text-sm text-center py-4">Nenhum lançamento recente.</p>}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-END OF OLD ADMIN DASHBOARD */
 
 
-/* OLD ACADEMIES MANAGER - REPLACED WITH NEW MODERN DESIGN
-const AcademiesManager: React.FC<{ academies: Academy[], setAcademies: React.Dispatch<React.SetStateAction<Academy[]>>, currentUser: User, notifyUser: (uid: string, msg: string) => void }> = ({ academies, setAcademies, currentUser, notifyUser }) => {
-  // ... (código antigo comentado)
-  return null;
-};
-END OF OLD ACADEMIES MANAGER */
 
 
-/* OLD EVENTS MANAGER - REPLACED WITH NEW MODERN DESIGN
-const EventsManager: React.FC<{ events: Event[], visits: Visit[], setEvents: any, academies: Academy[], vendedores: User[], onSelectEvent: any, notifyUser: (uid: string, msg: string) => void }> = ({ events, visits, setEvents, academies, vendedores, onSelectEvent, notifyUser }) => {
-  // ... (código antigo comentado)
-  return null;
-};
-END OF OLD EVENTS MANAGER */
+
 
 
 const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: Visit[], vendedores: User[], onBack: any, onUpdateEvent: any, notifyUser: (uid: string, msg: string) => void }> = ({ event, academies, visits, vendedores, onBack, onUpdateEvent, notifyUser }) => {
@@ -1353,12 +831,7 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
   );
 };
 
-/* OLD ADMIN REPORTS - REPLACED WITH NEW MODERN DESIGN
-const AdminReports: React.FC<{ visits: Visit[], academies: Academy[], events: Event[], vouchers: Voucher[], vendedores: User[] }> = ({ visits, academies, events, vouchers, vendedores }) => {
-  // ... (código antigo comentado)
-  return null;
-};
-END OF OLD ADMIN REPORTS */
+
 
 
 
@@ -1606,12 +1079,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
   );
 };
 
-/* OLD SALES FINANCE - REPLACED WITH NEW MODERN DESIGN
-const SalesFinance: React.FC<{ finance: FinanceRecord[], events: Event[], onConfirm: any }> = ({ finance, events, onConfirm }) => (
-  // ... (código antigo comentado)
-  null
-);
-END OF OLD SALES FINANCE */
+
 
 
 

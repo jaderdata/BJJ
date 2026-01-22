@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import {
-    CalendarDays,
     Plus,
     Trash2,
-    X,
-    MapPin,
-    Users as UsersIcon,
-    TrendingUp
+    X
 } from 'lucide-react';
 import {
     Event,

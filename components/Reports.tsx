@@ -14,15 +14,7 @@ import {
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
-    Eraser,
-    BarChart as BarChartIcon,
-    PieChart as PieChartIcon,
-    Activity,
-    DollarSign,
-    Zap,
-    Map,
-    Target,
-    Clock
+    Eraser
 } from 'lucide-react';
 import {
     BarChart,
@@ -48,7 +40,7 @@ import {
     FinanceRecord,
     AcademyTemperature
 } from '../types';
-import { designTokens } from '../lib/designTokens';
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -598,9 +590,7 @@ export const Reports: React.FC<ReportsProps> = ({
                         <div className={`absolute -top-24 -right-24 w-48 h-48 ${kpi.bgGlow} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
 
                         <div className="relative z-10">
-                            {/* <div className={`inline-flex p-2 rounded-xl ${kpi.iconBg} ${kpi.iconColor} mb-3 group-hover:scale-110 transition-transform duration-300`}>
-                                <kpi.icon size={18} strokeWidth={2.5} />
-                            </div> */}
+
 
                             <div>
                                 <h3 className="text-xl font-black text-white mb-0.5 tracking-tight group-hover:text-purple-300 transition-colors">

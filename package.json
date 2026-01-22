@@ -1,8 +1,8 @@
 {
   "name": "bjjvisits---controle-de-visitas",
   "private": true,
-  "version": "1.0.15",
-  "deployName": "Fix User Deletion and RLS",
+  "version": "1.0.16",
+  "deployName": "Codebase Cleanup and Refinement",
   "type": "module",
   "scripts": {
     "dev": "vite",

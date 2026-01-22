@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import {
-    Building2,
     Plus,
     Trash2,
     X,
-    MapPin,
-    Phone,
-    User as UserIcon,
     Edit3
 } from 'lucide-react';
 import { Academy, User, Event } from '../types';
