@@ -1,8 +1,8 @@
 {
   "name": "bjjvisits---controle-de-visitas",
   "private": true,
-  "version": "1.0.18",
-  "deployName": "Observation Field in Finance",
+  "version": "1.0.19",
+  "deployName": "Clean up PDF Reports",
   "type": "module",
   "scripts": {
     "dev": "vite",

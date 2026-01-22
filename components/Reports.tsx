@@ -357,22 +357,10 @@ export const Reports: React.FC<ReportsProps> = ({
 
             yPos += 5;
 
-            // KPIs Summary - Advanced BI Row 1
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.text('Performance Analytics:', 14, yPos);
-            yPos += 6;
-
-            doc.setFontSize(9);
-            doc.setTextColor(80, 80, 80);
-            doc.text(`Conversão: ${efficiencyMetrics.conversionRate}%`, 14, yPos);
-            doc.text(`Lead Time Médio: ${efficiencyMetrics.avgDuration} min`, 60, yPos);
-            doc.text(`Receita Total: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialAnalytic.received)}`, 110, yPos);
-            doc.text(`Saldo Líquido: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialAnalytic.balance)}`, 160, yPos);
-
-            yPos += 8;
-
             // KPIs Summary - Operational Row
+            doc.setFontSize(10); // Reset font size for the operational row if needed, or keep previous logic flow
+            doc.setTextColor(0, 0, 0); // Reset color
+
             doc.text(`Total de Vouchers: ${filteredVouchers.length}`, 14, yPos);
             doc.text(`Academias: ${uniqueAcademies}`, 60, yPos);
             doc.text(`Eventos: ${uniqueEvents}`, 110, yPos);
