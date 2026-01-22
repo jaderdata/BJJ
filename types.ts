@@ -90,5 +90,6 @@ export interface FinanceRecord {
   amount: number;
   status: FinanceStatus;
   updatedAt: string;
+  observation?: string;
 }
 

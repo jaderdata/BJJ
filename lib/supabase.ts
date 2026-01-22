@@ -234,7 +234,8 @@ export const DatabaseService = {
             ...f,
             eventId: f.event_id,
             salespersonId: f.salesperson_id,
-            updatedAt: f.updated_at || f.created_at
+            updatedAt: f.updated_at || f.created_at,
+            observation: f.observation
         }));
     },
 
@@ -244,10 +245,11 @@ export const DatabaseService = {
             salesperson_id: record.salespersonId,
             amount: record.amount,
             status: record.status,
-            updated_at: record.updatedAt
+            updated_at: record.updatedAt,
+            observation: record.observation
         }).select().single();
         if (error) throw error;
-        return { ...data, eventId: data.event_id, salespersonId: data.salesperson_id, updatedAt: data.updated_at || data.created_at };
+        return { ...data, eventId: data.event_id, salespersonId: data.salesperson_id, updatedAt: data.updated_at || data.created_at, observation: data.observation };
     },
 
     async updateFinance(id: string, record: Partial<FinanceRecord>) {
@@ -256,10 +258,11 @@ export const DatabaseService = {
             salesperson_id: record.salespersonId,
             amount: record.amount,
             status: record.status,
-            updated_at: record.updatedAt
+            updated_at: record.updatedAt,
+            observation: record.observation
         }).eq('id', id).select().single();
         if (error) throw error;
-        return { ...data, eventId: data.event_id, salespersonId: data.salesperson_id, updatedAt: data.updated_at || data.created_at };
+        return { ...data, eventId: data.event_id, salespersonId: data.salesperson_id, updatedAt: data.updated_at || data.created_at, observation: data.observation };
     },
 
     async deleteFinance(id: string) {

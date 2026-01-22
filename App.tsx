@@ -680,7 +680,8 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
           salespersonId: formRecord.salespersonId!,
           amount: Number(formRecord.amount),
           status: FinanceStatus.PENDING,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          observation: formRecord.observation
         };
         const created = await DatabaseService.createFinance(payload);
         setFinance((prev: FinanceRecord[]) => [created, ...prev]);
@@ -800,6 +801,12 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
                 {vendedores.map(v => <option key={v.id} value={v.id} className="bg-neutral-800">{v.name}</option>)}
               </select>
               <input type="number" step="0.01" className="w-full border border-neutral-600 p-3 rounded-xl bg-neutral-700 text-white focus:border-white outline-none placeholder:text-neutral-400" placeholder="Valor" value={formRecord.amount || ''} onChange={e => setFormRecord({ ...formRecord, amount: Number(e.target.value) })} />
+              <textarea
+                className="w-full border border-neutral-600 p-3 rounded-xl bg-neutral-700 text-white focus:border-white outline-none placeholder:text-neutral-400 min-h-[100px]"
+                placeholder="Observação"
+                value={formRecord.observation || ''}
+                onChange={e => setFormRecord({ ...formRecord, observation: e.target.value })}
+              />
 
               <div className="flex gap-3 pt-2">
                 {selectedRecord && (

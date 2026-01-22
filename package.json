@@ -1,8 +1,8 @@
 {
   "name": "bjjvisits---controle-de-visitas",
   "private": true,
-  "version": "1.0.17",
-  "deployName": "Fix Admin Dashboard Metrics",
+  "version": "1.0.18",
+  "deployName": "Observation Field in Finance",
   "type": "module",
   "scripts": {
     "dev": "vite",
