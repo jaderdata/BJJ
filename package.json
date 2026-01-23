@@ -1,8 +1,8 @@
 {
   "name": "bjjvisits---controle-de-visitas",
   "private": true,
-  "version": "2.0.5",
-  "deployName": "Update FK Rules for Finance",
+  "version": "2.0.6",
+  "deployName": "Professional Voucher Message & Settings Relocation",
   "type": "module",
   "scripts": {
     "dev": "vite",

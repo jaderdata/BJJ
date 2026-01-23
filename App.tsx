@@ -98,7 +98,7 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
   const isExpired = createdAt > 0 && (now - createdAt > expirationTime);
 
   const getMessageBody = () => {
-    return `Hello! This is purely for voucher redemption.\n\nAcademy: ${academyName}\n\nVouchers:\n${codes.join(', ')}\n\nThank you!`;
+    return `PBJJF Voucher Redemption\n\nAcademy: ${academyName}\nVouchers: ${codes.join(', ')}\n\nPlease confirm receipt and processing.`;
   };
 
   const handleWhatsApp = () => {
