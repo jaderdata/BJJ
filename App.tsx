@@ -17,11 +17,15 @@ import {
   Edit3,
   Trash2,
   RefreshCw,
-  Send,
   QrCode,
   Copy,
   ExternalLink,
-  TrendingUp
+  TrendingUp,
+  MessageCircle,
+  Phone,
+  Save,
+  Loader2,
+  Play
 } from 'lucide-react';
 import {
   User,
@@ -64,11 +68,52 @@ interface Notification {
 const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], createdAt: number }> = ({ academyName, codes, createdAt }) => {
   const [copied, setCopied] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
+
+  // Settings State
+  const [redemptionPhone, setRedemptionPhone] = useState('4076339166'); // Default fallback
+  const [loadingPhone, setLoadingPhone] = useState(true);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const phone = await DatabaseService.getSetting('voucher_redemption_phone');
+        if (phone) {
+          // remove quotes if stored as json string and non-digits
+          let clean = String(phone).replace(/"/g, '').replace(/\D/g, '');
+          // Fallback valid format check - if empty after clean, stick to default?
+          // Assuming admin saves valid phone.
+          if (clean && clean.length >= 10) setRedemptionPhone(clean);
+        }
+      } catch (err) {
+        console.error('Error fetching redemption phone:', err);
+      } finally {
+        setLoadingPhone(false);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   const now = Date.now();
   const expirationTime = 24 * 60 * 60 * 1000; // 24 hours
   const isExpired = createdAt > 0 && (now - createdAt > expirationTime);
 
-  const contentToCopy = `Thank you for being part of the upcoming PBJJF event! 🥋\n\nYour academy (${academyName}) has received the following vouchers:\n👉 ${codes.join(', ')}\n\nTo redeem, please send a text message to (407) 633-9166 with the academy name and the voucher codes listed above.\n\nWe appreciate the partnership and wish you a great event!`;
+  const getMessageBody = () => {
+    return `Hello! This is purely for voucher redemption.\n\nAcademy: ${academyName}\n\nVouchers:\n${codes.join(', ')}\n\nThank you!`;
+  };
+
+  const handleWhatsApp = () => {
+    const text = encodeURIComponent(getMessageBody());
+    window.open(`https://wa.me/1${redemptionPhone}?text=${text}`, '_blank');
+  };
+
+  const handleSMS = () => {
+    const body = encodeURIComponent(getMessageBody());
+    window.location.href = `sms:1${redemptionPhone}?body=${body}`; // Assuming US Country Code 1 for simplicity based on fallback, can be improved later
+  };
+
+  // Legacy copy logic kept but hidden or repurposed? User said "remover a instrucao de retirada".
+  // Keeping just the copy codes logic if they want to share manually.
+  const contentToCopy = `Academy: ${academyName}\nVouchers: ${codes.join(', ')}\n\nRedeem at: (407) 633-9166`; // Updated to be generic
 
   const handleCopy = () => {
     navigator.clipboard.writeText(contentToCopy);
@@ -134,13 +179,36 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
           </div>
 
           <div className="space-y-6">
-            <div className="bg-neutral-800/40 p-6 rounded-2xl border border-neutral-700/50 text-xs md:text-sm text-neutral-400 leading-relaxed text-center">
-              To redeem, please send a text message to <span className="text-white font-bold">(407) 633-9166</span> with the academy name and the voucher codes listed above.
+            <p className="text-center text-[10px] font-bold text-neutral-500 italic">
+              Click below to redeem your vouchers instantly:
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                onClick={handleWhatsApp}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-[0.98] transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <MessageCircle size={24} fill="currentColor" className="text-white/20" />
+                  <span className="text-lg">WhatsApp</span>
+                </div>
+              </button>
+              <button
+                onClick={handleSMS}
+                className="bg-sky-600 hover:bg-sky-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-sky-900/20 active:scale-[0.98] transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <MessageCircle size={24} />
+                  <span className="text-lg">Send SMS</span>
+                </div>
+              </button>
             </div>
-            <p className="text-center text-[10px] font-bold text-neutral-500 italic">We appreciate the partnership and wish you a great event!</p>
           </div>
 
-          <div className="space-y-4">
+          <div className="pt-8 border-t border-white/5 space-y-4">
+            <p className="text-center text-[10px] font-bold text-neutral-600 uppercase tracking-widest">
+              Manual Options
+            </p>
             <button
               onClick={handleCopy}
               className={`w-full flex items-center justify-center space-x-2 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl ${copied ? 'bg-emerald-600 text-white' : 'bg-white text-neutral-900 hover:bg-neutral-200'

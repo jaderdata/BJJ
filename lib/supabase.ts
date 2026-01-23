@@ -351,6 +351,23 @@ export const DatabaseService = {
             .delete()
             .eq('email', email);
         if (error) throw error;
+    },
+
+    // SETTINGS
+    async getSetting(key: string) {
+        const { data, error } = await supabase.from('system_settings').select('value').eq('key', key).single();
+        if (error && error.code !== 'PGRST116') throw error; // Ignore not found
+        return data?.value || null;
+    },
+
+    async updateSetting(key: string, value: any) {
+        const { data, error } = await supabase.from('system_settings').upsert({
+            key,
+            value,
+            updated_at: new Date().toISOString()
+        }).select().single();
+        if (error) throw error;
+        return data;
     }
 };
 

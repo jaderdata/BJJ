@@ -29,7 +29,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !formData.city || !formData.state) {
+        if (!formData.name || !formData.city || !formData.state || !formData.address) {
             alert("Preencha todos os campos obrigatórios");
             return;
         }
@@ -146,6 +146,11 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                             <h4 className="text-lg font-black text-white mb-2">{academy.name}</h4>
 
                             <div className="space-y-2 mb-3">
+                                {academy.address && (
+                                    <div className="flex items-center space-x-2 text-xs text-white/60">
+                                        <span className="font-bold">{academy.address}</span>
+                                    </div>
+                                )}
                                 <div className="flex items-center space-x-2 text-xs text-white/60">
                                     <span className="font-bold">{academy.city} - {academy.state}</span>
                                 </div>
@@ -196,6 +201,17 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                             />
 
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Endereço</label>
+                                <input
+                                    type="text"
+                                    placeholder="Endereço completo"
+                                    value={formData.address || ''}
+                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                    onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                />
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Cidade</label>
@@ -235,10 +251,22 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                 <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Telefone</label>
                                 <input
                                     type="text"
-                                    placeholder="(00) 00000-0000"
+                                    placeholder="(000) 000-0000"
                                     value={formData.phone || ''}
                                     className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                    onChange={(e) => {
+                                        let val = e.target.value.replace(/\D/g, '');
+                                        if (val.length > 10) val = val.slice(0, 10);
+
+                                        if (val.length > 6) {
+                                            val = `(${val.slice(0, 3)}) ${val.slice(3, 6)}-${val.slice(6)}`;
+                                        } else if (val.length > 3) {
+                                            val = `(${val.slice(0, 3)}) ${val.slice(3)}`;
+                                        } else if (val.length > 0) {
+                                            val = `(${val}`;
+                                        }
+                                        setFormData({ ...formData, phone: val });
+                                    }}
                                 />
                             </div>
 

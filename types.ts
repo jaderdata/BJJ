@@ -93,3 +93,9 @@ export interface FinanceRecord {
   observation?: string;
 }
 
+
+export interface SystemSetting {
+  key: string;
+  value: any;
+  updatedAt: string;
+}

@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import {
-    RefreshCw
+    RefreshCw,
+    Settings,
+    Save,
+    Phone
 } from 'lucide-react';
 
 import {
@@ -15,7 +18,7 @@ import {
     FinanceStatus,
     Voucher
 } from '../types';
-import { supabase } from '../lib/supabase';
+import { supabase, DatabaseService } from '../lib/supabase';
 
 
 interface AdminDashboardProps {
@@ -49,6 +52,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const [selectedYear, setSelectedYear] = useState<string>(availableYears[0] || new Date().getFullYear().toString());
     const [syncingSheet, setSyncingSheet] = useState(false);
+
+    // Settings State
+    const [redemptionPhone, setRedemptionPhone] = useState('');
+    const [loadingPhone, setLoadingPhone] = useState(false);
+    const [savingPhone, setSavingPhone] = useState(false);
+
+    // Fetch Settings
+    React.useEffect(() => {
+        const loadSettings = async () => {
+            setLoadingPhone(true);
+            try {
+                const phone = await DatabaseService.getSetting('voucher_redemption_phone');
+                if (phone) setRedemptionPhone(phone);
+            } catch (err) {
+                console.error('Error loading settings:', err);
+            } finally {
+                setLoadingPhone(false);
+            }
+        };
+        loadSettings();
+    }, []);
+
+    const handleSavePhone = async () => {
+        setSavingPhone(true);
+        try {
+            // Clean non-digits
+            const clean = redemptionPhone.replace(/\D/g, '');
+            await DatabaseService.updateSetting('voucher_redemption_phone', clean);
+            alert('Número de resgate atualizado com sucesso!');
+        } catch (e) {
+            console.error('Error saving phone:', e);
+            alert('Erro ao salvar número.');
+        } finally {
+            setSavingPhone(false);
+        }
+    };
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 10) val = val.slice(0, 10);
+
+        // Mask (000) 000-0000
+        if (val.length > 6) {
+            val = `(${val.slice(0, 3)}) ${val.slice(3, 6)}-${val.slice(6)}`;
+        } else if (val.length > 3) {
+            val = `(${val.slice(0, 3)}) ${val.slice(3)}`;
+        } else if (val.length > 0) {
+            val = `(${val}`;
+        }
+        setRedemptionPhone(val);
+    };
 
     const handleSyncSheet = async () => {
         setSyncingSheet(true);
@@ -190,6 +244,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <option key={yr} value={yr} className="bg-[hsl(222,47%,15%)] text-white">{yr}</option>
                         ))}
                     </select>
+                </div>
+            </div>
+
+            {/* Config Card */}
+            <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-neutral-800 rounded-full flex items-center justify-center text-neutral-400">
+                        <Settings size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-white">Configuração de Resgate</h3>
+                        <p className="text-neutral-400 text-sm">Defina o número para recebimento dos vouchers via WhatsApp/SMS.</p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className="relative w-full md:w-64">
+                        <input
+                            type="text"
+                            value={redemptionPhone}
+                            onChange={handlePhoneChange}
+                            placeholder="(000) 000-0000"
+                            className="w-full bg-neutral-800 border border-neutral-700 text-white px-4 py-3 rounded-xl font-mono text-lg outline-none focus:border-emerald-500 transition-colors pl-10"
+                        />
+                        <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+                    </div>
+                    <button
+                        onClick={handleSavePhone}
+                        disabled={savingPhone || loadingPhone}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {savingPhone ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
+                        <span className="hidden md:inline">Salvar</span>
+                    </button>
                 </div>
             </div>
 
