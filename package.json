@@ -1,8 +1,8 @@
 {
   "name": "bjjvisits---controle-de-visitas",
   "private": true,
-  "version": "2.0.6",
-  "deployName": "Professional Voucher Message & Settings Relocation",
+  "version": "2.0.8",
+  "deployName": "Otimização de Build e Correção de Versão",
   "type": "module",
   "scripts": {
     "dev": "vite",

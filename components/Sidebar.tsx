@@ -87,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="text-xs text-neutral-400 font-medium uppercase tracking-wider mb-1">Logado como</p>
             <p className="text-sm font-semibold truncate">{currentUser.name}</p>
             <p className="text-[10px] text-neutral-400 font-bold">{currentUser.role}</p>
-            <p className="text-[10px] text-neutral-500 font-mono mt-1">v{version}</p>
+            <p className="text-[10px] text-neutral-500 font-mono mt-1" title={`Version ${version}`}>v{version}</p>
           </div>
           <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors">
             <LogOut size={16} strokeWidth={1.5} />

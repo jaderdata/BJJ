@@ -11,7 +11,28 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     build: {
-      chunkSizeWarningLimit: 1000, // Increase limit to 1000 kB
+      chunkSizeWarningLimit: 2000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom')) {
+                return 'react-vendor';
+              }
+              if (id.includes('@supabase')) {
+                return 'supabase-vendor';
+              }
+              if (id.includes('lucide')) {
+                return 'lucide-vendor';
+              }
+              if (id.includes('jspdf')) {
+                return 'jspdf-vendor';
+              }
+              return 'vendor';
+            }
+          }
+        }
+      }
     },
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
