@@ -10,7 +10,6 @@ import {
     CheckCircle2,
     RefreshCw,
     Settings,
-    Save,
     Phone
 } from 'lucide-react';
 import { User, UserRole } from '../types';
@@ -274,9 +273,9 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                     <button
                         onClick={handleSavePhone}
                         disabled={savingPhone || loadingPhone}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="bg-white hover:bg-neutral-100 text-neutral-900 px-6 py-3 rounded-md font-bold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                     >
-                        {savingPhone ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
+                        {savingPhone ? <RefreshCw size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
                         <span className="hidden md:inline">Salvar</span>
                     </button>
                 </div>

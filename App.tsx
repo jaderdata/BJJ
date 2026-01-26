@@ -36,6 +36,7 @@ import {
   Visit,
   VisitStatus,
   AcademyTemperature,
+  ContactPerson,
   FinanceRecord,
   FinanceStatus,
   Voucher,
@@ -676,10 +677,17 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                 </div>
               </div>
 
+              <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-700/50">
+                <p className="text-[10px] font-bold text-neutral-500 uppercase mb-1">Conversa com</p>
+                <span className="text-sm font-bold text-white">
+                  {selectedVisit.contactPerson || 'Não informado'}
+                </span>
+              </div>
+
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Observações do Vendedor</p>
+                <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Resumo da Visita</p>
                 <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed italic">
-                  {selectedVisit.notes || 'Nenhuma observação registrada.'}
+                  {selectedVisit.notes || 'Nenhum resumo registrado.'}
                 </div>
               </div>
 
@@ -1017,12 +1025,46 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
 
 const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onCancel }) => {
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(existingVisit ? 'SUMMARY' : 'START');
-  const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || { eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined });
+  const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || { eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined });
   const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => { if (!existingVisit) { setStep('START'); setVisit({ eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined }); } }, [academy.id, eventId, existingVisit]);
+  useEffect(() => { if (!existingVisit) { setStep('START'); setVisit({ eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined }); } }, [academy.id, eventId, existingVisit]);
 
-  const handleFinalize = () => { if (!visit.notes || !visit.temperature) { alert("Preencha as observações"); return; } setVisit(p => ({ ...p, status: VisitStatus.VISITED, finishedAt: new Date().toISOString() })); setStep('VOUCHERS'); };
+  // Validação e finalização da visita (sem vouchers)
+  const handleFinishVisit = async () => {
+    if (!visit.contactPerson) {
+      alert("Por favor, selecione com quem foi a conversa.");
+      return;
+    }
+    if (!visit.temperature) {
+      alert("Por favor, selecione a temperatura da academia.");
+      return;
+    }
+
+    // Salvar visita no banco
+    const visitToSave = {
+      ...visit,
+      status: VisitStatus.VISITED,
+      finishedAt: new Date().toISOString()
+    };
+
+    await onFinish(visitToSave);
+  };
+
+  // Validação e ir para tela de vouchers
+  const handleGenerateVoucher = () => {
+    if (!visit.contactPerson) {
+      alert("Por favor, selecione com quem foi a conversa.");
+      return;
+    }
+    if (!visit.temperature) {
+      alert("Por favor, selecione a temperatura da academia.");
+      return;
+    }
+
+    setVisit(p => ({ ...p, status: VisitStatus.VISITED, finishedAt: new Date().toISOString() }));
+    setStep('VOUCHERS');
+  };
 
   const adjust = (c: number) => { if (c > 0) { const code = generateVoucherCode(); setVisit(p => ({ ...p, vouchersGenerated: [...(p.vouchersGenerated || []), code] })); } else setVisit(p => ({ ...p, vouchersGenerated: (p.vouchersGenerated || []).slice(0, -1) })); };
 
@@ -1068,13 +1110,64 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
 
           {step === 'ACTIVE' && (
             <div className="space-y-6 animate-in fade-in">
-              <textarea placeholder="Observações..." className="w-full h-32 border border-neutral-600 bg-neutral-700 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-500 focus:border-white" value={visit.notes} onChange={e => setVisit(p => ({ ...p, notes: e.target.value }))} />
-              <div className="grid grid-cols-3 gap-3">
-                {[AcademyTemperature.COLD, AcademyTemperature.WARM, AcademyTemperature.HOT].map(t => (
-                  <button key={t} onClick={() => setVisit(p => ({ ...p, temperature: t }))} className={`py-3 rounded-xl font-bold transition-all border ${visit.temperature === t ? 'bg-white text-neutral-900 border-white' : 'bg-neutral-700 text-neutral-400 border-neutral-600 hover:bg-neutral-600'}`}>{t}</button>
-                ))}
+              {/* Com quem foi a conversa */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-white flex items-center">
+                  Com quem foi a conversa? <span className="text-red-400 ml-1">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[ContactPerson.OWNER, ContactPerson.TEACHER, ContactPerson.STAFF, ContactPerson.NOBODY].map(person => (
+                    <button
+                      key={person}
+                      onClick={() => setVisit(p => ({ ...p, contactPerson: person }))}
+                      className={`py-4 rounded-xl font-bold transition-all border text-sm ${visit.contactPerson === person ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-neutral-700 text-neutral-400 border-neutral-600 hover:bg-neutral-600'}`}
+                    >
+                      {person}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <button onClick={handleFinalize} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-colors">Gerar Vouchers</button>
+
+              {/* Temperatura da academia */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-white flex items-center">
+                  Temperatura da academia <span className="text-red-400 ml-1">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[AcademyTemperature.COLD, AcademyTemperature.WARM, AcademyTemperature.HOT].map(t => (
+                    <button key={t} onClick={() => setVisit(p => ({ ...p, temperature: t }))} className={`py-3 rounded-xl font-bold transition-all border ${visit.temperature === t ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-neutral-700 text-neutral-400 border-neutral-600 hover:bg-neutral-600'}`}>{t}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Resumo rápido da visita */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-neutral-400">
+                  Resumo rápido da visita <span className="text-neutral-500 text-xs font-normal">(opcional)</span>
+                </label>
+                <textarea
+                  placeholder="Ex: professor demonstrou interesse no evento, pediu vouchers para alunos novos"
+                  className="w-full h-32 border border-neutral-600 bg-neutral-700 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-500 focus:border-white"
+                  value={visit.notes}
+                  onChange={e => setVisit(p => ({ ...p, notes: e.target.value }))}
+                />
+              </div>
+
+              {/* Botões de ação */}
+              <div className="space-y-3 pt-4">
+                <button
+                  onClick={handleFinishVisit}
+                  className="w-full bg-neutral-700 text-white py-5 rounded-2xl font-bold hover:bg-neutral-600 transition-colors text-lg shadow-lg"
+                >
+                  Finalizar Visita
+                </button>
+                <button
+                  onClick={handleGenerateVoucher}
+                  className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-bold hover:bg-emerald-700 transition-colors text-lg shadow-lg"
+                >
+                  Gerar Voucher
+                </button>
+              </div>
             </div>
           )}
 
@@ -1139,9 +1232,15 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
               <div className="bg-emerald-900/30 text-emerald-400 p-4 rounded-2xl font-bold text-center border border-emerald-800/50">VISITA REGISTRADA</div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600"><span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">Vouchers</span><span className="font-bold text-white tabular-nums">{visit.vouchersGenerated?.length}</span></div>
-                <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600"><span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">Interesse</span><span className={`font-bold ${visit.temperature === AcademyTemperature.HOT ? 'text-red-400' : 'text-neutral-400'}`}>{visit.temperature}</span></div>
+                <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600"><span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">Temperatura</span><span className={`font-bold ${visit.temperature === AcademyTemperature.HOT ? 'text-red-400' : 'text-neutral-400'}`}>{visit.temperature}</span></div>
               </div>
-              <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600 text-sm text-neutral-300 italic">"{visit.notes}"</div>
+              <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600">
+                <span className="text-[10px] uppercase font-bold text-neutral-400 block mb-2">Conversa com</span>
+                <span className="font-bold text-white">{visit.contactPerson || 'Não informado'}</span>
+              </div>
+              {visit.notes && (
+                <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600 text-sm text-neutral-300 italic">"{visit.notes}"</div>
+              )}
               <div className="flex space-x-2">
                 <button onClick={() => setStep('QR_CODE')} className="flex-1 bg-neutral-950 text-white py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 border border-neutral-700"><QrCode size={18} /><span>Reexibir QR</span></button>
                 <button onClick={() => setStep('ACTIVE')} className="flex-1 bg-neutral-700 text-neutral-300 py-4 rounded-2xl font-bold hover:bg-neutral-600">Editar Relatório</button>

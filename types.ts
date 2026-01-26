@@ -56,6 +56,14 @@ export enum AcademyTemperature {
   HOT = 'Quente'
 }
 
+export enum ContactPerson {
+  OWNER = 'Dono',
+  TEACHER = 'Professor',
+  STAFF = 'Funcionário',
+  NOBODY = 'Ninguém disponível'
+}
+
+
 export interface Visit {
   id: string;
   eventId: string;
@@ -66,6 +74,7 @@ export interface Visit {
   finishedAt?: string;
   notes?: string;
   temperature?: AcademyTemperature;
+  contactPerson?: ContactPerson;
   vouchersGenerated: string[]; // Codes
 }
 
