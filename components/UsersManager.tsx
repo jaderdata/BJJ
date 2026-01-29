@@ -13,7 +13,7 @@ import {
     Phone
 } from 'lucide-react';
 import { User, UserRole } from '../types';
-import { DatabaseService, AuthService } from '../lib/supabase';
+import { DatabaseService, AuthService, supabase } from '../lib/supabase';
 
 interface UsersManagerProps {
     users: User[];
@@ -172,11 +172,11 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
         setSavingPhone(true);
         try {
             const clean = redemptionPhone.replace(/\D/g, '');
-            await DatabaseService.updateSetting('voucher_redemption_phone', clean);
+            await DatabaseService.updateSetting('voucher_redemption_phone', JSON.stringify(clean));
             alert('Número de resgate atualizado com sucesso!');
         } catch (e) {
             console.error('Error saving phone:', e);
-            alert('Erro ao salvar número.');
+            alert(`Erro ao salvar número: ${e.message || JSON.stringify(e)}`);
         } finally {
             setSavingPhone(false);
         }
