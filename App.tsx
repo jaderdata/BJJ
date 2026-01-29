@@ -918,9 +918,8 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
 
 
 
-const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visits: Visit[], notifications: any, onDismissNotif: any, onSelectAcademy: any }> = ({ events, academies, visits, notifications, onDismissNotif, onSelectAcademy }) => {
+const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visits: Visit[], notifications: any, onDismissNotif: any, onSelectAcademy: any, currentUserId: string }> = ({ events, academies, visits, notifications, onDismissNotif, onSelectAcademy, currentUserId }) => {
   // Calculate global progress for the salesperson
-  // totalAcademies should be the count of unique assignments (event_id, academy_id)
   const totalAcademies = events.reduce((acc, e) => acc + (e.academiesIds?.length || 0), 0);
 
   // completedVisitsCount should be the count of unique assignments that have been visited
@@ -932,8 +931,50 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
     return acc + validVisitedCount;
   }, 0);
 
+  // Check for active/pending visits for this user
+  const activeVisit = visits.find(v => v.salespersonId === currentUserId && v.status === VisitStatus.PENDING);
+  const isOverdue = activeVisit && activeVisit.startedAt && (Date.now() - new Date(activeVisit.startedAt).getTime() > 3600000); // 1 hour
+
+  const handleAcademyClick = (eventId: string, academyId: string) => {
+    // Rule: Cannot start/open another visit if one is already pending (unless it's the same one)
+    if (activeVisit) {
+      if (activeVisit.academyId !== academyId || activeVisit.eventId !== eventId) {
+        alert("Você já tem uma visita em andamento! Por favor, finalize a visita atual antes de iniciar outra.");
+        return;
+      }
+    }
+    onSelectAcademy(eventId, academyId);
+  };
+
   return (
     <div className="space-y-6 pb-20"> {/* pb-20 to ensure content is above bottom nav */}
+
+      {/* Alert for Overdue Visit */}
+      {isOverdue && (
+        <div className="bg-red-500/20 border border-red-500/50 p-4 rounded-2xl animate-pulse">
+          <div className="flex items-start space-x-3">
+            <div className="bg-red-500/20 p-2 rounded-full">
+              <AlertCircle size={24} className="text-red-500" />
+            </div>
+            <div>
+              <h4 className="font-bold text-red-500 text-lg">Visita Excedeu 1 Hora!</h4>
+              <p className="text-red-400 text-sm mt-1">
+                Sua visita na academia <span className="font-black">{academies.find(a => a.id === activeVisit.academyId)?.name}</span> está aberta há muito tempo.
+              </p>
+              <p className="text-red-300 text-xs mt-2 font-bold uppercase tracking-wider">
+                Por favor, finalize a visita agora.
+              </p>
+              <button
+                onClick={() => handleAcademyClick(activeVisit.eventId, activeVisit.academyId)}
+                className="mt-3 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg transition-colors"
+              >
+                Ir para Visita
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-neutral-800 p-4 rounded-2xl border border-neutral-700 shadow-sm">
         <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2">Seu Progresso de Visitas</h3>
         <ProgressBar total={totalAcademies} completed={completedVisitsCount} />
@@ -941,7 +982,7 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
 
       {events.map(e => {
         const allAcademies = e.academiesIds.map(aid => academies.find(a => a.id === aid)).filter(Boolean) as Academy[];
-        const completedIds = visits.filter(v => v.eventId === e.id).map(v => v.academyId);
+        const completedIds = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED).map(v => v.academyId);
         const pendingAcademies = allAcademies.filter(a => !completedIds.includes(a.id));
         const finishedAcademies = allAcademies.filter(a => completedIds.includes(a.id));
 
@@ -962,20 +1003,26 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
                   <span className="bg-neutral-700 text-white px-1.5 py-0.5 rounded text-[10px]">{pendingAcademies.length}</span>
                 </h4>
                 <div className="grid grid-cols-1 gap-3">
-                  {pendingAcademies.map(a => (
-                    <div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-4 flex justify-between items-center bg-neutral-700/30 rounded-xl active:bg-neutral-700 active:scale-[0.98] cursor-pointer group transition-all border border-neutral-700 hover:border-neutral-500">
-                      <div className="flex items-center space-x-3 w-full">
-                        <div className="p-2.5 rounded-xl bg-neutral-800 text-neutral-400 shrink-0 font-bold text-xs uppercase">
-                          ACAD
+                  {pendingAcademies.map(a => {
+                    // Check if this specific academy is the active one
+                    const isActive = activeVisit?.academyId === a.id && activeVisit?.eventId === e.id;
+
+                    return (
+                      <div key={a.id} onClick={() => handleAcademyClick(e.id, a.id)} className={`p-4 flex justify-between items-center bg-neutral-700/30 rounded-xl active:bg-neutral-700 active:scale-[0.98] cursor-pointer group transition-all border ${isActive ? 'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-900/10' : 'border-neutral-700 hover:border-neutral-500'}`}>
+                        <div className="flex items-center space-x-3 w-full">
+                          <div className={`p-2.5 rounded-xl shrink-0 font-bold text-xs uppercase ${isActive ? 'bg-emerald-500 text-white' : 'bg-neutral-800 text-neutral-400'}`}>
+                            {isActive ? 'ABERTA' : 'ACAD'}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-white text-sm truncate">{a.name}</p>
+                            <p className="text-xs text-neutral-400 truncate">{a.city} • <span className="text-neutral-500">{a.responsible}</span></p>
+                            {isActive && <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mt-1 animate-pulse">Visita em Andamento</p>}
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-white text-sm truncate">{a.name}</p>
-                          <p className="text-xs text-neutral-400 truncate">{a.city} • <span className="text-neutral-500">{a.responsible}</span></p>
-                        </div>
+                        <ChevronRight size={18} className="text-neutral-500 shrink-0" />
                       </div>
-                      <ChevronRight size={18} className="text-neutral-500 shrink-0" />
-                    </div>
-                  ))}
+                    );
+                  })}
                   {pendingAcademies.length === 0 && <p className="text-center text-xs text-neutral-500 italic py-2">Nenhuma academia pendente neste evento.</p>}
                 </div>
               </div>
@@ -990,7 +1037,7 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
                     {finishedAcademies.map(a => {
                       const visit = visits.find(v => v.eventId === e.id && v.academyId === a.id);
                       return (
-                        <div key={a.id} onClick={() => onSelectAcademy(e.id, a.id)} className="p-3 flex justify-between items-center bg-neutral-800/50 rounded-xl border border-neutral-800">
+                        <div key={a.id} onClick={() => handleAcademyClick(e.id, a.id)} className="p-3 flex justify-between items-center bg-neutral-800/50 rounded-xl border border-neutral-800">
                           <div className="flex items-center space-x-3 min-w-0">
                             <div className="p-1.5 rounded-lg bg-emerald-900/10 text-emerald-600/50 font-bold text-[10px]">
                               OK
@@ -1023,7 +1070,7 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
   );
 };
 
-const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onCancel }) => {
+const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(existingVisit ? 'SUMMARY' : 'START');
   const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || { eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined });
   const [toast, setToast] = useState<string | null>(null);
@@ -1104,7 +1151,21 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
             <div className="text-center py-8 space-y-6 animate-in zoom-in-95">
               <div className="w-20 h-20 bg-neutral-900/30 text-neutral-500 rounded-full flex items-center justify-center mx-auto animate-pulse"><Clock size={40} /></div>
               <div className="space-y-1"><h4 className="font-bold text-white">Pronto para começar?</h4><p className="text-sm text-neutral-400">Atendimento oficial para registro.</p></div>
-              <button onClick={() => { setVisit(p => ({ ...p, startedAt: new Date().toISOString() })); setStep('ACTIVE'); }} className="w-full bg-white text-neutral-900 py-4 rounded-2xl font-bold shadow-xl shadow-neutral-900/20 hover:bg-neutral-200 transition-all">Iniciar Visita Agora</button>
+              <button
+                onClick={() => {
+                  const startDetails = {
+                    ...visit,
+                    startedAt: new Date().toISOString(),
+                    status: VisitStatus.PENDING
+                  };
+                  setVisit(startDetails);
+                  setStep('ACTIVE');
+                  onStart(startDetails);
+                }}
+                className="w-full bg-white text-neutral-900 py-4 rounded-2xl font-bold shadow-xl shadow-neutral-900/20 hover:bg-neutral-200 transition-all"
+              >
+                Iniciar Visita Agora
+              </button>
             </div>
           )}
 
@@ -1758,44 +1819,61 @@ const App: React.FC = () => {
           )}
           {activeTab === 'reports' && currentUser.role === UserRole.ADMIN && <Reports visits={visits} academies={academies} events={events} vouchers={vouchers} vendedores={sellers} />}
 
-          {activeTab === 'my_events' && <SalespersonEvents events={events.filter(e => e.salespersonId === currentUser.id)} academies={academies} visits={visits} notifications={notifications.filter(n => n.userId === currentUser.id && !n.read)} onDismissNotif={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))} onSelectAcademy={(eventId, academyId) => { setSelectedEventId(eventId); setSelectedAcademyId(academyId); setActiveTab('visit_detail'); }} />}
+          {activeTab === 'my_events' && <SalespersonEvents events={events.filter(e => e.salespersonId === currentUser.id)} academies={academies} visits={visits} notifications={notifications.filter(n => n.userId === currentUser.id && !n.read)} onDismissNotif={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))} onSelectAcademy={(eventId, academyId) => { setSelectedEventId(eventId); setSelectedAcademyId(academyId); setActiveTab('visit_detail'); }} currentUserId={currentUser.id} />}
           {activeTab === 'visit_detail' && selectedEventId && selectedAcademyId && (
-            <VisitDetail eventId={selectedEventId} academy={academies.find(a => a.id === selectedAcademyId)!} event={events.find(e => e.id === selectedEventId)!} existingVisit={visits.find(v => v.eventId === selectedEventId && v.academyId === selectedAcademyId)} onFinish={async (visit) => {
-              try {
-                // Save Visit
-                const savedVisit = await DatabaseService.upsertVisit(visit);
-                setVisits(prev => [...prev.filter(v => !(v.eventId === visit.eventId && v.academyId === visit.academyId)), savedVisit]);
-
-                // Save Vouchers
-                const currentVoucherCodes = new Set(vouchers.map(v => v.code));
-                const newVoucherObjects: Voucher[] = (visit.vouchersGenerated || [])
-                  .filter(code => !currentVoucherCodes.has(code))
-                  .map(code => ({
-                    code,
-                    eventId: visit.eventId,
-                    academyId: visit.academyId,
-                    visitId: savedVisit.id,
-                    createdAt: new Date().toISOString()
-                  }));
-
-                if (newVoucherObjects.length > 0) {
-                  await DatabaseService.createVouchers(newVoucherObjects);
-                  setVouchers(prev => [...prev, ...newVoucherObjects]);
+            <VisitDetail
+              eventId={selectedEventId}
+              academy={academies.find(a => a.id === selectedAcademyId)!}
+              event={events.find(e => e.id === selectedEventId)!}
+              existingVisit={visits.find(v => v.eventId === selectedEventId && v.academyId === selectedAcademyId)}
+              onStart={async (visit: Visit) => {
+                try {
+                  const saved = await DatabaseService.upsertVisit(visit);
+                  // Update local state to reflect the started visit
+                  setVisits(prev => {
+                    const filtered = prev.filter(v => !(v.eventId === visit.eventId && v.academyId === visit.academyId));
+                    return [...filtered, saved];
+                  });
+                } catch (e) {
+                  console.error("Error starting visit:", e);
                 }
+              }}
+              onFinish={async (visit) => {
+                try {
+                  // Save Visit
+                  const savedVisit = await DatabaseService.upsertVisit(visit);
+                  setVisits(prev => [...prev.filter(v => !(v.eventId === visit.eventId && v.academyId === visit.academyId)), savedVisit]);
 
-                // Notify Admins (Only if completely new visit or status changed to VISITED first time)
-                // Simplified: notify every time for now or check if it was already visited?
-                // Defaulting to keeping existing notification logic but safe from errors
-                admins.forEach(admin => {
-                  notifyUser(admin.id, `O vendedor ${currentUser.name} concluiu uma visita na academia "${academies.find(a => a.id === selectedAcademyId)?.name}".`);
-                });
+                  // Save Vouchers
+                  const currentVoucherCodes = new Set(vouchers.map(v => v.code));
+                  const newVoucherObjects: Voucher[] = (visit.vouchersGenerated || [])
+                    .filter(code => !currentVoucherCodes.has(code))
+                    .map(code => ({
+                      code,
+                      eventId: visit.eventId,
+                      academyId: visit.academyId,
+                      visitId: savedVisit.id,
+                      createdAt: new Date().toISOString()
+                    }));
 
-                setActiveTab('my_events');
-              } catch (error) {
-                console.error("Error saving visit:", error);
-                alert("Erro ao salvar visita.");
-              }
-            }}
+                  if (newVoucherObjects.length > 0) {
+                    await DatabaseService.createVouchers(newVoucherObjects);
+                    setVouchers(prev => [...prev, ...newVoucherObjects]);
+                  }
+
+                  // Notify Admins (Only if completely new visit or status changed to VISITED first time)
+                  // Simplified: notify every time for now or check if it was already visited?
+                  // Defaulting to keeping existing notification logic but safe from errors
+                  admins.forEach(admin => {
+                    notifyUser(admin.id, `O vendedor ${currentUser.name} concluiu uma visita na academia "${academies.find(a => a.id === selectedAcademyId)?.name}".`);
+                  });
+
+                  setActiveTab('my_events');
+                } catch (error) {
+                  console.error("Error saving visit:", error);
+                  alert("Erro ao salvar visita.");
+                }
+              }}
               onCancel={() => setActiveTab('my_events')}
             />
           )}
