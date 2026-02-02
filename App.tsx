@@ -1301,12 +1301,22 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
   const adjust = (c: number) => { if (c > 0) { const code = generateVoucherCode(); setVisit(p => ({ ...p, vouchersGenerated: [...(p.vouchersGenerated || []), code] })); } else setVisit(p => ({ ...p, vouchersGenerated: (p.vouchersGenerated || []).slice(0, -1) })); };
 
   // Gera o link para a landing page pública
+  // Gera o link para a landing page pública
   const generateShareLink = () => {
-    const baseUrl = window.location.origin + window.location.pathname;
+    // Prefer public app URL if configured (for QR codes generated in protected environments)
+    const origin = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
+    const cleanOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+
+    // We append pathname to handle sub-paths if necessary, but typically with hash routing and custom domains it might just be /
+    // If the VITE_PUBLIC_APP_URL is full domain like "https://app.com", likely we just want to append hash.
+    // However, keeping pathname logic for safety if they are on "https://app.com/app/"
+    const currentPath = window.location.pathname === '/' ? '' : window.location.pathname;
+
+    const baseUrl = cleanOrigin + currentPath;
     const academyName = encodeURIComponent(academy.name);
     const codes = encodeURIComponent(visit.vouchersGenerated?.join(',') || '');
     const timestamp = Date.now();
-    return `${baseUrl}#/public-voucher/${academyName}|${codes}|${timestamp}`;
+    return `${baseUrl}/#/public-voucher/${academyName}|${codes}|${timestamp}`;
   };
 
   const handleFinishWithQr = () => {
