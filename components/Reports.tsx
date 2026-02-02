@@ -556,7 +556,7 @@ export const Reports: React.FC<ReportsProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 print:hidden">
                 {[
                     {
-                        label: 'Total Vouchers',
+                        label: 'Vouchers Gerados',
                         value: filteredVouchers.length,
                         subValue: `${filteredVisits.length} visitas`,
                         iconBg: 'bg-purple-500/20',

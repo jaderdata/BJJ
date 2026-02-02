@@ -69,7 +69,8 @@ export const DatabaseService = {
             academiesIds: [],
             date: e.event_date,
             startDate: e.start_date || e.event_date,
-            endDate: e.end_date || e.event_date
+            endDate: e.end_date || e.event_date,
+            photoUrl: e.photo_url
         }));
     },
 
@@ -83,7 +84,8 @@ export const DatabaseService = {
             salesperson_id: event.salespersonId || null,
             event_date: event.startDate || event.date,
             start_date: event.startDate,
-            end_date: event.endDate
+            end_date: event.endDate,
+            photo_url: event.photoUrl || null
         }).select().single();
         if (error) throw error;
         return {
@@ -92,7 +94,8 @@ export const DatabaseService = {
             academiesIds: [],
             date: data.event_date,
             startDate: data.start_date,
-            endDate: data.end_date
+            endDate: data.end_date,
+            photoUrl: data.photo_url
         };
     },
 
@@ -106,13 +109,15 @@ export const DatabaseService = {
             salesperson_id: event.salespersonId || null,
             event_date: event.startDate || event.date,
             start_date: event.startDate,
-            end_date: event.endDate
+            end_date: event.endDate,
+            photo_url: event.photoUrl || null
         }).eq('id', id).select().single();
         if (error) throw error;
         return {
             ...data,
             salespersonId: data.salesperson_id,
-            date: data.event_date
+            date: data.event_date,
+            photoUrl: data.photo_url
         };
     },
 
@@ -372,6 +377,43 @@ export const DatabaseService = {
         }).select().single();
         if (error) throw error;
         return data;
+    },
+
+    // STORAGE - Event Photos
+    async uploadEventPhoto(file: File): Promise<string> {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `event-photos/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('events')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+            .from('events')
+            .getPublicUrl(filePath);
+
+        return data.publicUrl;
+    },
+
+    async deleteEventPhoto(photoUrl: string) {
+        if (!photoUrl) return;
+
+        // Extract file path from URL
+        const urlParts = photoUrl.split('/storage/v1/object/public/events/');
+        if (urlParts.length < 2) return;
+
+        const filePath = urlParts[1];
+        const { error } = await supabase.storage
+            .from('events')
+            .remove([filePath]);
+
+        if (error) console.error('Error deleting photo:', error);
     }
 };
 
@@ -465,6 +507,180 @@ export const AuthService = {
         const { data, error } = await supabase.from('auth_logs').select('*').order('created_at', { ascending: false }).limit(50);
         if (error) throw error;
         return data;
+    }
+};
+
+// ============================================================================
+// ELEVATION SERVICE - Sistema de Elevação Temporária de Privilégios
+// ============================================================================
+
+export interface ElevationSession {
+    sessionId: string;
+    elevated: boolean;
+    elevatedAt?: string;
+    expiresAt?: string;
+    reason?: string;
+    timeRemainingSeconds?: number;
+}
+
+export const ElevationService = {
+    /**
+     * Verifica se o usuário possui sessão administrativa ativa
+     */
+    async checkElevation(userId: string): Promise<ElevationSession> {
+        const { data, error } = await supabase.rpc('check_elevation', {
+            p_user_id: userId
+        });
+
+        if (error) {
+            console.error('Error checking elevation:', error);
+            return { elevated: false, sessionId: '' };
+        }
+
+        return {
+            sessionId: data.session_id || '',
+            elevated: data.elevated || false,
+            elevatedAt: data.elevated_at,
+            expiresAt: data.expires_at,
+            reason: data.reason,
+            timeRemainingSeconds: data.time_remaining_seconds
+        };
+    },
+
+    /**
+     * Solicita elevação de privilégios (requer senha)
+     */
+    async requestElevation(
+        userId: string,
+        password: string,
+        reason?: string,
+        durationMinutes: number = 30
+    ): Promise<{ success: boolean; message: string; session?: ElevationSession }> {
+        const { data, error } = await supabase.rpc('request_elevation', {
+            p_user_id: userId,
+            p_password: password,
+            p_reason: reason,
+            p_duration_minutes: durationMinutes,
+            p_ip_address: null, // Could be populated from client if needed
+            p_user_agent: navigator.userAgent
+        });
+
+        if (error) {
+            console.error('Error requesting elevation:', error);
+            return {
+                success: false,
+                message: error.message || 'Erro ao solicitar elevação'
+            };
+        }
+
+        if (!data.success) {
+            return {
+                success: false,
+                message: data.message
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            session: {
+                sessionId: data.session_id,
+                elevated: true,
+                expiresAt: data.expires_at,
+                timeRemainingSeconds: durationMinutes * 60
+            }
+        };
+    },
+
+    /**
+     * Revoga sessão administrativa ativa
+     */
+    async revokeElevation(userId: string, reason: string = 'Manual revocation'): Promise<{ success: boolean; message: string }> {
+        const { data, error } = await supabase.rpc('revoke_elevation', {
+            p_user_id: userId,
+            p_reason: reason
+        });
+
+        if (error) {
+            console.error('Error revoking elevation:', error);
+            return {
+                success: false,
+                message: error.message || 'Erro ao revogar elevação'
+            };
+        }
+
+        return {
+            success: data.success,
+            message: data.message
+        };
+    },
+
+    /**
+     * Registra ação administrativa para auditoria
+     */
+    async logAdminAction(
+        userId: string,
+        action: string,
+        resourceType?: string,
+        resourceId?: string,
+        details?: any
+    ): Promise<void> {
+        try {
+            await supabase.rpc('log_admin_action', {
+                p_user_id: userId,
+                p_action: action,
+                p_resource_type: resourceType,
+                p_resource_id: resourceId,
+                p_details: details ? JSON.stringify(details) : null,
+                p_ip_address: null,
+                p_user_agent: navigator.userAgent
+            });
+        } catch (error) {
+            console.error('Error logging admin action:', error);
+            // Non-blocking - don't throw
+        }
+    },
+
+    /**
+     * Busca logs de auditoria administrativa
+     */
+    async getAuditLogs(limit: number = 50): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('admin_audit_log')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching audit logs:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
+    /**
+     * Busca sessões administrativas (ativas e históricas)
+     */
+    async getAdminSessions(userId?: string, limit: number = 50): Promise<any[]> {
+        let query = supabase
+            .from('admin_sessions')
+            .select('*')
+            .order('elevated_at', { ascending: false })
+            .limit(limit);
+
+        if (userId) {
+            query = query.eq('user_id', userId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error('Error fetching admin sessions:', error);
+            return [];
+        }
+
+        return data || [];
     }
 };
 

@@ -43,6 +43,7 @@ export interface Event {
   date: string; // Maintain for legacy if needed/sorting
   startDate: string;
   endDate: string;
+  photoUrl?: string;
 }
 
 export enum VisitStatus {

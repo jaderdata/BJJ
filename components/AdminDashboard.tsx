@@ -345,31 +345,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <h3 className="text-sm font-black text-white/60 uppercase tracking-widest mb-6">Indicador de Interesse</h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {[
-                                { label: 'Quente', key: AcademyTemperature.HOT, color: 'from-red-500 to-orange-500', textColor: 'text-red-400' },
-                                { label: 'Morno', key: AcademyTemperature.WARM, color: 'from-blue-500 to-cyan-500', textColor: 'text-blue-400' },
-                                { label: 'Frio', key: AcademyTemperature.COLD, color: 'from-gray-500 to-gray-600', textColor: 'text-gray-400' }
-                            ].map((temp) => {
-                                const count = activePerformance.temperatureData.find(t => t.name === temp.key)?.value || 0;
-                                const totalCount = Math.max(activePerformance.completed, 1);
-                                const percent = Math.round((count / totalCount) * 100);
+                            {(() => {
+                                // Calculate total of all temperatures
+                                const totalTemperatures = activePerformance.temperatureData.reduce((sum, t) => sum + t.value, 0);
 
-                                return (
-                                    <div key={temp.key} className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-black text-white/60 uppercase tracking-widest">{temp.label}</span>
-                                            <span className={`text-xl font-black ${temp.textColor}`}>{count}</span>
+                                return [
+                                    { label: 'Quente', key: AcademyTemperature.HOT, color: 'from-red-500 to-orange-500', textColor: 'text-red-400' },
+                                    { label: 'Morno', key: AcademyTemperature.WARM, color: 'from-blue-500 to-cyan-500', textColor: 'text-blue-400' },
+                                    { label: 'Frio', key: AcademyTemperature.COLD, color: 'from-gray-500 to-gray-600', textColor: 'text-gray-400' }
+                                ].map((temp) => {
+                                    const count = activePerformance.temperatureData.find(t => t.name === temp.key)?.value || 0;
+                                    // Calculate percentage based on total temperatures, not total completed visits
+                                    const percent = totalTemperatures > 0 ? Math.round((count / totalTemperatures) * 100) : 0;
+
+                                    return (
+                                        <div key={temp.key} className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-black text-white/60 uppercase tracking-widest">{temp.label}</span>
+                                                <span className={`text-xl font-black ${temp.textColor}`}>{count}</span>
+                                            </div>
+                                            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full bg-gradient-to-r ${temp.color} rounded-full transition-all duration-1000 shadow-lg`}
+                                                    style={{ width: `${percent}%` }}
+                                                ></div>
+                                            </div>
+                                            <p className={`text-sm font-black ${temp.textColor}`}>{percent}%</p>
                                         </div>
-                                        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full bg-gradient-to-r ${temp.color} rounded-full transition-all duration-1000 shadow-lg`}
-                                                style={{ width: `${percent}%` }}
-                                            ></div>
-                                        </div>
-                                        <p className={`text-sm font-black ${temp.textColor}`}>{percent}%</p>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                });
+                            })()}
                         </div>
                     </div>
                 </div>

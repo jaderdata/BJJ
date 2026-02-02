@@ -25,7 +25,9 @@ import {
   Phone,
   Save,
   Loader2,
-  Play
+  Play,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 import {
   User,
@@ -53,8 +55,12 @@ import { EventsManager } from './components/EventsManager';
 import { AcademiesManager } from './components/AcademiesManager';
 import { UsersManager } from './components/UsersManager';
 import { SalesFinance } from './components/SalesFinance';
+import ElevationPrompt from './components/ElevationPrompt';
+import AdminModeIndicator from './components/AdminModeIndicator';
+import { ElevationProvider, useElevation } from './contexts/ElevationContext';
 import { supabase, DatabaseService, AuthService } from './lib/supabase';
 import { cn, generateVoucherCode } from './lib/utils';
+import { toast, Toaster } from 'sonner';
 
 
 interface Notification {
@@ -261,6 +267,9 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Event>>({ ...event });
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(event.photoUrl || null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const eventAcademies = academies.filter(a => event.academiesIds.includes(a.id));
 
@@ -293,6 +302,7 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
   const handleBulkLink = () => {
     if (selectedIds.length === 0) return;
     onUpdateEvent({ ...event, academiesIds: [...event.academiesIds, ...selectedIds] });
+    toast.success(`${selectedIds.length} academia(s) vinculada(s) com sucesso!`);
     setSelectedIds([]);
     setShowAddModal(false);
   };
@@ -302,31 +312,91 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
   };
 
   const handleRemoveAcademy = (academyId: string) => {
-    if (window.confirm('Deseja remover esta academia deste evento?')) {
+    const academy = academies.find(a => a.id === academyId);
+    if (window.confirm(`Deseja remover "${academy?.name}" deste evento?`)) {
       onUpdateEvent({ ...event, academiesIds: event.academiesIds.filter(id => id !== academyId) });
+      toast.success(`Academia "${academy?.name}" removida do evento.`);
     }
   };
 
   const handleSalespersonChange = (newSalespersonId: string) => {
     const oldSalespersonId = event.salespersonId;
+    const newSalesperson = vendedores.find(v => v.id === newSalespersonId);
+    const oldSalesperson = vendedores.find(v => v.id === oldSalespersonId);
+
     onUpdateEvent({ ...event, salespersonId: newSalespersonId || undefined });
 
     if (newSalespersonId && newSalespersonId !== oldSalespersonId) {
       notifyUser(newSalespersonId, `Você foi atribuído ao evento "${event.name}".`);
+      toast.success(`Vendedor "${newSalesperson?.name}" atribuído ao evento.`);
+    } else if (!newSalespersonId && oldSalespersonId) {
+      toast.info('Vendedor removido do evento.');
     }
+
     if (oldSalespersonId && oldSalespersonId !== newSalespersonId) {
       notifyUser(oldSalespersonId, `Você não é mais o responsável pelo evento "${event.name}".`);
     }
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Por favor, selecione apenas arquivos de imagem.');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('A imagem deve ter no máximo 5MB.');
+        return;
+      }
+      setSelectedPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      toast.success('Foto selecionada com sucesso!');
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setSelectedPhoto(null);
+    setPhotoPreview(event.photoUrl || null);
+    toast.info('Foto removida. A foto original será mantida se você não selecionar outra.');
+  };
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editForm.name || !editForm.city || !editForm.state || !editForm.startDate || !editForm.endDate) {
-      alert("Preencha todos os campos obrigatórios");
+    if (!editForm.name || !editForm.address || !editForm.city || !editForm.state || !editForm.startDate || !editForm.endDate) {
+      toast.error("Preencha todos os campos obrigatórios");
       return;
     }
-    await onUpdateEvent(editForm);
-    setIsEditing(false);
+
+    setIsUploading(true);
+    const loadingToast = toast.loading('Salvando alterações...');
+
+    try {
+      let photoUrl = editForm.photoUrl;
+
+      // Upload new photo if selected
+      if (selectedPhoto) {
+        photoUrl = await DatabaseService.uploadEventPhoto(selectedPhoto);
+        // Delete old photo if exists and is different
+        if (event.photoUrl && event.photoUrl !== photoUrl) {
+          await DatabaseService.deleteEventPhoto(event.photoUrl);
+        }
+      }
+
+      await onUpdateEvent({ ...editForm, photoUrl });
+      toast.success('Evento atualizado com sucesso!', { id: loadingToast });
+      setIsEditing(false);
+      setSelectedPhoto(null);
+    } catch (error: any) {
+      console.error('Error updating event:', error);
+      toast.error(`Erro ao atualizar evento: ${error.message}`, { id: loadingToast });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -355,6 +425,10 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                   <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Nome do Evento</label>
                   <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-xl text-white outline-none focus:border-white" />
                 </div>
+                <div className="md:col-span-2">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Endereço</label>
+                  <input type="text" value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-xl text-white outline-none focus:border-white" />
+                </div>
                 <div>
                   <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Cidade</label>
                   <input type="text" value={editForm.city} onChange={e => setEditForm({ ...editForm, city: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-xl text-white outline-none focus:border-white" />
@@ -377,9 +451,79 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                     {Object.values(EventStatus).map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
+
+                {/* Photo Upload Section */}
+                <div className="md:col-span-2">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1 mb-2 block">
+                    Foto do Evento
+                  </label>
+
+                  {photoPreview ? (
+                    <div className="relative w-full h-64 bg-neutral-900 border border-neutral-700 rounded-xl overflow-hidden group">
+                      <img
+                        src={photoPreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                        <label className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold flex items-center space-x-2 transition-all cursor-pointer">
+                          <Upload size={16} />
+                          <span>Alterar Foto</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoChange}
+                            className="hidden"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleRemovePhoto}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold flex items-center space-x-2 transition-all"
+                        >
+                          <Trash2 size={16} />
+                          <span>Remover</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="w-full flex flex-col items-center justify-center px-4 py-12 bg-neutral-900 border-2 border-dashed border-neutral-700 rounded-xl cursor-pointer hover:bg-neutral-800 hover:border-neutral-600 transition-all group">
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="p-3 bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                          <ImageIcon size={32} className="text-blue-400" strokeWidth={2} />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Upload size={16} className="text-neutral-400" />
+                          <span className="text-sm font-bold text-neutral-300">Clique para adicionar foto</span>
+                        </div>
+                        <span className="text-xs text-neutral-500">PNG, JPG ou WEBP (máx. 5MB)</span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+
                 <div className="md:col-span-2 flex space-x-3 pt-4">
-                  <button type="submit" className="flex-1 bg-white hover:bg-neutral-200 text-neutral-900 py-3 rounded-xl font-bold transition-all">Salvar Alterações</button>
-                  <button type="button" onClick={() => setIsEditing(false)} className="flex-1 bg-neutral-700 hover:bg-neutral-600 text-white py-3 rounded-xl font-bold transition-all">Cancelar</button>
+                  <button
+                    type="submit"
+                    disabled={isUploading}
+                    className="flex-1 bg-white hover:bg-neutral-200 text-neutral-900 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        <span>Salvando...</span>
+                      </>
+                    ) : (
+                      <span>Salvar Alterações</span>
+                    )}
+                  </button>
+                  <button type="button" onClick={() => { setIsEditing(false); setSelectedPhoto(null); setPhotoPreview(event.photoUrl || null); }} className="flex-1 bg-neutral-700 hover:bg-neutral-600 text-white py-3 rounded-xl font-bold transition-all">Cancelar</button>
                 </div>
               </form>
             ) : (
@@ -1327,10 +1471,14 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
 
 
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Elevation state
+  const [showElevationPrompt, setShowElevationPrompt] = useState(false);
+  const { isElevated, session, requestElevation, revokeElevation } = useElevation();
 
   const [academies, setAcademies] = useState<Academy[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -1555,6 +1703,21 @@ const App: React.FC = () => {
     window.location.reload();
   };
 
+  // Handler de elevação
+  const handleElevationRequest = async (password: string, reason: string) => {
+    const result = await requestElevation(password, reason);
+    if (result.success) {
+      setShowElevationPrompt(false);
+      setGlobalToast({ message: 'Privilégios elevados com sucesso!', type: 'success' });
+    }
+    return result;
+  };
+
+  const handleElevationRevoke = async () => {
+    await revokeElevation();
+    setGlobalToast({ message: 'Modo administrativo desativado', type: 'info' });
+  };
+
   const fetchUsers = async () => {
     // Buscar apenas usuários ATIVOS da tabela app_users
     const { data: salesData } = await supabase
@@ -1683,6 +1846,24 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-neutral-900 font-sans text-neutral-100 overflow-hidden">
+      {/* Elevation Prompt Modal */}
+      {showElevationPrompt && currentUser && (
+        <ElevationPrompt
+          userName={currentUser.name}
+          onElevate={handleElevationRequest}
+          onCancel={() => setShowElevationPrompt(false)}
+        />
+      )}
+
+      {/* Admin Mode Indicator */}
+      {isElevated && session?.expiresAt && currentUser && (
+        <AdminModeIndicator
+          expiresAt={session.expiresAt}
+          onRevoke={handleElevationRevoke}
+          userName={currentUser.name}
+        />
+      )}
+
       {/* Sidebar - Only for Admin */}
       {
         currentUser.role === UserRole.ADMIN && (
@@ -1698,7 +1879,7 @@ const App: React.FC = () => {
       }
 
       {/* Main Content Area */}
-      <main className={`flex-1 flex flex-col h-screen overflow-hidden ${currentUser.role === UserRole.SALES ? 'pb-16' : ''}`}> {/* Add padding bottom for mobile nav */}
+      <main className={`flex-1 flex flex-col h-screen overflow-hidden ${currentUser.role === UserRole.SALES ? 'pb-16' : ''} ${isElevated ? 'pt-24' : ''}`}> {/* Add padding top for admin indicator */}
 
         {/* Navbar - Only for Admin (Salesperson uses simplified header or just content) */}
         {currentUser.role === UserRole.ADMIN ? (
@@ -1706,6 +1887,7 @@ const App: React.FC = () => {
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
             activeTab={activeTab}
+            onOpenElevationPrompt={() => setShowElevationPrompt(true)}
           />
         ) : (
           /* Salesperson Header */
@@ -1919,7 +2101,47 @@ const App: React.FC = () => {
           />
         )
       }
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        toastOptions={{
+          style: {
+            background: '#1f2937',
+            color: '#fff',
+            border: '1px solid #374151',
+          },
+        }}
+      />
     </div>
   );
 };
+
+// Wrapper principal com ElevationProvider
+const App: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Carregar usuário do localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('bjj_user');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        setCurrentUser(parsed);
+      } catch (e) {
+        localStorage.removeItem('bjj_user');
+      }
+    }
+  }, []);
+
+  return (
+    <ElevationProvider userId={currentUser?.id || null}>
+      <AppContent />
+    </ElevationProvider>
+  );
+};
+
 export default App;
+

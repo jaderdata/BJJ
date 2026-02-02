@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import {
     Plus,
     Trash2,
-    X
+    X,
+    Image as ImageIcon,
+    Upload
 } from 'lucide-react';
 import {
     Event,
@@ -13,6 +15,7 @@ import {
     User
 } from '../types';
 import { DatabaseService } from '../lib/supabase';
+import { toast } from 'sonner';
 
 interface EventsManagerProps {
     events: Event[];
@@ -40,22 +43,72 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0]
     });
+    const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Por favor, selecione apenas arquivos de imagem.');
+                return;
+            }
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('A imagem deve ter no máximo 5MB.');
+                return;
+            }
+            setSelectedPhoto(file);
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemovePhoto = () => {
+        setSelectedPhoto(null);
+        setPhotoPreview(null);
+    };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newEvent.name || !newEvent.city || !newEvent.state || !newEvent.startDate || !newEvent.endDate) {
-            alert("Preencha todos os campos obrigatórios");
+        if (!newEvent.name || !newEvent.address || !newEvent.city || !newEvent.state || !newEvent.startDate || !newEvent.endDate) {
+            toast.error("Preencha todos os campos obrigatórios");
+            return;
+        }
+
+        if (!selectedPhoto) {
+            toast.error("Por favor, adicione uma foto do evento.");
             return;
         }
 
         try {
-            const created = await DatabaseService.createEvent(newEvent);
+            setIsUploading(true);
+            const loadingToast = toast.loading('Criando evento...');
+
+            // Upload photo first
+            let photoUrl: string | undefined;
+            if (selectedPhoto) {
+                photoUrl = await DatabaseService.uploadEventPhoto(selectedPhoto);
+            }
+
+            // Create event with photo URL
+            const created = await DatabaseService.createEvent({
+                ...newEvent,
+                photoUrl
+            });
             setEvents((prev: Event[]) => [created, ...prev]);
 
             if (created.salespersonId) {
                 notifyUser(created.salespersonId, `Você foi atribuído ao novo evento "${created.name}".`);
             }
 
+            toast.success('Evento criado com sucesso!', { id: loadingToast });
             setShowModal(false);
             setNewEvent({
                 status: EventStatus.UPCOMING,
@@ -63,9 +116,13 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                 startDate: new Date().toISOString().split('T')[0],
                 endDate: new Date().toISOString().split('T')[0]
             });
+            setSelectedPhoto(null);
+            setPhotoPreview(null);
         } catch (error: any) {
             console.error("Error creating event:", error);
-            alert(`Erro ao criar evento: ${error.message}`);
+            toast.error(`Erro ao criar evento: ${error.message}`);
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -73,6 +130,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
         e.stopPropagation();
         if (window.confirm(`Deseja realmente excluir o evento "${eventName}"?`)) {
             try {
+                const loadingToast = toast.loading('Excluindo evento...');
                 const eventToDelete = events.find(ev => ev.id === eventId);
                 await DatabaseService.deleteEvent(eventId);
                 setEvents((prev: Event[]) => prev.filter(ev => ev.id !== eventId));
@@ -80,9 +138,11 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                 if (eventToDelete?.salespersonId) {
                     notifyUser(eventToDelete.salespersonId, `O evento "${eventName}" foi removido pelo administrador.`);
                 }
+
+                toast.success(`Evento "${eventName}" excluído com sucesso!`, { id: loadingToast });
             } catch (error) {
                 console.error("Error deleting event:", error);
-                alert("Erro ao excluir evento");
+                toast.error("Erro ao excluir evento");
             }
         }
     };
@@ -139,36 +199,54 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                         <div
                             key={e.id}
                             onClick={() => onSelectEvent(e.id)}
-                            className="group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer"
+                            className="group relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer h-64"
                         >
+                            {/* Background Image */}
+                            {e.photoUrl ? (
+                                <div
+                                    className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-transform duration-500 group-hover:scale-105"
+                                    style={{ backgroundImage: `url(${e.photoUrl})` }}
+                                />
+                            ) : (
+                                <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
+                            )}
+
+                            {/* Dark Overlay - Hidden by default on desktop, visible on hover. Always visible on mobile */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-black/40 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-500" />
+
                             {/* Glow effect */}
-                            <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                            <div className="relative z-10">
-                                {/* Header */}
-                                <div className="flex justify-between items-start mb-3">
-                                    <span className={`text-xs font-black px-2 py-1 rounded-lg uppercase ${isExpired ? 'bg-white/10 text-white/40' :
-                                        isOngoing ? 'bg-emerald-500/20 text-emerald-400' :
-                                            'bg-blue-500/20 text-blue-400'
-                                        }`}>
-                                        {isExpired ? 'Encerrado' : isOngoing ? 'Em Andamento' : 'Próximo'}
-                                    </span>
-                                    <button
-                                        onClick={(ev) => handleDeleteEvent(ev, e.id, e.name)}
-                                        className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
-                                    >
-                                        <Trash2 size={14} strokeWidth={2} />
-                                    </button>
+                            {/* Top Badges - Always visible */}
+                            <div className="absolute top-0 left-0 right-0 z-20 p-5 flex justify-between items-start">
+                                <span className={`text-xs font-black px-3 py-1.5 rounded-lg uppercase backdrop-blur-md ${isExpired ? 'bg-white/10 text-white/60 border border-white/20' :
+                                    isOngoing ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/50' :
+                                        'bg-blue-500/30 text-blue-300 border border-blue-400/50'
+                                    }`}>
+                                    {isExpired ? 'Encerrado' : isOngoing ? 'Em Andamento' : diffDays === 0 ? 'Hoje' : diffDays === 1 ? 'Amanhã' : `${diffDays} dias`}
+                                </span>
+                                <button
+                                    onClick={(ev) => handleDeleteEvent(ev, e.id, e.name)}
+                                    className="p-2 text-white/80 hover:text-red-400 hover:bg-red-500/30 backdrop-blur-md rounded-lg transition-all border border-white/20 hover:border-red-400/50"
+                                >
+                                    <Trash2 size={16} strokeWidth={2.5} />
+                                </button>
+                            </div>
+
+                            {/* Event Info - Hidden on desktop, visible on hover. Always visible on mobile */}
+                            <div className="absolute bottom-0 left-0 right-0 z-10 p-5 opacity-100 translate-y-0 md:opacity-0 md:translate-y-4 md:group-hover:opacity-100 md:group-hover:translate-y-0 transition-all duration-500">
+                                {/* Event Name */}
+                                <h4 className="text-xl font-black text-white mb-2 leading-tight drop-shadow-lg line-clamp-2">
+                                    {e.name}
+                                </h4>
+
+                                {/* Location */}
+                                <div className="flex items-center space-x-2 text-sm text-white/90 mb-3 font-bold drop-shadow-md">
+                                    <span>{e.city} - {e.state}</span>
                                 </div>
 
-                                {/* Content */}
-                                <h4 className="text-lg font-black text-white mb-1">{e.name}</h4>
-
-                                <div className="flex items-center space-x-2 text-xs text-white/60 mb-3">
-                                    <span className="font-bold">{e.city} - {e.state}</span>
-                                </div>
-
-                                <div className="flex items-center space-x-2 text-xs font-bold text-white/60 mb-4">
+                                {/* Date */}
+                                <div className="flex items-center space-x-2 text-xs font-bold text-white/80 mb-4 drop-shadow-md">
                                     <span>
                                         {e.startDate === e.endDate
                                             ? new Date(e.startDate).toLocaleDateString('pt-BR')
@@ -179,18 +257,21 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
 
                                 {/* Stats */}
                                 <div className="flex items-center justify-between text-xs mb-2">
-                                    <div className="flex items-center space-x-1 text-white/60">
-                                        <span className="font-bold">{totalAcademies} Academias</span>
+                                    <div className="flex items-center space-x-1 text-white/90 font-bold drop-shadow-md">
+                                        <span>{totalAcademies} Academias</span>
                                     </div>
-                                    <span className="text-base font-black text-white">{progress}%</span>
+                                    <span className="text-lg font-black text-white drop-shadow-lg">{progress}%</span>
                                 </div>
 
                                 {/* Progress Bar */}
-                                <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                                <div className="h-2.5 bg-black/40 backdrop-blur-sm rounded-full overflow-hidden border border-white/20 shadow-lg">
                                     <div
-                                        className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-1000"
+                                        className={`h-full rounded-full transition-all duration-1000 shadow-lg ${progress === 100
+                                            ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                                            : 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                                            }`}
                                         style={{ width: `${progress}%` }}
-                                    ></div>
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -218,6 +299,13 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                 placeholder="Nome do Evento"
                                 className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                 onChange={e => setNewEvent({ ...newEvent, name: e.target.value })}
+                            />
+
+                            <input
+                                type="text"
+                                placeholder="Endereço do Evento"
+                                className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                onChange={e => setNewEvent({ ...newEvent, address: e.target.value })}
                             />
 
                             <div className="grid grid-cols-2 gap-4">
@@ -278,11 +366,65 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                 </select>
                             </div>
 
+                            {/* Photo Upload Section */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">
+                                    Foto do Evento *
+                                </label>
+
+                                {!photoPreview ? (
+                                    <label className="w-full flex flex-col items-center justify-center px-4 py-8 bg-white/5 backdrop-blur-md border-2 border-dashed border-white/20 rounded-xl cursor-pointer hover:bg-white/10 hover:border-white/30 transition-all group">
+                                        <div className="flex flex-col items-center space-y-2">
+                                            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl group-hover:scale-110 transition-transform">
+                                                <ImageIcon size={32} className="text-blue-400" strokeWidth={2} />
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <Upload size={16} className="text-white/60" />
+                                                <span className="text-sm font-bold text-white/80">Clique para adicionar foto</span>
+                                            </div>
+                                            <span className="text-xs text-white/40">PNG, JPG ou WEBP (máx. 5MB)</span>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handlePhotoChange}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                ) : (
+                                    <div className="relative w-full h-48 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden group">
+                                        <img
+                                            src={photoPreview}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <button
+                                                type="button"
+                                                onClick={handleRemovePhoto}
+                                                className="px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white rounded-lg font-bold flex items-center space-x-2 transition-all"
+                                            >
+                                                <Trash2 size={16} />
+                                                <span>Remover Foto</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
                             <button
                                 type="submit"
-                                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-emerald-500/50"
+                                disabled={isUploading}
+                                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                             >
-                                Criar Evento
+                                {isUploading ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        <span>Enviando...</span>
+                                    </>
+                                ) : (
+                                    <span>Criar Evento</span>
+                                )}
                             </button>
                         </form>
                     </div>
