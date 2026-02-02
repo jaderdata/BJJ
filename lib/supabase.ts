@@ -153,8 +153,10 @@ export const DatabaseService = {
             eventId: v.event_id,
             academyId: v.academy_id,
             salespersonId: v.salesperson_id,
+            status: v.status,
             startedAt: v.started_at,
             finishedAt: v.finished_at,
+            contactPerson: v.contact_person,
             vouchersGenerated: v.vouchers_generated
         }));
     },
@@ -167,6 +169,7 @@ export const DatabaseService = {
             finished_at: visit.finishedAt,
             notes: visit.notes,
             temperature: visit.temperature,
+            contact_person: visit.contactPerson,
             vouchers_generated: visit.vouchersGenerated
         }).eq('id', id).select().single();
         if (error) throw error;
@@ -184,6 +187,7 @@ export const DatabaseService = {
             finished_at: visit.finishedAt,
             notes: visit.notes,
             temperature: visit.temperature,
+            contact_person: visit.contactPerson,
             vouchers_generated: visit.vouchersGenerated
         };
         // Check if ID is a valid UUID. If not (e.g. legacy mock ID), treat as new insert.
@@ -193,12 +197,12 @@ export const DatabaseService = {
             delete payload.id; // Let DB generate it or use insert
             const { data, error } = await supabase.from('visits').insert(payload).select().single();
             if (error) throw error;
-            return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, startedAt: data.started_at, finishedAt: data.finished_at, vouchersGenerated: data.vouchers_generated };
+            return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated };
         }
 
         const { data, error } = await supabase.from('visits').upsert(payload).select().single();
         if (error) throw error;
-        return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, startedAt: data.started_at, finishedAt: data.finished_at, vouchersGenerated: data.vouchers_generated };
+        return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated };
     },
 
     // VOUCHERS

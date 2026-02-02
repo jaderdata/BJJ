@@ -86,7 +86,8 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
           if (clean && clean.length >= 10) setRedemptionPhone(clean);
         }
       } catch (err) {
-        console.error('Error fetching redemption phone:', err);
+        // Silently fail and use default phone - this is a public page
+        console.log('Using default redemption phone (public access)');
       } finally {
         setLoadingPhone(false);
       }
@@ -1095,7 +1096,12 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
       finishedAt: new Date().toISOString()
     };
 
-    await onFinish(visitToSave);
+    try {
+      await onFinish(visitToSave);
+    } catch (error) {
+      console.error("Error finishing visit:", error);
+      alert("Erro ao finalizar visita. Por favor, tente novamente.");
+    }
   };
 
   // Validação e ir para tela de vouchers
