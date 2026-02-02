@@ -1220,7 +1220,42 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
   const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || { eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined });
   const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => { if (!existingVisit) { setStep('START'); setVisit({ eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined }); } }, [academy.id, eventId, existingVisit]);
+  useEffect(() => {
+    if (existingVisit) {
+      setVisit(prev => ({
+        ...prev,
+        ...existingVisit, // Sincroniza tudo com o banco
+        // Mantemos campos locais se estiverem sendo editados? 
+        // Na verdade, queremos garantir que o ID venha.
+        // Se o usuário digitou notas mas ainda não salvou, e o 'existingVisit' atualizou externamente (ex: polling), perderíamos notas.
+        // Mas aqui a atualização externa vem do 'onStart' que nós mesmos chamamos.
+        // O onStart salva apenas { startedAt, status: PENDING }.
+        // Então é seguro mesclar.
+      }));
+
+      // Se já começou, avança tela
+      if (existingVisit.status === VisitStatus.PENDING && step === 'START') {
+        setStep('ACTIVE');
+      }
+      // Se já terminou, mostra resumo
+      if (existingVisit.status === VisitStatus.VISITED && step !== 'SUMMARY' && step !== 'QR_CODE') {
+        setStep('SUMMARY');
+      }
+    } else {
+      // Reset limpo
+      setStep('START');
+      setVisit({
+        eventId,
+        academyId: academy.id,
+        salespersonId: event.salespersonId!,
+        status: VisitStatus.PENDING,
+        vouchersGenerated: [],
+        notes: '',
+        temperature: undefined,
+        contactPerson: undefined
+      });
+    }
+  }, [existingVisit, academy.id, eventId, event.salespersonId]);
 
   // Validação e finalização da visita (sem vouchers)
   const handleFinishVisit = async () => {
