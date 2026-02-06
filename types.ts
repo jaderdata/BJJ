@@ -78,6 +78,8 @@ export interface Visit {
   contactPerson?: ContactPerson;
   vouchersGenerated: string[]; // Codes
   photos?: string[];
+  leftBanner?: boolean;
+  leftFlyers?: boolean;
 }
 
 export interface Voucher {

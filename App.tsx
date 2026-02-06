@@ -1218,10 +1218,24 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
 
 const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(existingVisit ? 'SUMMARY' : 'START');
-  const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || { eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined, photos: [] });
+  const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || { eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined, photos: [], leftBanner: false, leftFlyers: false });
   const [toast, setToast] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [marketingVerified, setMarketingVerified] = useState(existingVisit ? true : false);
+  const [lastVisit, setLastVisit] = useState<Visit | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchLastVisit = async () => {
+      try {
+        const last = await DatabaseService.getLastVisit(academy.id);
+        setLastVisit(last);
+      } catch (error) {
+        console.error("Error fetching last visit:", error);
+      }
+    };
+    fetchLastVisit();
+  }, [academy.id]);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1295,6 +1309,10 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
       alert("Por favor, selecione a temperatura da academia.");
       return;
     }
+    if (!marketingVerified) {
+      alert("Por favor, informe se deixou materiais de marketing (Banner/Flyers).");
+      return;
+    }
 
     // Salvar visita no banco
     const visitToSave = {
@@ -1319,6 +1337,10 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
     }
     if (!visit.temperature) {
       alert("Por favor, selecione a temperatura da academia.");
+      return;
+    }
+    if (!marketingVerified) {
+      alert("Por favor, informe se deixou materiais de marketing (Banner/Flyers).");
       return;
     }
 
@@ -1351,28 +1373,66 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-neutral-900 overflow-y-auto animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-0 z-[60] bg-[#0f0f0f] overflow-y-auto animate-in slide-in-from-right duration-300 antialiased selection:bg-emerald-500/30">
       {/* Fixed Header */}
-      <div className="sticky top-0 bg-neutral-900/95 backdrop-blur-sm p-4 border-b border-neutral-800 z-10 flex justify-between items-center shadow-lg">
-        <div>
-          <h3 className="text-xl font-bold text-white leading-none">{academy.name}</h3>
-          <p className="text-neutral-400 text-xs font-medium mt-1">{academy.city} - {academy.state}</p>
+      <div className="sticky top-0 bg-[#0f0f0f]/80 backdrop-blur-xl p-5 border-b border-white/5 z-10 flex justify-between items-center">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20">
+            <span className="text-emerald-500 font-bold">🥋</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-white leading-tight tracking-tight">{academy.name}</h3>
+            <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest">{academy.city} • {academy.state}</p>
+          </div>
         </div>
-        <button onClick={onCancel} className="bg-neutral-800 hover:bg-neutral-700 text-white p-2 rounded-full transition-colors">
-          <X size={20} strokeWidth={1.5} />
+        <button onClick={onCancel} className="bg-neutral-800/50 hover:bg-neutral-800 text-white p-2.5 rounded-2xl transition-all active:scale-90 border border-white/5">
+          <X size={20} strokeWidth={2} />
         </button>
       </div>
 
-      <div className="p-4 pb-32 space-y-6 max-w-lg mx-auto">
-        {toast && <div className="fixed top-20 left-4 right-4 bg-neutral-900 text-white p-4 rounded-xl shadow-2xl animate-in slide-in-from-top z-[70] flex items-center space-x-2 border border-neutral-700 justify-center"><CheckCircle2 size={18} className="text-emerald-400" /><span>{toast}</span></div>}
+      <div className="p-5 pb-40 space-y-6 max-w-lg mx-auto">
+        {toast && (
+          <div className="fixed top-24 left-5 right-5 bg-emerald-600 text-white px-6 py-4 rounded-3xl shadow-2xl animate-in slide-in-from-top-4 z-[70] flex items-center space-x-3 border border-emerald-400/20 backdrop-blur-md">
+            <div className="bg-white/20 p-1.5 rounded-full"><CheckCircle2 size={16} /></div>
+            <span className="font-bold text-sm tracking-tight">{toast}</span>
+          </div>
+        )}
+
+        {/* History Card (Context) */}
+        {lastVisit && step === 'ACTIVE' && (
+          <div className="glass-card p-5 bg-emerald-500/[0.03] border-emerald-500/10 animate-in fade-in slide-in-from-top-2 duration-500">
+            <div className="flex items-center space-x-2 mb-3">
+              <History size={14} className="text-emerald-500" />
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Última Visita</span>
+              <span className="text-[10px] text-neutral-500">• {new Date(lastVisit.finishedAt!).toLocaleDateString('pt-BR')}</span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                {lastVisit.leftBanner && <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-lg text-[9px] font-bold border border-emerald-500/20">Banner já entregue 🚩</span>}
+                {lastVisit.leftFlyers && <span className="bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-lg text-[9px] font-bold border border-sky-500/20">Flyers já entregue 📄</span>}
+              </div>
+              {lastVisit.notes && (
+                <p className="text-xs text-neutral-400 italic line-clamp-2 leading-relaxed">"{lastVisit.notes}"</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Content Container - removed heavy borders for mobile full screen feel */}
         <div className="relative">
 
           {step === 'START' && (
-            <div className="text-center py-8 space-y-6 animate-in zoom-in-95">
-              <div className="w-20 h-20 bg-neutral-900/30 text-neutral-500 rounded-full flex items-center justify-center mx-auto animate-pulse"><Clock size={40} /></div>
-              <div className="space-y-1"><h4 className="font-bold text-white">Pronto para começar?</h4><p className="text-sm text-neutral-400">Atendimento oficial para registro.</p></div>
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-8 animate-in zoom-in-95 duration-500">
+              <div className="relative">
+                <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full"></div>
+                <div className="relative w-24 h-24 bg-neutral-900/50 text-emerald-500 rounded-3xl flex items-center justify-center border border-emerald-500/30 shadow-2xl shadow-emerald-500/20">
+                  <Clock size={40} strokeWidth={1.5} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-2xl font-bold text-white tracking-tight">Iniciar Atendimento</h4>
+                <p className="text-neutral-500 text-sm max-w-xs mx-auto leading-relaxed">Prepare-se para o registro oficial. O tempo de visita será contabilizado a partir do início.</p>
+              </div>
               <button
                 onClick={() => {
                   const startDetails = {
@@ -1384,26 +1444,27 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                   setStep('ACTIVE');
                   onStart(startDetails);
                 }}
-                className="w-full bg-white text-neutral-900 py-4 rounded-2xl font-bold shadow-xl shadow-neutral-900/20 hover:bg-neutral-200 transition-all"
+                className="w-full bg-emerald-600 text-white py-5 rounded-[2rem] font-bold shadow-2xl shadow-emerald-500/20 hover:bg-emerald-500 hover:-translate-y-1 transition-all active:scale-95 text-lg"
               >
-                Iniciar Visita Agora
+                Começar Agora 🥋
               </button>
             </div>
           )}
 
           {step === 'ACTIVE' && (
-            <div className="space-y-6 animate-in fade-in">
-              {/* Com quem foi a conversa */}
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-white flex items-center">
-                  Com quem foi a conversa? <span className="text-red-400 ml-1">*</span>
+            <div className="space-y-6 animate-in fade-in duration-500">
+              {/* Card Conversa */}
+              <div className="glass-card p-6 space-y-4">
+                <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                  Conversa com <span className="text-red-400 ml-1">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {[ContactPerson.OWNER, ContactPerson.TEACHER, ContactPerson.STAFF, ContactPerson.NOBODY].map(person => (
                     <button
                       key={person}
                       onClick={() => setVisit(p => ({ ...p, contactPerson: person }))}
-                      className={`py-4 rounded-xl font-bold transition-all border text-sm ${visit.contactPerson === person ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-neutral-700 text-neutral-400 border-neutral-600 hover:bg-neutral-600'}`}
+                      className={`py-4 rounded-2xl font-bold transition-all border text-sm ${visit.contactPerson === person ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20' : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'}`}
                     >
                       {person}
                     </button>
@@ -1411,26 +1472,42 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 </div>
               </div>
 
-              {/* Temperatura da academia */}
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-white flex items-center">
-                  Temperatura da academia <span className="text-red-400 ml-1">*</span>
+              {/* Card Temperatura */}
+              <div className="glass-card p-6 space-y-4">
+                <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                  Temperatura <span className="text-red-400 ml-1">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-3">
-                  {[AcademyTemperature.COLD, AcademyTemperature.WARM, AcademyTemperature.HOT].map(t => (
-                    <button key={t} onClick={() => setVisit(p => ({ ...p, temperature: t }))} className={`py-3 rounded-xl font-bold transition-all border ${visit.temperature === t ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-neutral-700 text-neutral-400 border-neutral-600 hover:bg-neutral-600'}`}>{t}</button>
+                  {[
+                    { value: AcademyTemperature.COLD, label: 'Fria ❄️', color: 'blue' },
+                    { value: AcademyTemperature.WARM, label: 'Morna 🌤️', color: 'orange' },
+                    { value: AcademyTemperature.HOT, label: 'Quente 🔥', color: 'red' }
+                  ].map(t => (
+                    <button
+                      key={t.value}
+                      onClick={() => setVisit(p => ({ ...p, temperature: t.value }))}
+                      className={`py-4 rounded-2xl font-bold transition-all border text-[11px] ${visit.temperature === t.value
+                        ? t.color === 'blue' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
+                          : t.color === 'orange' ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-600/20'
+                            : 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20'
+                        : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'}`}
+                    >
+                      {t.label}
+                    </button>
                   ))}
                 </div>
               </div>
 
-              {/* Resumo rápido da visita */}
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-neutral-400">
-                  Resumo rápido da visita <span className="text-neutral-500 text-xs font-normal">(opcional)</span>
+              {/* Card Resumo */}
+              <div className="glass-card p-6 space-y-4">
+                <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                  Observações <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
                 </label>
                 <textarea
-                  placeholder="Ex: professor demonstrou interesse no evento, pediu vouchers para alunos novos"
-                  className="w-full h-32 border border-neutral-600 bg-neutral-700 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-500 focus:border-white"
+                  placeholder="Descreva pontos importantes da conversa..."
+                  className="w-full h-32 bg-neutral-800/50 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-600 border border-white/5 focus:border-emerald-500/30"
                   value={visit.notes}
                   onChange={e => setVisit(p => ({ ...p, notes: e.target.value }))}
                 />
@@ -1473,114 +1550,249 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 />
               </div>
 
-              {/* Botões de ação */}
-              <div className="space-y-3 pt-4">
+              {/* Card Marketing */}
+              <div className="glass-card p-6 space-y-4">
+                <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                  Materiais <span className="text-red-400 ml-1">*</span>
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => {
+                      setVisit(p => ({ ...p, leftBanner: !p.leftBanner }));
+                      setMarketingVerified(true);
+                    }}
+                    className={`flex-1 py-4 rounded-2xl font-bold transition-all border text-sm flex flex-col items-center justify-center space-y-1 ${visit.leftBanner ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20' : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'}`}
+                  >
+                    <span className="text-lg">🚩</span>
+                    <span className="text-[10px] uppercase tracking-tighter">Banner</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setVisit(p => ({ ...p, leftFlyers: !p.leftFlyers }));
+                      setMarketingVerified(true);
+                    }}
+                    className={`flex-1 py-4 rounded-2xl font-bold transition-all border text-sm flex flex-col items-center justify-center space-y-1 ${visit.leftFlyers ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20' : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'}`}
+                  >
+                    <span className="text-lg">📄</span>
+                    <span className="text-[10px] uppercase tracking-tighter">Flyers</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const none = !(!visit.leftBanner && !visit.leftFlyers && marketingVerified);
+                      if (none) {
+                        setVisit(p => ({ ...p, leftBanner: false, leftFlyers: false }));
+                        setMarketingVerified(true);
+                      } else {
+                        setMarketingVerified(false);
+                      }
+                    }}
+                    className={`w-full py-3 rounded-2xl font-bold transition-all border text-[10px] uppercase tracking-widest ${!visit.leftBanner && !visit.leftFlyers && marketingVerified ? 'bg-neutral-700 text-white border-neutral-600' : 'bg-neutral-900/50 text-neutral-600 border-white/5 hover:bg-neutral-800'}`}
+                  >
+                    Nenhum material deixado
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Fixed Footer for Actions (One-Handed Use) */}
+          {step === 'ACTIVE' && (
+            <div className="fixed bottom-0 left-0 right-0 p-5 bottom-bar z-20 animate-in slide-in-from-bottom border-t border-white/5">
+              <div className="flex gap-3 max-w-lg mx-auto">
                 <button
                   onClick={handleFinishVisit}
-                  className="w-full bg-neutral-700 text-white py-5 rounded-2xl font-bold hover:bg-neutral-600 transition-colors text-lg shadow-lg"
+                  className="flex-1 bg-neutral-800 text-neutral-400 py-4 rounded-3xl font-bold hover:bg-neutral-700 transition-all border border-white/5 active:scale-95 text-xs uppercase tracking-widest"
                 >
                   Finalizar Visita
                 </button>
                 <button
                   onClick={handleGenerateVoucher}
-                  className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-bold hover:bg-emerald-700 transition-colors text-lg shadow-lg"
+                  className="flex-[1.5] bg-emerald-600 text-white py-4 rounded-3xl font-bold hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-500/20 active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center space-x-2"
                 >
-                  Gerar Voucher
+                  <Ticket size={16} />
+                  <span>Gerar Voucher</span>
                 </button>
-              </div>
-            </div>
-          )}
-
-          {step === 'VOUCHERS' && (
-            <div className="space-y-6 animate-in slide-in-from-right-4 text-center">
-              <div className="bg-neutral-700 p-6 rounded-2xl flex items-center justify-center space-x-8 border border-neutral-600">
-                <button onClick={() => adjust(-1)} className="bg-neutral-600 p-3 rounded-full border border-neutral-500 shadow-sm active:scale-90 text-white hover:bg-neutral-500"><Minus size={18} strokeWidth={1.5} /></button>
-                <span className="text-4xl font-black text-white tabular-nums">{visit.vouchersGenerated?.length || 0}</span>
-                <button onClick={() => adjust(1)} className="bg-neutral-600 p-3 rounded-full border border-neutral-500 shadow-sm active:scale-90 text-white hover:bg-neutral-500"><Plus size={18} strokeWidth={1.5} /></button>
-              </div>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {visit.vouchersGenerated?.map((c, i) => (
-                  <span key={i} className="bg-neutral-900/30 text-neutral-400 border border-neutral-800/50 px-3 py-1 rounded-lg font-mono font-bold">{c}</span>
-                ))}
-              </div>
-              <button onClick={handleFinishWithQr} className="w-full bg-neutral-950 text-white py-4 rounded-2xl font-bold shadow-xl flex items-center justify-center space-x-2 border border-neutral-700">
-                <QrCode size={18} strokeWidth={1.5} />
-                <span>Gerar QR Code para o Dono</span>
-              </button>
-            </div>
-          )}
-
-          {step === 'QR_CODE' && (
-            <div className="space-y-6 animate-in zoom-in-95 text-center">
-              <div className="space-y-2">
-              </div>
-              <div className="bg-white p-4 rounded-2xl border-2 border-neutral-200 inline-block shadow-lg">
-                {/* Usando o serviço qrserver para gerar o QR code dinamicamente */}
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(generateShareLink())}`}
-                  alt="Voucher QR Code"
-                  className="w-48 h-48 mx-auto"
-                />
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => {
-                    const landingText = `Thank you for being part of the upcoming PBJJF event! 🥋\n\nYour academy (${academy.name}) has received the following vouchers:\n👉 ${visit.vouchersGenerated?.join(', ')}\n\nTo redeem, please send a text message to (407) 633-9166 with the academy name and the voucher codes listed above.`;
-                    navigator.clipboard.writeText(landingText);
-                    setToast("Copiado com sucesso!");
-                    setTimeout(() => setToast(null), 2000);
-                  }}
-                  className="flex-1 bg-neutral-700 text-neutral-300 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 text-sm hover:bg-neutral-600"
-                >
-                  <Copy size={16} strokeWidth={1.5} />
-                  <span>Copiar Link</span>
-                </button>
-                <button
-                  onClick={() => window.open(generateShareLink(), '_blank')}
-                  className="flex-1 bg-neutral-900/30 text-neutral-400 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 text-sm hover:bg-neutral-900/50"
-                >
-                  <ExternalLink size={16} strokeWidth={1.5} />
-                  <span>Visualizar Tela</span>
-                </button>
-              </div>
-              <button onClick={() => onFinish(visit)} className="w-full bg-white text-neutral-900 py-4 rounded-2xl font-bold mt-4 hover:bg-neutral-200 transition-colors">Concluir e Voltar</button>
-            </div>
-          )}
-
-          {step === 'SUMMARY' && (
-            <div className="space-y-6 animate-in zoom-in-95">
-              <div className="bg-emerald-900/30 text-emerald-400 p-4 rounded-2xl font-bold text-center border border-emerald-800/50">VISITA REGISTRADA</div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600"><span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">Vouchers</span><span className="font-bold text-white tabular-nums">{visit.vouchersGenerated?.length}</span></div>
-                <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600"><span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">Temperatura</span><span className={`font-bold ${visit.temperature === AcademyTemperature.HOT ? 'text-red-400' : 'text-neutral-400'}`}>{visit.temperature}</span></div>
-              </div>
-              <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600">
-                <span className="text-[10px] uppercase font-bold text-neutral-400 block mb-2">Conversa com</span>
-                <span className="font-bold text-white">{visit.contactPerson || 'Não informado'}</span>
-              </div>
-              {visit.notes && (
-                <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600 text-sm text-neutral-300 italic">"{visit.notes}"</div>
-              )}
-              {visit.photos && visit.photos.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {visit.photos.map((photo, i) => (
-                    <div key={i} className="aspect-square bg-neutral-800 rounded-xl overflow-hidden border border-neutral-700 shadow-sm">
-                      <img src={photo} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex space-x-2">
-                <button onClick={() => setStep('QR_CODE')} className="flex-1 bg-neutral-950 text-white py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 border border-neutral-700"><QrCode size={18} /><span>Reexibir QR</span></button>
-                <button onClick={() => setStep('ACTIVE')} className="flex-1 bg-neutral-700 text-neutral-300 py-4 rounded-2xl font-bold hover:bg-neutral-600">Editar Relatório</button>
               </div>
             </div>
           )}
         </div>
+
+        {step === 'VOUCHERS' && (
+          <div className="space-y-8 animate-in slide-in-from-right-4 duration-500 text-center py-6">
+            <div className="relative">
+              <div className="absolute inset-0 bg-emerald-500/10 blur-3xl rounded-full"></div>
+              <div className="glass-card p-8 flex items-center justify-center space-x-10 animate-in zoom-in-95">
+                <button onClick={() => adjust(-1)} className="bg-neutral-800/80 p-4 rounded-2xl border border-white/5 shadow-inner active:scale-90 text-white hover:bg-neutral-700 transition-all">
+                  <Minus size={20} />
+                </button>
+                <div className="flex flex-col">
+                  <span className="text-5xl font-black text-white tabular-nums tracking-tighter">{visit.vouchersGenerated?.length || 0}</span>
+                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">Vouchers</span>
+                </div>
+                <button onClick={() => adjust(1)} className="bg-neutral-800/80 p-4 rounded-2xl border border-white/5 shadow-inner active:scale-90 text-white hover:bg-neutral-700 transition-all">
+                  <Plus size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-center max-w-sm mx-auto">
+              {visit.vouchersGenerated?.map((c, i) => (
+                <span key={i} className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-xl font-mono text-xs font-bold animate-in fade-in duration-300">
+                  {c}
+                </span>
+              ))}
+            </div>
+
+            <button
+              onClick={handleFinishWithQr}
+              className="w-full bg-white text-neutral-900 py-5 rounded-[2rem] font-bold shadow-2xl hover:bg-neutral-200 transition-all active:scale-95 flex items-center justify-center space-x-3 text-lg"
+            >
+              <QrCode size={22} />
+              <span>Confirmar Vouchers</span>
+            </button>
+          </div>
+        )}
+
+        {step === 'QR_CODE' && (
+          <div className="space-y-8 animate-in zoom-in-95 duration-500 text-center py-6">
+            <div className="space-y-2">
+              <h4 className="text-xl font-bold text-white tracking-tight">QR Code Gerado</h4>
+              <p className="text-neutral-500 text-xs">Apresente ao professor para resgate dos benefícios.</p>
+            </div>
+
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full"></div>
+              <div className="relative bg-white p-6 rounded-[2.5rem] shadow-2xl border-4 border-emerald-500/30 transform hover:scale-105 transition-transform duration-500">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(generateShareLink())}`}
+                  alt="Voucher QR Code"
+                  className="w-48 h-48 mx-auto mix-blend-multiply"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  const landingText = `Thank you for being part of the upcoming PBJJF event! 🥋\n\nYour academy (${academy.name}) has received the following vouchers:\n👉 ${visit.vouchersGenerated?.join(', ')}\n\nTo redeem, please send a text message to (407) 633-9166 with the academy name and the voucher codes listed above.`;
+                  navigator.clipboard.writeText(landingText);
+                  setToast("Texto copiado! 📋");
+                  setTimeout(() => setToast(null), 2000);
+                }}
+                className="bg-neutral-800/50 border border-white/5 text-neutral-300 py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 text-xs uppercase tracking-widest hover:bg-neutral-800 transition-all"
+              >
+                <Copy size={16} />
+                <span>Copiar</span>
+              </button>
+              <button
+                onClick={() => window.open(generateShareLink(), '_blank')}
+                className="bg-neutral-800/50 border border-white/5 text-neutral-300 py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 text-xs uppercase tracking-widest hover:bg-neutral-800 transition-all"
+              >
+                <ExternalLink size={16} />
+                <span>Ver Link</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => onFinish(visit)}
+              className="w-full bg-emerald-600 text-white py-5 rounded-[2rem] font-bold shadow-2xl hover:bg-emerald-500 transition-all active:scale-95 text-lg"
+            >
+              Concluir Atendimento
+            </button>
+          </div>
+        )}
+
+        {step === 'SUMMARY' && (
+          <div className="space-y-8 animate-in zoom-in-95 duration-500">
+            <div className="flex flex-col items-center justify-center space-y-4 py-4">
+              <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center border border-emerald-500/20 shadow-lg">
+                <CheckCircle2 size={32} />
+              </div>
+              <h4 className="text-xl font-bold text-white tracking-tight">Atendimento Concluído</h4>
+            </div>
+
+            <div className="space-y-8 pl-6 border-l border-white/5 relative mx-2">
+              {/* Timeline Item 1: Base */}
+              <div className="relative">
+                <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
+                <div className="space-y-3">
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Informações Base</span>
+                  <div className="glass-card p-5 grid grid-cols-2 gap-4 border border-white/5">
+                    <div className="space-y-1">
+                      <span className="text-[9px] uppercase font-bold text-neutral-600 block">Conversa com</span>
+                      <span className="text-sm font-bold text-white">{visit.contactPerson}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[9px] uppercase font-bold text-neutral-600 block">Temperatura</span>
+                      <span className={`text-[10px] font-bold ${visit.temperature === AcademyTemperature.HOT ? 'text-red-400' : visit.temperature === AcademyTemperature.WARM ? 'text-orange-400' : 'text-blue-400'}`}>
+                        {visit.temperature === AcademyTemperature.HOT ? 'Quente 🔥' : visit.temperature === AcademyTemperature.WARM ? 'Morna 🌤️' : 'Fria ❄️'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline Item 2: Marketing */}
+              <div className="relative">
+                <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
+                <div className="space-y-3">
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Marketing</span>
+                  <div className="glass-card p-5 border border-white/5">
+                    <div className="flex flex-wrap gap-2">
+                      {visit.leftBanner && <span className="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-lg text-[9px] font-bold border border-emerald-500/20">Banner 🚩</span>}
+                      {visit.leftFlyers && <span className="bg-sky-500/10 text-sky-400 px-2 py-1 rounded-lg text-[9px] font-bold border border-sky-500/20">Flyers 📄</span>}
+                      {!visit.leftBanner && !visit.leftFlyers && <span className="text-neutral-600 text-[10px] italic">Nenhum material deixado</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline Item 3: Relacionamento */}
+              <div className="relative">
+                <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
+                <div className="space-y-3">
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Relacionamento</span>
+                  <div className="glass-card p-5 border border-white/5 flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Ticket size={14} className="text-emerald-500" />
+                      <span className="text-sm font-bold text-white">{visit.vouchersGenerated?.length || 0} Vouchers</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline Item 4: Fotos */}
+              {visit.photos && visit.photos.length > 0 && (
+                <div className="relative">
+                  <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
+                  <div className="space-y-3">
+                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Fotos</span>
+                    <div className="flex gap-2">
+                      {visit.photos.map((p, i) => (
+                        <div key={i} className="w-16 h-16 rounded-xl overflow-hidden glass-card p-0.5 border-white/10 shadow-lg">
+                          <img src={p} alt="" className="w-full h-full object-cover rounded-[10px]" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => onCancel()}
+              className="w-full bg-neutral-800 text-neutral-400 py-5 rounded-[2rem] font-bold hover:bg-neutral-700 transition-all border border-white/5 active:scale-95 text-lg"
+            >
+              Fechar Resumo
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
 
 
 

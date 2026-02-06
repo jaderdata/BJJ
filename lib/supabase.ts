@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Academy, Event, Visit, FinanceRecord, Voucher } from '../types';
+import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zdtkjfljiugjvixiarka.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_XcIl9FFEJXqd_w4QTZTWcw_ZYW9OhZU';
@@ -163,7 +163,9 @@ export const DatabaseService = {
             finishedAt: v.finished_at,
             contactPerson: v.contact_person,
             vouchersGenerated: v.vouchers_generated,
-            photos: v.photos || []
+            photos: v.photos || [],
+            leftBanner: v.left_banner,
+            leftFlyers: v.left_flyers
         }));
     },
 
@@ -195,7 +197,9 @@ export const DatabaseService = {
             temperature: visit.temperature,
             contact_person: visit.contactPerson,
             vouchers_generated: visit.vouchersGenerated,
-            photos: visit.photos || []
+            photos: visit.photos || [],
+            left_banner: visit.leftBanner,
+            left_flyers: visit.leftFlyers
         };
         // Check if ID is a valid UUID. If not (e.g. legacy mock ID), treat as new insert.
         const isValidUUID = (id?: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '');
@@ -204,12 +208,12 @@ export const DatabaseService = {
             delete payload.id; // Let DB generate it or use insert
             const { data, error } = await supabase.from('visits').insert(payload).select().single();
             if (error) throw error;
-            return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos };
+            return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos, leftBanner: data.left_banner, leftFlyers: data.left_flyers };
         }
 
         const { data, error } = await supabase.from('visits').upsert(payload).select().single();
         if (error) throw error;
-        return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos };
+        return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos, leftBanner: data.left_banner, leftFlyers: data.left_flyers };
     },
 
     // VOUCHERS
@@ -437,6 +441,37 @@ export const DatabaseService = {
             .getPublicUrl(filePath);
 
         return data.publicUrl;
+    },
+
+    async getLastVisit(academyId: string): Promise<Visit | null> {
+        const { data, error } = await supabase
+            .from('visits')
+            .select('*')
+            .eq('academy_id', academyId)
+            .eq('status', VisitStatus.VISITED)
+            .order('finished_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+
+        return {
+            ...data,
+            eventId: data.event_id,
+            academyId: data.academy_id,
+            salespersonId: data.salesperson_id,
+            status: data.status,
+            startedAt: data.started_at,
+            finishedAt: data.finished_at,
+            contactPerson: data.contact_person,
+            vouchersGenerated: data.vouchers_generated,
+            photos: data.photos || [],
+            leftBanner: data.left_banner,
+            leftFlyers: data.left_flyers
+        };
     }
 };
 
