@@ -100,20 +100,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return visits.filter(v => eventIds.has(v.eventId));
     }, [visits, filteredEvents]);
 
-    const filteredVisits = useMemo(() => visitsInYear.filter(v => v.status === VisitStatus.VISITED), [visitsInYear]);
+    // KPIs
+    const activeEventsCount = events.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING).length;
+
+    const filteredVisits = useMemo(() => {
+        return visits.filter(v =>
+            v.status === VisitStatus.VISITED &&
+            v.finishedAt &&
+            new Date(v.finishedAt).getFullYear().toString() === selectedYear
+        );
+    }, [visits, selectedYear]);
 
     const filteredVouchers = useMemo(() => vouchers.filter(v => new Date(v.createdAt).getFullYear().toString() === selectedYear), [vouchers, selectedYear]);
 
-    // KPIs
-    const totalAssignmentsInYear = useMemo(() => {
-        return filteredEvents.reduce((acc, event) => acc + (event.academiesIds?.length || 0), 0);
-    }, [filteredEvents]);
+    const activeEvents = useMemo(() => events.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING), [events]);
 
-    const pendingVisitsCount = Math.max(0, totalAssignmentsInYear - filteredVisits.length);
-    const activeEventsCount = filteredEvents.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING).length;
+    const pendingVisitsCount = useMemo(() => {
+        let count = 0;
+        activeEvents.forEach(e => {
+            const visitedInEvent = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED).length;
+            count += Math.max(0, (e.academiesIds?.length || 0) - visitedInEvent);
+        });
+        return count;
+    }, [activeEvents, visits]);
 
     const activePerformance = useMemo(() => {
-        const activeEvents = events.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING);
         const activeEventIds = new Set(activeEvents.map(e => e.id));
 
         let totalAssignments = 0;
@@ -132,7 +143,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         const counts = { [AcademyTemperature.HOT]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.COLD]: 0 };
         activeVs.filter(v => v.status === VisitStatus.VISITED).forEach(v => {
-            if (v.temperature) counts[v.temperature]++;
+            if (v.temperature && counts[v.temperature]) counts[v.temperature]++;
         });
 
         const percent = totalAssignments > 0 ? Math.round((visitedCount / totalAssignments) * 100) : 0;
@@ -144,7 +155,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             percent,
             temperatureData: Object.entries(counts).map(([name, value]) => ({ name, value }))
         };
-    }, [events, visits]);
+    }, [activeEvents, visits]);
 
     // Seller Leaderboard
     const sellerLeaderboard = useMemo(() => {
