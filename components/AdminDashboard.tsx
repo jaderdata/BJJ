@@ -143,7 +143,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         const counts = { [AcademyTemperature.HOT]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.COLD]: 0 };
         activeVs.filter(v => v.status === VisitStatus.VISITED).forEach(v => {
-            if (v.temperature && counts[v.temperature]) counts[v.temperature]++;
+            if (v.temperature && v.temperature in counts) {
+                counts[v.temperature]++;
+            }
         });
 
         const percent = totalAssignments > 0 ? Math.round((visitedCount / totalAssignments) * 100) : 0;
