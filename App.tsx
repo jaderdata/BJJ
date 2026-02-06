@@ -1883,7 +1883,6 @@ const AppContent: React.FC = () => {
     setActiveTab(user.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
   };
 
-  // Fetch initial data
   useEffect(() => {
     if (currentUser) {
       loadData();
@@ -2006,13 +2005,8 @@ const AppContent: React.FC = () => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('app_users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const data = await DatabaseService.getProfile(userId);
 
-      if (error) throw error;
       if (data) {
         setCurrentUser({
           id: data.id,
@@ -2020,7 +2014,12 @@ const AppContent: React.FC = () => {
           email: data.email,
           role: data.role as UserRole
         });
-        setActiveTab(data.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
+        // Respect existing local state for tab if not forced
+        if (data.role === UserRole.ADMIN && activeTab === 'my_events') {
+          setActiveTab('dashboard');
+        } else if (data.role !== UserRole.ADMIN && ['dashboard', 'academies', 'events'].includes(activeTab)) {
+          setActiveTab('my_events');
+        }
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -2049,20 +2048,15 @@ const AppContent: React.FC = () => {
   };
 
   const fetchUsers = async () => {
-    // Buscar apenas usuários ATIVOS da tabela app_users
-    const { data: salesData } = await supabase
-      .from('app_users')
-      .select('*')
-      .eq('role', UserRole.SALES)
-      .eq('status', 'ACTIVE');
-    if (salesData) setSellers(salesData as User[]);
+    try {
+      const salesData = await DatabaseService.getSalespersons();
+      setSellers(salesData as User[]);
 
-    const { data: adminData } = await supabase
-      .from('app_users')
-      .select('*')
-      .eq('role', UserRole.ADMIN)
-      .eq('status', 'ACTIVE');
-    if (adminData) setAdmins(adminData as User[]);
+      const adminData = await DatabaseService.getAdmins();
+      setAdmins(adminData as User[]);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    }
   };
 
   useEffect(() => {

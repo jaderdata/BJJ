@@ -58,6 +58,27 @@ export const DatabaseService = {
         if (error) throw error;
     },
 
+    // USERS (Secure RPCs)
+    async getProfile(userId: string) {
+        const { data, error } = await supabase.rpc('get_profile', { p_user_id: userId });
+        if (error) throw error;
+        // RPC returns an array of records
+        return data && data.length > 0 ? data[0] : null;
+    },
+
+    async getSalespersons() {
+        const { data, error } = await supabase.rpc('list_salespersons');
+        if (error) throw error;
+        // Returns {id, name} only
+        return data.map((u: any) => ({ ...u, role: 'SALES', status: 'ACTIVE' }));
+    },
+
+    async getAdmins() {
+        const { data, error } = await supabase.rpc('list_admins');
+        if (error) throw error;
+        return data.map((u: any) => ({ ...u, role: 'ADMIN', status: 'ACTIVE' }));
+    },
+
     // EVENTS
     async getEvents() {
         const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: false });
