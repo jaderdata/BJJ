@@ -77,6 +77,7 @@ export interface Visit {
   temperature?: AcademyTemperature;
   contactPerson?: ContactPerson;
   vouchersGenerated: string[]; // Codes
+  photos?: string[];
 }
 
 export interface Voucher {

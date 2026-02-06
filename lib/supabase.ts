@@ -162,7 +162,8 @@ export const DatabaseService = {
             startedAt: v.started_at,
             finishedAt: v.finished_at,
             contactPerson: v.contact_person,
-            vouchersGenerated: v.vouchers_generated
+            vouchersGenerated: v.vouchers_generated,
+            photos: v.photos || []
         }));
     },
 
@@ -193,7 +194,8 @@ export const DatabaseService = {
             notes: visit.notes,
             temperature: visit.temperature,
             contact_person: visit.contactPerson,
-            vouchers_generated: visit.vouchersGenerated
+            vouchers_generated: visit.vouchersGenerated,
+            photos: visit.photos || []
         };
         // Check if ID is a valid UUID. If not (e.g. legacy mock ID), treat as new insert.
         const isValidUUID = (id?: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '');
@@ -202,12 +204,12 @@ export const DatabaseService = {
             delete payload.id; // Let DB generate it or use insert
             const { data, error } = await supabase.from('visits').insert(payload).select().single();
             if (error) throw error;
-            return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated };
+            return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos };
         }
 
         const { data, error } = await supabase.from('visits').upsert(payload).select().single();
         if (error) throw error;
-        return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated };
+        return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos };
     },
 
     // VOUCHERS
@@ -414,6 +416,27 @@ export const DatabaseService = {
             .remove([filePath]);
 
         if (error) console.error('Error deleting photo:', error);
+    },
+
+    async uploadVisitPhoto(file: File): Promise<string> {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('visit-photos')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+            .from('visit-photos')
+            .getPublicUrl(filePath);
+
+        return data.publicUrl;
     }
 };
 

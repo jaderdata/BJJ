@@ -15,6 +15,7 @@ import {
   Bell,
   Search,
   Edit3,
+  Camera,
   Trash2,
   RefreshCw,
   QrCode,
@@ -1217,8 +1218,35 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
 
 const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(existingVisit ? 'SUMMARY' : 'START');
-  const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || { eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined });
+  const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || { eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined, photos: [] });
   const [toast, setToast] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if ((visit.photos?.length || 0) >= 3) {
+      alert("Você pode adicionar no máximo 3 fotos.");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const photoUrl = await DatabaseService.uploadVisitPhoto(file);
+      setVisit(p => ({
+        ...p,
+        photos: [...(p.photos || []), photoUrl]
+      }));
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      alert("Erro ao fazer upload da foto.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     if (existingVisit) {
@@ -1272,7 +1300,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
     const visitToSave = {
       ...visit,
       status: VisitStatus.VISITED,
-      finishedAt: new Date().toISOString()
+      finishedAt: visit.finishedAt || new Date().toISOString()
     };
 
     try {
@@ -1294,7 +1322,6 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
       return;
     }
 
-    setVisit(p => ({ ...p, status: VisitStatus.VISITED, finishedAt: new Date().toISOString() }));
     setStep('VOUCHERS');
   };
 
@@ -1409,6 +1436,43 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 />
               </div>
 
+              {/* Fotos da visita */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-neutral-400 flex justify-between">
+                  <span>Fotos da Visita <span className="text-neutral-500 text-xs font-normal">(opcional - até 3)</span></span>
+                  <span className="text-[10px] text-neutral-500">{visit.photos?.length || 0}/3</span>
+                </label>
+                <div className="flex gap-3">
+                  {visit.photos?.map((photo, index) => (
+                    <div key={index} className="relative w-20 h-20 bg-neutral-800 rounded-xl overflow-hidden border border-neutral-700 shadow-inner group">
+                      <img src={photo} alt={`Visit ${index}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => setVisit(p => ({ ...p, photos: p.photos?.filter((_, i) => i !== index) }))}
+                        className="absolute top-1 right-1 bg-red-600/80 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                  {(visit.photos?.length || 0) < 3 && (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="w-20 h-20 bg-neutral-800 border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center justify-center text-neutral-500 hover:border-emerald-500 hover:text-emerald-500 transition-all active:scale-95"
+                    >
+                      {isUploading ? <RefreshCw className="animate-spin" size={20} /> : <Camera size={24} strokeWidth={1.5} />}
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                />
+              </div>
+
               {/* Botões de ação */}
               <div className="space-y-3 pt-4">
                 <button
@@ -1496,6 +1560,15 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
               </div>
               {visit.notes && (
                 <div className="bg-neutral-700 p-4 rounded-xl border border-neutral-600 text-sm text-neutral-300 italic">"{visit.notes}"</div>
+              )}
+              {visit.photos && visit.photos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {visit.photos.map((photo, i) => (
+                    <div key={i} className="aspect-square bg-neutral-800 rounded-xl overflow-hidden border border-neutral-700 shadow-sm">
+                      <img src={photo} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
               )}
               <div className="flex space-x-2">
                 <button onClick={() => setStep('QR_CODE')} className="flex-1 bg-neutral-950 text-white py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 border border-neutral-700"><QrCode size={18} /><span>Reexibir QR</span></button>
@@ -2094,12 +2167,15 @@ const AppContent: React.FC = () => {
                     setVouchers(prev => [...prev, ...newVoucherObjects]);
                   }
 
-                  // Notify Admins (Only if completely new visit or status changed to VISITED first time)
-                  // Simplified: notify every time for now or check if it was already visited?
-                  // Defaulting to keeping existing notification logic but safe from errors
-                  admins.forEach(admin => {
-                    notifyUser(admin.id, `O vendedor ${currentUser.name} concluiu uma visita na academia "${academies.find(a => a.id === selectedAcademyId)?.name}".`);
-                  });
+                  // Notify Admins (Only if transitioning to VISITED for the first time)
+                  const previousVisitState = visits.find(v => v.eventId === visit.eventId && v.academyId === visit.academyId);
+                  const isTransitioningToVisited = visit.status === VisitStatus.VISITED && (!previousVisitState || previousVisitState.status !== VisitStatus.VISITED);
+
+                  if (isTransitioningToVisited) {
+                    admins.forEach(admin => {
+                      notifyUser(admin.id, `O vendedor ${currentUser.name} concluiu uma visita na academia "${academies.find(a => a.id === selectedAcademyId)?.name}".`);
+                    });
+                  }
 
                   setActiveTab('my_events');
                 } catch (error) {
