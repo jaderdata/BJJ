@@ -74,12 +74,14 @@ export interface Visit {
   startedAt?: string;
   finishedAt?: string;
   notes?: string;
+  summary?: string;
   temperature?: AcademyTemperature;
   contactPerson?: ContactPerson;
   vouchersGenerated: string[]; // Codes
   photos?: string[];
   leftBanner?: boolean;
   leftFlyers?: boolean;
+  updatedAt?: string;
 }
 
 export interface Voucher {

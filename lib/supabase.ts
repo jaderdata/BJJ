@@ -182,6 +182,7 @@ export const DatabaseService = {
             status: v.status,
             startedAt: v.started_at,
             finishedAt: v.finished_at,
+            summary: v.summary,
             contactPerson: v.contact_person,
             vouchersGenerated: v.vouchers_generated,
             photos: v.photos || [],
@@ -206,6 +207,8 @@ export const DatabaseService = {
     },
 
     async upsertVisit(visit: Partial<Visit>) {
+        console.log("🔄 [DatabaseService] upsertVisit chamado com:", visit);
+
         const payload = {
             id: visit.id,
             event_id: visit.eventId,
@@ -215,26 +218,45 @@ export const DatabaseService = {
             started_at: visit.startedAt,
             finished_at: visit.finishedAt,
             notes: visit.notes,
+            summary: visit.summary,
             temperature: visit.temperature,
             contact_person: visit.contactPerson,
             vouchers_generated: visit.vouchersGenerated,
             photos: visit.photos || [],
             left_banner: visit.leftBanner,
-            left_flyers: visit.leftFlyers
+            left_flyers: visit.leftFlyers,
+            updated_at: new Date().toISOString()
         };
+
+        console.log("📦 [DatabaseService] Payload gerado:", payload);
+
         // Check if ID is a valid UUID. If not (e.g. legacy mock ID), treat as new insert.
         const isValidUUID = (id?: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '');
 
         if (!payload.id || !isValidUUID(payload.id)) {
+            console.log("🚀 [DatabaseService] ID inválido ou ausente, tentando INSERT...");
             delete payload.id; // Let DB generate it or use insert
             const { data, error } = await supabase.from('visits').insert(payload).select().single();
-            if (error) throw error;
-            return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos, leftBanner: data.left_banner, leftFlyers: data.left_flyers };
+
+            if (error) {
+                console.error("❌ [DatabaseService] Erro no INSERT:", error);
+                throw error;
+            }
+            console.log("✅ [DatabaseService] Sucesso no INSERT:", data);
+
+            return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, summary: data.summary, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos, leftBanner: data.left_banner, leftFlyers: data.left_flyers };
         }
 
+        console.log("🚀 [DatabaseService] Tentando UPSERT...");
         const { data, error } = await supabase.from('visits').upsert(payload).select().single();
-        if (error) throw error;
-        return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos, leftBanner: data.left_banner, leftFlyers: data.left_flyers };
+
+        if (error) {
+            console.error("❌ [DatabaseService] Erro no UPSERT:", error);
+            throw error;
+        }
+        console.log("✅ [DatabaseService] Sucesso no UPSERT:", data);
+
+        return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, summary: data.summary, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos, leftBanner: data.left_banner, leftFlyers: data.left_flyers };
     },
 
     // VOUCHERS
@@ -496,6 +518,7 @@ export const DatabaseService = {
             status: data.status,
             startedAt: data.started_at,
             finishedAt: data.finished_at,
+            summary: data.summary,
             contactPerson: data.contact_person,
             vouchersGenerated: data.vouchers_generated,
             photos: data.photos || [],

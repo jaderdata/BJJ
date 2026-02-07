@@ -853,12 +853,45 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                 </span>
               </div>
 
+              {/* Materiais de Marketing */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Materiais Deixados</p>
+                <div className="flex gap-3">
+                  <div className={`flex-1 p-3 rounded-xl border flex items-center space-x-2 ${selectedVisit.leftBanner ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-neutral-900/30 border-neutral-800 text-neutral-600'}`}>
+                    <span>🚩</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">Banner</span>
+                  </div>
+                  <div className={`flex-1 p-3 rounded-xl border flex items-center space-x-2 ${selectedVisit.leftFlyers ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : 'bg-neutral-900/30 border-neutral-800 text-neutral-600'}`}>
+                    <span>📄</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">Flyers</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resumo da Visita */}
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Resumo da Visita</p>
                 <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed italic">
-                  {selectedVisit.notes || 'Nenhum resumo registrado.'}
+                  {selectedVisit.summary || selectedVisit.notes || 'Nenhum resumo registrado.'}
                 </div>
               </div>
+
+              {/* Fotos da Visita */}
+              {selectedVisit.photos && selectedVisit.photos.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1 text-sky-400">Fotos do Local</p>
+                  <div className="flex flex-wrap gap-3">
+                    {selectedVisit.photos.map((photo, idx) => (
+                      <div key={idx} className="w-20 h-20 rounded-xl overflow-hidden border border-white/5 shadow-lg group relative">
+                        <img src={photo} alt="" className="w-full h-full object-cover" />
+                        <a href={photo} target="_blank" rel="noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <ExternalLink size={14} className="text-white" />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {selectedVisit.vouchersGenerated && selectedVisit.vouchersGenerated.length > 0 && (
                 <div className="space-y-2">
@@ -1252,10 +1285,12 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
 const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(existingVisit ? 'SUMMARY' : 'START');
   const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || { eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined, photos: [], leftBanner: false, leftFlyers: false });
-  const [toast, setToast] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [marketingVerified, setMarketingVerified] = useState(existingVisit ? true : false);
   const [lastVisit, setLastVisit] = useState<Visit | null>(null);
+  const [isEditingVisit, setIsEditingVisit] = useState(false);
+  const [editedVisit, setEditedVisit] = useState<Partial<Visit>>({});
+  const [showTimeInfo, setShowTimeInfo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -1362,6 +1397,129 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
     }
   };
 
+  // Funções de edição
+  const handleStartEdit = () => {
+    setEditedVisit({
+      contactPerson: visit.contactPerson,
+      temperature: visit.temperature,
+      summary: visit.summary,
+      leftBanner: visit.leftBanner,
+      leftFlyers: visit.leftFlyers
+    });
+    setIsEditingVisit(true);
+  };
+
+  const handleSaveEditedVisit = async () => {
+    if (!editedVisit.contactPerson) {
+      toast.error("Por favor, selecione com quem foi a conversa.");
+      return;
+    }
+    if (!editedVisit.temperature) {
+      toast.error("Por favor, selecione a temperatura da academia.");
+      return;
+    }
+
+    try {
+      console.log("🔍 Salvando visita - Dados atuais:", visit);
+      console.log("🔍 Alterações:", editedVisit);
+
+      // Garantir que todos os campos obrigatórios estejam presentes
+      const updatedVisit: Visit = {
+        id: visit.id!,
+        eventId: visit.eventId!,
+        academyId: visit.academyId!,
+        salespersonId: visit.salespersonId!,
+        status: visit.status!,
+        vouchersGenerated: visit.vouchersGenerated || [],
+        // Campos editáveis
+        contactPerson: editedVisit.contactPerson,
+        temperature: editedVisit.temperature,
+        summary: editedVisit.summary,
+        leftBanner: editedVisit.leftBanner,
+        leftFlyers: editedVisit.leftFlyers,
+        // Campos opcionais preservados
+        startedAt: visit.startedAt,
+        finishedAt: visit.finishedAt,
+        notes: visit.notes,
+        photos: visit.photos,
+        updatedAt: new Date().toISOString()
+      };
+
+      console.log("🔍 Dados a serem salvos:", updatedVisit);
+
+      const result = await DatabaseService.upsertVisit(updatedVisit);
+      console.log("✅ Resultado do salvamento:", result);
+
+      setVisit(updatedVisit);
+      setIsEditingVisit(false);
+      toast.success("✅ Visita atualizada com sucesso!");
+    } catch (error: any) {
+      console.error("❌ [App] Error updating visit FULL OBJECT:", error);
+      const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+      toast.error(`❌ Erro ao atualizar: ${errorMessage}`);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedVisit({});
+    setIsEditingVisit(false);
+  };
+
+  // Detectar se houve mudanças
+  const hasChanges = () => {
+    return (
+      editedVisit.contactPerson !== visit.contactPerson ||
+      editedVisit.temperature !== visit.temperature ||
+      editedVisit.summary !== visit.summary ||
+      editedVisit.leftBanner !== visit.leftBanner ||
+      editedVisit.leftFlyers !== visit.leftFlyers
+    );
+  };
+
+  // Gerar voucher a partir do modal
+  const handleGenerateVoucherFromModal = () => {
+    setIsEditingVisit(false);
+    setStep('VOUCHERS');
+  };
+
+  // Finalizar visita a partir do modal
+  const handleFinishVisitFromModal = async () => {
+    if (!visit.contactPerson && !editedVisit.contactPerson) {
+      toast.error("Por favor, selecione com quem foi a conversa antes de finalizar.");
+      return;
+    }
+    if (!visit.temperature && !editedVisit.temperature) {
+      toast.error("Por favor, selecione a temperatura antes de finalizar.");
+      return;
+    }
+    if (!marketingVerified) {
+      toast.error("Por favor, informe se deixou materiais de marketing.");
+      return;
+    }
+
+    try {
+      // Salvar alterações pendentes + finalizar
+      const visitToFinalize = {
+        ...visit,
+        ...editedVisit,
+        status: VisitStatus.VISITED,
+        finishedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await DatabaseService.upsertVisit(visitToFinalize as Visit);
+      setVisit(visitToFinalize);
+      setIsEditingVisit(false);
+      toast.success("Visita finalizada com sucesso!");
+
+      // Chamar callback de finalização
+      await onFinish(visitToFinalize);
+    } catch (error) {
+      console.error("Error finishing visit:", error);
+      toast.error("Erro ao finalizar visita.");
+    }
+  };
+
   // Validação e ir para tela de vouchers
   const handleGenerateVoucher = () => {
     if (!visit.contactPerson) {
@@ -1424,12 +1582,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
       </div>
 
       <div className="p-5 pb-40 space-y-6 max-w-lg mx-auto">
-        {toast && (
-          <div className="fixed top-24 left-5 right-5 bg-emerald-600 text-white px-6 py-4 rounded-3xl shadow-2xl animate-in slide-in-from-top-4 z-[70] flex items-center space-x-3 border border-emerald-400/20 backdrop-blur-md">
-            <div className="bg-white/20 p-1.5 rounded-full"><CheckCircle2 size={16} /></div>
-            <span className="font-bold text-sm tracking-tight">{toast}</span>
-          </div>
-        )}
+
 
         {/* History Card (Context) */}
         {lastVisit && step === 'ACTIVE' && (
@@ -1710,8 +1863,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 onClick={() => {
                   const landingText = `Thank you for being part of the upcoming PBJJF event! 🥋\n\nYour academy (${academy.name}) has received the following vouchers:\n👉 ${visit.vouchersGenerated?.join(', ')}\n\nTo redeem, please send a text message to (407) 633-9166 with the academy name and the voucher codes listed above.`;
                   navigator.clipboard.writeText(landingText);
-                  setToast("Texto copiado! 📋");
-                  setTimeout(() => setToast(null), 2000);
+                  toast.success("Texto copiado! 📋");
                 }}
                 className="bg-neutral-800/50 border border-white/5 text-neutral-300 py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 text-xs uppercase tracking-widest hover:bg-neutral-800 transition-all"
               >
@@ -1766,7 +1918,20 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 </div>
               </div>
 
-              {/* Timeline Item 2: Marketing */}
+              {/* Timeline Item 2: Resumo da Visita */}
+              <div className="relative">
+                <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
+                <div className="space-y-3">
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Resumo da Visita</span>
+                  <div className="glass-card p-5 border border-white/5">
+                    <p className="text-sm text-neutral-300 leading-relaxed italic">
+                      {visit.summary || 'Nenhum resumo registrado.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline Item 3: Marketing */}
               <div className="relative">
                 <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
                 <div className="space-y-3">
@@ -1781,7 +1946,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 </div>
               </div>
 
-              {/* Timeline Item 3: Relacionamento */}
+              {/* Timeline Item 4: Relacionamento */}
               <div className="relative">
                 <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
                 <div className="space-y-3">
@@ -1795,7 +1960,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 </div>
               </div>
 
-              {/* Timeline Item 4: Fotos */}
+              {/* Timeline Item 5: Fotos */}
               {visit.photos && visit.photos.length > 0 && (
                 <div className="relative">
                   <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
@@ -1813,22 +1978,219 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
               )}
             </div>
 
-            {/* Botão Finalizar Visita - aparece se a visita não foi finalizada */}
-            {(!visit.finishedAt || visit.status !== VisitStatus.VISITED) && (
+            {/* Botões de ação */}
+            <div className="flex gap-3">
               <button
-                onClick={handleFinishVisit}
-                className="w-full bg-emerald-600 text-white py-5 rounded-[2rem] font-bold hover:bg-emerald-500 transition-all active:scale-95 text-lg shadow-xl shadow-emerald-500/20 mb-3"
+                onClick={handleStartEdit}
+                className="flex-1 bg-sky-600 text-white py-5 rounded-[2rem] font-bold hover:bg-sky-500 transition-all active:scale-95 text-lg shadow-xl shadow-sky-500/20"
               >
-                Finalizar Visita
+                Editar
               </button>
-            )}
+
+              {(!visit.finishedAt || visit.status !== VisitStatus.VISITED) && (
+                <button
+                  onClick={handleFinishVisit}
+                  className="flex-1 bg-emerald-600 text-white py-5 rounded-[2rem] font-bold hover:bg-emerald-500 transition-all active:scale-95 text-lg shadow-xl shadow-emerald-500/20"
+                >
+                  Finalizar Visita
+                </button>
+              )}
+            </div>
 
             <button
               onClick={() => onCancel()}
-              className="w-full bg-neutral-800 text-neutral-400 py-5 rounded-[2rem] font-bold hover:bg-neutral-700 transition-all border border-white/5 active:scale-95 text-lg"
+              className="w-full bg-neutral-800 text-neutral-400 py-5 rounded-[2rem] font-bold hover:bg-neutral-700 transition-all border border-white/5 active:scale-95 text-lg mt-3"
             >
-              Fechar Resumo
+              Fechar
             </button>
+          </div>
+        )}
+
+        {/* Modal de Edição */}
+        {isEditingVisit && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-[#0f0f0f] border border-white/10 rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-300">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center space-x-3">
+                  <h3 className="text-2xl font-bold text-white tracking-tight">Editar Visita</h3>
+                  <button
+                    onClick={() => setShowTimeInfo(true)}
+                    className="p-1.5 text-neutral-500 hover:text-sky-400 transition-colors bg-neutral-800/50 rounded-full"
+                    title="Informações sobre horários"
+                  >
+                    <Info size={18} />
+                  </button>
+                </div>
+                <button
+                  onClick={handleCancelEdit}
+                  className="bg-neutral-800 p-2.5 rounded-2xl text-neutral-500 hover:text-white transition-colors border border-white/5 active:scale-90"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Conversa com */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                    Conversa com <span className="text-red-400 ml-1">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[ContactPerson.OWNER, ContactPerson.TEACHER, ContactPerson.STAFF, ContactPerson.NOBODY].map(person => (
+                      <button
+                        key={person}
+                        onClick={() => setEditedVisit(p => ({ ...p, contactPerson: person }))}
+                        className={`py-4 rounded-2xl font-bold transition-all border text-sm ${editedVisit.contactPerson === person
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20'
+                          : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
+                          }`}
+                      >
+                        {person}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Temperatura */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                    Temperatura <span className="text-red-400 ml-1">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { value: AcademyTemperature.COLD, label: 'Fria ❄️', color: 'blue' },
+                      { value: AcademyTemperature.WARM, label: 'Morna 🌤️', color: 'orange' },
+                      { value: AcademyTemperature.HOT, label: 'Quente 🔥', color: 'red' }
+                    ].map(t => (
+                      <button
+                        key={t.value}
+                        onClick={() => setEditedVisit(p => ({ ...p, temperature: t.value }))}
+                        className={`py-4 rounded-2xl font-bold transition-all border text-[11px] ${editedVisit.temperature === t.value
+                          ? t.color === 'blue' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
+                            : t.color === 'orange' ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-600/20'
+                              : 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20'
+                          : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
+                          }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Resumo da Visita */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                    Resumo da Visita <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
+                  </label>
+                  <textarea
+                    placeholder="Resumo geral da visita..."
+                    className="w-full h-24 bg-neutral-800/50 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-600 border border-white/5 focus:border-emerald-500/30"
+                    value={editedVisit.summary || ''}
+                    onChange={e => setEditedVisit(p => ({ ...p, summary: e.target.value }))}
+                  />
+                </div>
+
+                {/* Marketing */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                    Materiais
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setEditedVisit(p => ({ ...p, leftBanner: !p.leftBanner }))}
+                      className={`flex-1 py-4 rounded-2xl font-bold transition-all border text-sm flex flex-col items-center justify-center space-y-1 ${editedVisit.leftBanner
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20'
+                        : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
+                        }`}
+                    >
+                      <span className="text-lg">🚩</span>
+                      <span>Banner</span>
+                    </button>
+                    <button
+                      onClick={() => setEditedVisit(p => ({ ...p, leftFlyers: !p.leftFlyers }))}
+                      className={`flex-1 py-4 rounded-2xl font-bold transition-all border text-sm flex flex-col items-center justify-center space-y-1 ${editedVisit.leftFlyers
+                        ? 'bg-sky-600 text-white border-sky-600 shadow-lg shadow-sky-600/20'
+                        : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
+                        }`}
+                    >
+                      <span className="text-lg">📄</span>
+                      <span>Flyers</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botões do modal - Reorganizados para maior fluidez */}
+              <div className="mt-10 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={handleSaveEditedVisit}
+                    disabled={!hasChanges()}
+                    className={`h-14 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${hasChanges()
+                      ? 'bg-sky-600 text-white hover:bg-sky-500 shadow-lg shadow-sky-600/20 active:scale-95'
+                      : 'bg-neutral-800 text-neutral-600 cursor-not-allowed'
+                      }`}
+                  >
+                    <Save size={18} />
+                    Salvar Alterações
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="h-14 bg-neutral-800 text-white rounded-2xl font-medium hover:bg-neutral-700 transition-all border border-white/5 active:scale-95"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-4 pt-4 border-t border-white/5">
+                  <button
+                    onClick={handleGenerateVoucherFromModal}
+                    className="flex-1 h-12 bg-purple-600/10 text-purple-400 rounded-2xl font-bold hover:bg-purple-600/20 transition-all border border-purple-500/20 flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
+                  >
+                    Gerar Voucher
+                  </button>
+
+                  {(!visit.finishedAt || visit.status !== VisitStatus.VISITED) && (
+                    <button
+                      onClick={handleFinishVisitFromModal}
+                      className="flex-1 h-12 bg-emerald-600/10 text-emerald-400 rounded-2xl font-bold hover:bg-emerald-600/20 transition-all border border-emerald-500/20 text-xs uppercase tracking-widest"
+                    >
+                      Finalizar Visita
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal de Informação de Horário */}
+              {showTimeInfo && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-in fade-in duration-200" onClick={() => setShowTimeInfo(false)}>
+                  <div className="bg-neutral-900 border border-amber-500/30 rounded-3xl p-6 max-w-xs w-full shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                    <div className="flex flex-col items-center text-center space-y-4">
+                      <div className="w-12 h-12 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center">
+                        <Info size={24} />
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="text-white font-bold">Registro de Horários</h4>
+                        <p className="text-neutral-400 text-sm leading-relaxed">
+                          Por questões de integridade do sistema, os horários de <strong>início</strong> e <strong>fim</strong> da visita são registrados automaticamente e não podem ser alterados manualmente.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowTimeInfo(false)}
+                        className="w-full bg-neutral-800 text-white py-3 rounded-xl font-bold hover:bg-neutral-700 transition-colors border border-white/5"
+                      >
+                        Entendi
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
