@@ -395,8 +395,31 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
     } catch (error: any) {
       console.error('Error updating event:', error);
       toast.error(`Erro ao atualizar evento: ${error.message}`, { id: loadingToast });
-    } finally {
-      setIsUploading(false);
+    }
+  };
+
+  const handleFinishVisitFromAdmin = async (visit: Visit) => {
+    if (!visit.contactPerson || !visit.temperature) {
+      toast.error("A visita precisa ter informações básicas preenchidas (contato e temperatura).");
+      return;
+    }
+
+    try {
+      const updatedVisit = {
+        ...visit,
+        status: VisitStatus.VISITED,
+        finishedAt: new Date().toISOString() // Sempre captura horário atual
+      };
+
+      await DatabaseService.upsertVisit(updatedVisit);
+      toast.success('Visita finalizada com sucesso!');
+
+      // Atualizar a lista de visitas localmente
+      onUpdateEvent({ ...event }); // Trigger reload
+      setSelectedVisit(null);
+    } catch (error: any) {
+      console.error('Error finishing visit:', error);
+      toast.error(`Erro ao finalizar visita: ${error.message}`);
     }
   };
 
@@ -855,12 +878,22 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                   <p>Início: {selectedVisit.startedAt ? new Date(selectedVisit.startedAt).toLocaleString('pt-BR') : '---'}</p>
                   <p>Fim: {selectedVisit.finishedAt ? new Date(selectedVisit.finishedAt).toLocaleString('pt-BR') : '---'}</p>
                 </div>
-                <button
-                  onClick={() => setSelectedVisit(null)}
-                  className="bg-neutral-700 hover:bg-neutral-600 text-white px-6 py-2 rounded-xl font-bold transition-colors"
-                >
-                  Fechar
-                </button>
+                <div className="flex space-x-3">
+                  {selectedVisit.status !== VisitStatus.VISITED && (
+                    <button
+                      onClick={() => handleFinishVisitFromAdmin(selectedVisit)}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold transition-colors shadow-lg"
+                    >
+                      Finalizar Visita
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setSelectedVisit(null)}
+                    className="bg-neutral-700 hover:bg-neutral-600 text-white px-6 py-2 rounded-xl font-bold transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1318,7 +1351,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
     const visitToSave = {
       ...visit,
       status: VisitStatus.VISITED,
-      finishedAt: visit.finishedAt || new Date().toISOString()
+      finishedAt: new Date().toISOString() // SEMPRE captura horário atual
     };
 
     try {
@@ -1780,6 +1813,16 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
               )}
             </div>
 
+            {/* Botão Finalizar Visita - aparece se a visita não foi finalizada */}
+            {(!visit.finishedAt || visit.status !== VisitStatus.VISITED) && (
+              <button
+                onClick={handleFinishVisit}
+                className="w-full bg-emerald-600 text-white py-5 rounded-[2rem] font-bold hover:bg-emerald-500 transition-all active:scale-95 text-lg shadow-xl shadow-emerald-500/20 mb-3"
+              >
+                Finalizar Visita
+              </button>
+            )}
+
             <button
               onClick={() => onCancel()}
               className="w-full bg-neutral-800 text-neutral-400 py-5 rounded-[2rem] font-bold hover:bg-neutral-700 transition-all border border-white/5 active:scale-95 text-lg"
@@ -2069,6 +2112,25 @@ const AppContent: React.FC = () => {
   /* Restore notifyUser */
   const notifyUser = async (userId: string, message: string) => {
     console.log('📤 [Notifications] Sending notification:', { userId, message, currentUserId: currentUser?.id });
+
+    // Verificar se notificações estão habilitadas
+    try {
+      const notificationsEnabled = await DatabaseService.getSetting('admin_notifications_enabled');
+      // Se a configuração não existe (null), assume que está habilitado (comportamento padrão)
+      // Se existe, verifica se é true (pode ser boolean ou string)
+      const isEnabled = notificationsEnabled === null ||
+        notificationsEnabled === true ||
+        notificationsEnabled === 'true' ||
+        notificationsEnabled === '"true"';
+
+      if (!isEnabled) {
+        console.log('📴 [Notifications] Notificações desabilitadas - ignorando:', message);
+        return; // Não envia notificação
+      }
+    } catch (error) {
+      console.error('📤 [Notifications] Error checking notifications setting:', error);
+      // Em caso de erro, continua e envia a notificação (fail-safe)
+    }
 
     // Se a notificação for para o usuário atual, mostramos um toast e adicionamos ao estado
     if (userId === currentUser?.id) {

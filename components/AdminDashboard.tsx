@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
-    RefreshCw
+    RefreshCw,
+    Bell,
+    BellOff
 } from 'lucide-react';
 
 import {
@@ -15,7 +17,7 @@ import {
     FinanceStatus,
     Voucher
 } from '../types';
-import { supabase } from '../lib/supabase';
+import { supabase, DatabaseService } from '../lib/supabase';
 
 
 interface AdminDashboardProps {
@@ -49,6 +51,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const [selectedYear, setSelectedYear] = useState<string>(availableYears[0] || new Date().getFullYear().toString());
     const [syncingSheet, setSyncingSheet] = useState(false);
+    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [loadingNotifToggle, setLoadingNotifToggle] = useState(false);
+
+    // Load notifications setting on mount
+    useEffect(() => {
+        const loadNotificationsSetting = async () => {
+            try {
+                const setting = await DatabaseService.getSetting('admin_notifications_enabled');
+                if (setting !== null) {
+                    const isEnabled = setting === true || setting === 'true' || setting === '"true"';
+                    setNotificationsEnabled(isEnabled);
+                }
+            } catch (error) {
+                console.error('Error loading notifications setting:', error);
+            }
+        };
+        loadNotificationsSetting();
+    }, []);
+
+    const handleToggleNotifications = async () => {
+        setLoadingNotifToggle(true);
+        try {
+            const newValue = !notificationsEnabled;
+            await DatabaseService.setSetting('admin_notifications_enabled', newValue);
+            setNotificationsEnabled(newValue);
+        } catch (error) {
+            console.error('Error toggling notifications:', error);
+            alert('Erro ao alterar configuração de notificações.');
+        } finally {
+            setLoadingNotifToggle(false);
+        }
+    };
 
     const handleSyncSheet = async () => {
         setSyncingSheet(true);
@@ -194,15 +228,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </p>
                     </div>
 
-                    <select
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                        className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-white/30 transition-all hover:bg-white/20 cursor-pointer"
-                    >
-                        {availableYears.map(yr => (
-                            <option key={yr} value={yr} className="bg-[hsl(222,47%,15%)] text-white">{yr}</option>
-                        ))}
-                    </select>
+                    <div className="flex items-center space-x-3">
+                        {/* Notifications Toggle */}
+                        <button
+                            onClick={handleToggleNotifications}
+                            disabled={loadingNotifToggle}
+                            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${notificationsEnabled
+                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+                                }`}
+                            title={notificationsEnabled ? 'Notificações Ativadas' : 'Notificações Desativadas'}
+                        >
+                            {notificationsEnabled ? (
+                                <Bell size={16} strokeWidth={2.5} />
+                            ) : (
+                                <BellOff size={16} strokeWidth={2.5} />
+                            )}
+                            <span className="hidden md:inline">
+                                {notificationsEnabled ? 'Alertas ON' : 'Alertas OFF'}
+                            </span>
+                        </button>
+
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-white/30 transition-all hover:bg-white/20 cursor-pointer"
+                        >
+                            {availableYears.map(yr => (
+                                <option key={yr} value={yr} className="bg-[hsl(222,47%,15%)] text-white">{yr}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 

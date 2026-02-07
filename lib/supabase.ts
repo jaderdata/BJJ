@@ -396,6 +396,15 @@ export const DatabaseService = {
         return data?.value || null;
     },
 
+    async setSetting(key: string, value: any) {
+        const { error } = await supabase.from('system_settings').upsert({
+            key,
+            value: JSON.stringify(value),
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+        if (error) throw error;
+    },
+
     async updateSetting(key: string, value: any) {
         const { data, error } = await supabase.from('system_settings').upsert({
             key,
