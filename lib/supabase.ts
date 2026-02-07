@@ -525,6 +525,20 @@ export const DatabaseService = {
             leftBanner: data.left_banner,
             leftFlyers: data.left_flyers
         };
+    },
+
+    async deleteVisitByEventAndAcademy(eventId: string, academyId: string) {
+        console.log(`🗑️ [DatabaseService] Deletando visita para evento ${eventId} e academia ${academyId}`);
+        const { error } = await supabase
+            .from('visits')
+            .delete()
+            .match({ event_id: eventId, academy_id: academyId });
+
+        if (error) {
+            console.error("❌ [DatabaseService] Erro ao deletar visita:", error);
+            throw error;
+        }
+        console.log("✅ [DatabaseService] Visita deletada com sucesso");
     }
 };
 

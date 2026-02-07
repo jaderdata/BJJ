@@ -21,6 +21,7 @@ import {
   QrCode,
   Copy,
   ExternalLink,
+  History,
   TrendingUp,
   MessageCircle,
   Phone,
@@ -274,9 +275,9 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
 
   const eventAcademies = academies.filter(a => event.academiesIds.includes(a.id));
 
-  const finishedIds = visits.filter(v => v.eventId === event.id).map(v => v.academyId);
-  const pendingAcademies = eventAcademies.filter(a => !finishedIds.includes(a.id));
-  const finishedAcademies = eventAcademies.filter(a => finishedIds.includes(a.id));
+  const finishedVisitIds = visits.filter(v => v.eventId === event.id && v.status === VisitStatus.VISITED).map(v => v.academyId);
+  const pendingAcademies = eventAcademies.filter(a => !finishedVisitIds.includes(a.id));
+  const finishedAcademies = eventAcademies.filter(a => finishedVisitIds.includes(a.id));
 
   // Available = not in event AND matches search AND matches filters
   const availableAcademies = useMemo(() => {
@@ -302,7 +303,9 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
 
   const handleBulkLink = () => {
     if (selectedIds.length === 0) return;
-    onUpdateEvent({ ...event, academiesIds: [...event.academiesIds, ...selectedIds] });
+    // Garantir IDs únicos para evitar duplicidade acidental no estado local
+    const newAcademiesIds = Array.from(new Set([...event.academiesIds, ...selectedIds]));
+    onUpdateEvent({ ...event, academiesIds: newAcademiesIds });
     toast.success(`${selectedIds.length} academia(s) vinculada(s) com sucesso!`);
     setSelectedIds([]);
     setShowAddModal(false);
@@ -1283,8 +1286,24 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
 };
 
 const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
-  const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(existingVisit ? 'SUMMARY' : 'START');
-  const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || { eventId, academyId: academy.id, salespersonId: event.salespersonId!, status: VisitStatus.PENDING, vouchersGenerated: [], notes: '', temperature: undefined, contactPerson: undefined, photos: [], leftBanner: false, leftFlyers: false });
+  const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(
+    existingVisit
+      ? (existingVisit.status === VisitStatus.VISITED ? 'SUMMARY' : 'ACTIVE')
+      : 'START'
+  );
+  const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || {
+    eventId,
+    academyId: academy.id,
+    salespersonId: event.salespersonId!,
+    status: VisitStatus.PENDING,
+    vouchersGenerated: [],
+    temperature: undefined,
+    contactPerson: undefined,
+    photos: [],
+    leftBanner: false,
+    leftFlyers: false,
+    summary: ''
+  });
   const [isUploading, setIsUploading] = useState(false);
   const [marketingVerified, setMarketingVerified] = useState(existingVisit ? true : false);
   const [lastVisit, setLastVisit] = useState<Visit | null>(null);
@@ -1360,9 +1379,12 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
         salespersonId: event.salespersonId!,
         status: VisitStatus.PENDING,
         vouchersGenerated: [],
-        notes: '',
+        summary: '',
         temperature: undefined,
-        contactPerson: undefined
+        contactPerson: undefined,
+        photos: [],
+        leftBanner: false,
+        leftFlyers: false
       });
     }
   }, [existingVisit, academy.id, eventId, event.salespersonId]);
@@ -1597,8 +1619,8 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 {lastVisit.leftBanner && <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-lg text-[9px] font-bold border border-emerald-500/20">Banner já entregue 🚩</span>}
                 {lastVisit.leftFlyers && <span className="bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-lg text-[9px] font-bold border border-sky-500/20">Flyers já entregue 📄</span>}
               </div>
-              {lastVisit.notes && (
-                <p className="text-xs text-neutral-400 italic line-clamp-2 leading-relaxed">"{lastVisit.notes}"</p>
+              {lastVisit.summary && (
+                <p className="text-xs text-neutral-400 italic line-clamp-2 leading-relaxed">"{lastVisit.summary}"</p>
               )}
             </div>
           </div>
@@ -1689,13 +1711,13 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
               <div className="glass-card p-6 space-y-4">
                 <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center">
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                  Observações <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
+                  Resumo da Visita <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
                 </label>
                 <textarea
                   placeholder="Descreva pontos importantes da conversa..."
                   className="w-full h-32 bg-neutral-800/50 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-600 border border-white/5 focus:border-emerald-500/30"
-                  value={visit.notes}
-                  onChange={e => setVisit(p => ({ ...p, notes: e.target.value }))}
+                  value={visit.summary}
+                  onChange={e => setVisit(p => ({ ...p, summary: e.target.value }))}
                 />
               </div>
 
@@ -2529,7 +2551,11 @@ const AppContent: React.FC = () => {
 
         // Execute junction updates
         for (const id of added) await DatabaseService.addEventAcademy(updatedEvent.id, id);
-        for (const id of removed) await DatabaseService.removeEventAcademy(updatedEvent.id, id);
+        for (const id of removed) {
+          await DatabaseService.removeEventAcademy(updatedEvent.id, id);
+          // Limpar histórico de visita para este evento específico ao remover a academia do evento
+          await DatabaseService.deleteVisitByEventAndAcademy(updatedEvent.id, id);
+        }
       }
 
       // 3. Update local state
