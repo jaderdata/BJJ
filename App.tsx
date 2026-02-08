@@ -2476,10 +2476,13 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
 
                 {/* Resumo da Visita */}
                 <div className="space-y-3">
-                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                    Resumo da Visita <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                      Resumo da Visita <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
+                    </label>
+                    <WhatsAppVoiceMic onTranscript={(text) => setEditedVisit(p => ({ ...p, summary: (p.summary ? p.summary + ' ' : '') + text }))} />
+                  </div>
                   <textarea
                     placeholder="Resumo geral da visita..."
                     className="w-full h-24 bg-neutral-800/50 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-600 border border-white/5 focus:border-emerald-500/30"
