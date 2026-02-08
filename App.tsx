@@ -1450,6 +1450,8 @@ const WhatsAppVoiceMic: React.FC<{ onTranscript: (text: string) => void }> = ({ 
   }, []);
 
   const startRecording = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+
     if (!recognitionRef.current) {
       toast.error("Seu navegador não suporta transcrição de voz.");
       return;
@@ -1489,6 +1491,8 @@ const WhatsAppVoiceMic: React.FC<{ onTranscript: (text: string) => void }> = ({ 
 
   const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isRecording || isLocked) return;
+
+    e.preventDefault();
 
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
@@ -1566,13 +1570,17 @@ const WhatsAppVoiceMic: React.FC<{ onTranscript: (text: string) => void }> = ({ 
           onTouchMove={handleMove}
           onClick={() => isLocked && stopRecording()}
           className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl touch-none",
+            "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl touch-none select-none",
             isRecording
               ? "bg-red-500 scale-125 z-50 text-white"
               : "bg-emerald-500 hover:bg-emerald-400 text-white"
           )}
           style={{
-            transform: isRecording && !isLocked ? `translate(${slideOffset.x}px, ${slideOffset.y}px)` : undefined
+            transform: isRecording && !isLocked ? `translate(${slideOffset.x}px, ${slideOffset.y}px)` : undefined,
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            userSelect: 'none',
+            touchAction: 'none'
           }}
         >
           {isLocked ? <Send size={18} /> : <Mic size={20} />}
