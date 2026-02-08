@@ -150,8 +150,8 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
     return (
         <div className="space-y-6 p-4">
             {/* Header */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-[hsl(262,83%,58%)] via-[hsl(262,83%,48%)] to-[hsl(262,83%,38%)] p-6 rounded-2xl shadow-2xl">
-                <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-sm"></div>
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
 
@@ -375,7 +375,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                 {!photoPreview ? (
                                     <label className="w-full flex flex-col items-center justify-center px-4 py-8 bg-white/5 backdrop-blur-md border-2 border-dashed border-white/20 rounded-xl cursor-pointer hover:bg-white/10 hover:border-white/30 transition-all group">
                                         <div className="flex flex-col items-center space-y-2">
-                                            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl group-hover:scale-110 transition-transform">
+                                            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl group-hover:scale-110 transition-transform">
                                                 <ImageIcon size={32} className="text-blue-400" strokeWidth={2} />
                                             </div>
                                             <div className="flex items-center space-x-2">

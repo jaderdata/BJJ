@@ -30,8 +30,9 @@ import {
   Play,
   Image as ImageIcon,
   Upload,
-  LogOut,
-  Wallet
+  Mic,
+  Send,
+  Lock,
 } from 'lucide-react';
 import {
   User,
@@ -163,7 +164,7 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
         {/* Header */}
         <div className="pt-12 pb-8 flex flex-col items-center space-y-4 px-6 text-center w-full">
           <div className="w-48 h-20 flex items-center justify-center mb-2">
-            <img src="/PBJJF_logo.jpeg" alt="PBJJF" className="h-full w-auto opacity-90" />
+            <img src="/PBJJF_logo.jpeg" alt="PBJJF" className="h-full w-auto filter invert hue-rotate-180 brightness-150 contrast-125 mix-blend-screen" />
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">PBJJF Vouchers</h1>
           <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] leading-relaxed max-w-xs">{academyName}</p>
@@ -1136,8 +1137,9 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
 
 
 const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visits: Visit[], notifications: any, onDismissNotif: any, onSelectAcademy: any, currentUserId: string }> = ({ events, academies, visits, notifications, onDismissNotif, onSelectAcademy, currentUserId }) => {
-  const totalAcademies = events.reduce((acc, e) => acc + (e.academiesIds?.length || 0), 0);
-  const completedVisitsCount = events.reduce((acc, e) => {
+  const nonTestEvents = events.filter(e => !e.name.trim().toUpperCase().endsWith('TESTE'));
+  const totalAcademies = nonTestEvents.reduce((acc, e) => acc + (e.academiesIds?.length || 0), 0);
+  const completedVisitsCount = nonTestEvents.reduce((acc, e) => {
     const visitedInEvent = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED);
     const uniqueVisitedIds = new Set(visitedInEvent.map(v => v.academyId));
     const validVisitedCount = Array.from(uniqueVisitedIds).filter(aid => e.academiesIds.includes(aid)).length;
@@ -1208,33 +1210,42 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
         </div>
       )}
 
-      {/* Hero Stats Section */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-2">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-black text-white tracking-tighter italic uppercase">Desempenho</h2>
-            <p className="text-[10px] text-white/30 font-black uppercase tracking-[0.2em]">Meta de Visitas do Evento</p>
-          </div>
-          <div className="text-right">
-            <span className="text-3xl font-black text-emerald-500 italic tracking-tighter">
-              {Math.round((completedVisitsCount / (totalAcademies || 1)) * 100)}%
-            </span>
-          </div>
-        </div>
+      {/* Premium Hero Stats Section */}
+      <div className="space-y-4">
+        <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-6 relative overflow-hidden group">
+          {/* Decorative background flare */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[80px] rounded-full -mr-16 -mt-16 pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-1000"></div>
 
-        <div className="relative group p-1">
-          <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/20 to-emerald-500/20 rounded-[2.5rem] blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-          <ProgressBar total={totalAcademies} completed={completedVisitsCount} className="relative z-10 h-4 rounded-full bg-white/5 border border-white/10" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 px-2">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">Total Alocado</p>
-            <p className="text-xl font-black text-white mt-1">{totalAcademies}</p>
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-black text-white tracking-tighter italic uppercase">Desempenho</h2>
+            </div>
+            <div className="text-right">
+              <span className="text-4xl font-black text-emerald-500 italic tracking-tighter drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                {Math.round((completedVisitsCount / (totalAcademies || 1)) * 100)}%
+              </span>
+            </div>
           </div>
-          <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 text-right">
-            <p className="text-[9px] font-black text-emerald-500/30 uppercase tracking-widest text-right">Concluídos</p>
-            <p className="text-xl font-black text-emerald-500 mt-1">{completedVisitsCount}</p>
+
+          <div className="space-y-5 relative z-10">
+            <div className="bg-black/40 rounded-2xl p-4 border border-white/5 backdrop-blur-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Progresso de Visitas</span>
+                <span className="text-[10px] font-black text-emerald-500/60">{completedVisitsCount} / {totalAcademies}</span>
+              </div>
+              <ProgressBar percentage={Math.round((completedVisitsCount / (totalAcademies || 1)) * 100)} height="h-3" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/5 border border-white/5 rounded-2xl p-4 transition-colors hover:bg-white/10">
+                <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Total Alocado</p>
+                <p className="text-2xl font-black text-white mt-1 tracking-tighter italic">{totalAcademies}</p>
+              </div>
+              <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 text-right transition-colors hover:bg-emerald-500/10">
+                <p className="text-[9px] font-black text-emerald-500/30 uppercase tracking-widest text-right">Concluídos</p>
+                <p className="text-2xl font-black text-emerald-500 mt-1 tracking-tighter italic">{completedVisitsCount}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1262,11 +1273,17 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
         ) : (
           <div className="space-y-8">
             {events.map((e, idx) => {
-              const allAcademies = e.academiesIds.map(aid => academies.find(a => a.id === aid)).filter(Boolean) as Academy[];
-              const completedIds = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED).map(v => v.academyId);
+              const allAcademiesIds = e.academiesIds || [];
+              const allAcademies = allAcademiesIds.map(aid => academies.find(a => a.id === aid)).filter(Boolean) as Academy[];
+
+              const visitedInEvent = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED);
+              const uniqueVisitedIds = new Set(visitedInEvent.map(v => v.academyId));
+              const validVisitedCount = Array.from(uniqueVisitedIds).filter(aid => allAcademiesIds.includes(aid)).length;
+
+              const completedIds = Array.from(uniqueVisitedIds).filter(aid => allAcademiesIds.includes(aid));
               const pendingAcademies = allAcademies.filter(a => !completedIds.includes(a.id));
               const finishedAcademies = allAcademies.filter(a => completedIds.includes(a.id));
-              const progress = Math.round((completedIds.length / (allAcademies.length || 1)) * 100);
+              const progress = Math.round((validVisitedCount / (allAcademiesIds.length || 1)) * 100);
 
               return (
                 <div
@@ -1278,13 +1295,16 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
                   <div className="mb-4 flex items-end justify-between px-2">
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
-                        <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                         <h3 className="text-lg font-black text-white italic uppercase tracking-tight">{e.name}</h3>
                       </div>
                       <p className="text-[9px] text-white/20 font-black uppercase tracking-[0.2em]">{e.city} • {e.state}</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-1">Progresso</span>
+                      <div className="flex items-center justify-end space-x-2 mb-1">
+                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Progresso</span>
+                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{progress}%</span>
+                      </div>
                       <div className="h-1 w-24 bg-white/5 rounded-full overflow-hidden">
                         <div className="h-full bg-emerald-500" style={{ width: `${progress}%` }}></div>
                       </div>
@@ -1308,31 +1328,21 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
                                 : "bg-white/5 hover:bg-white/[0.08] text-white/90 border border-white/5"
                             )}
                           >
-                            <div className="flex items-center space-x-4 min-w-0">
-                              <div className={cn(
-                                "w-12 h-12 rounded-xl flex items-center justify-center font-black transition-all duration-500",
-                                isActive ? "bg-white/10" : "bg-white/5 text-white/20"
-                              )}>
-                                {isActive ? (
-                                  <div className="relative">
-                                    <Loader2 className="animate-spin" size={20} />
-                                    <div className="absolute inset-0 bg-white blur-md opacity-20"></div>
-                                  </div>
-                                ) : (
-                                  <span className="text-[10px] uppercase tracking-tighter">🥋</span>
-                                )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className={cn("font-black text-sm tracking-tight truncate uppercase", isActive ? "text-white" : "text-white/80")}>
+                                  {a.name}
+                                </p>
+                                {isActive && <Loader2 size={12} className="animate-spin opacity-50 ml-2 shrink-0" />}
                               </div>
-                              <div className="min-w-0">
-                                <p className={cn("font-black text-sm tracking-tight truncate uppercase", isActive ? "text-white" : "text-white/80")}>{a.name}</p>
-                                <div className="flex items-center space-x-2 mt-0.5">
-                                  <p className={cn("text-[9px] font-bold truncate opacity-60 uppercase tracking-widest", isActive ? "text-white" : "text-white/40")}>
-                                    {a.responsible}
-                                  </p>
-                                  <span className="text-[8px] opacity-20">•</span>
-                                  <p className={cn("text-[9px] font-bold opacity-60 uppercase tracking-widest", isActive ? "text-white" : "text-white/40")}>
-                                    {a.city}
-                                  </p>
-                                </div>
+                              <div className="flex items-center space-x-2 mt-0.5">
+                                <p className={cn("text-[9px] font-bold truncate opacity-60 uppercase tracking-widest", isActive ? "text-white" : "text-white/40")}>
+                                  {a.responsible}
+                                </p>
+                                <span className="text-[8px] opacity-20">•</span>
+                                <p className={cn("text-[9px] font-bold opacity-60 uppercase tracking-widest", isActive ? "text-white" : "text-white/40")}>
+                                  {a.city}
+                                </p>
                               </div>
                             </div>
                             <div className={cn(
@@ -1346,13 +1356,10 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
                       })}
 
                       {pendingAcademies.length === 0 && (
-                        <div className="py-12 bg-emerald-500/5 m-1 rounded-[2rem] border border-dashed border-emerald-500/10 flex flex-col items-center justify-center text-center space-y-3">
-                          <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500/40">
-                            <CheckCircle2 size={24} />
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs font-black text-emerald-500/40 uppercase tracking-[0.2em]">Roteiro Concluído</p>
-                            <p className="text-[9px] text-emerald-500/20 font-black uppercase tracking-widest">Nenhuma academia pendente neste evento</p>
+                        <div className="py-6 flex items-center justify-center">
+                          <div className="px-4 py-1.5 bg-emerald-500/5 rounded-full border border-emerald-500/10 flex items-center space-x-2">
+                            <CheckCircle2 size={10} className="text-emerald-500/40" />
+                            <span className="text-[9px] font-black text-emerald-500/40 uppercase tracking-[0.2em]">Roteiro Concluído</span>
                           </div>
                         </div>
                       )}
@@ -1398,6 +1405,183 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
     </div>
   );
 };
+/**
+ * WhatsApp-style Voice Transcription Component
+ */
+const WhatsAppVoiceMic: React.FC<{ onTranscript: (text: string) => void }> = ({ onTranscript }) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [isCancelled, setIsCancelled] = useState(false);
+
+  const recognitionRef = useRef<any>(null);
+  const timerRef = useRef<any>(null);
+  const startPosRef = useRef({ x: 0, y: 0 });
+  const [slideOffset, setSlideOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'pt-BR';
+
+      recognitionRef.current.onresult = (event: any) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        if (finalTranscript) {
+          onTranscript(finalTranscript);
+        }
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        stopRecording(true);
+      };
+    }
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.stop();
+    };
+  }, []);
+
+  const startRecording = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!recognitionRef.current) {
+      toast.error("Seu navegador não suporta transcrição de voz.");
+      return;
+    }
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    startPosRef.current = { x: clientX, y: clientY };
+
+    setIsRecording(true);
+    setIsLocked(false);
+    setIsCancelled(false);
+    setDuration(0);
+    setSlideOffset({ x: 0, y: 0 });
+
+    recognitionRef.current.start();
+
+    timerRef.current = setInterval(() => {
+      setDuration(prev => prev + 1);
+    }, 100);
+  };
+
+  const stopRecording = (cancel = false) => {
+    if (!isRecording) return;
+
+    clearInterval(timerRef.current);
+    if (recognitionRef.current) recognitionRef.current.stop();
+    setIsRecording(false);
+    setIsLocked(false);
+    setSlideOffset({ x: 0, y: 0 });
+
+    if (cancel) {
+      setIsCancelled(true);
+      setTimeout(() => setIsCancelled(false), 1000);
+    }
+  };
+
+  const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isRecording || isLocked) return;
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    const deltaX = clientX - startPosRef.current.x;
+    const deltaY = clientY - startPosRef.current.y;
+
+    setSlideOffset({ x: deltaX < 0 ? deltaX : 0, y: deltaY < 0 ? deltaY : 0 });
+
+    if (deltaX < -100) {
+      stopRecording(true);
+    } else if (deltaY < -100) {
+      setIsLocked(true);
+      setSlideOffset({ x: 0, y: 0 });
+    }
+  };
+
+  const formatTime = (totalDeciSeconds: number) => {
+    const totalSeconds = Math.floor(totalDeciSeconds / 10);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center space-x-2">
+      {isRecording && (
+        <div className="flex-1 flex items-center bg-black/80 backdrop-blur-xl rounded-full px-4 py-2 border border-white/10 shadow-2xl animate-in fade-in slide-in-from-right-4">
+          <div className="flex items-center space-x-3 w-full">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <span className="text-white font-mono text-xs">{formatTime(duration)}</span>
+            </div>
+
+            {!isLocked ? (
+              <div className="flex-1 flex justify-center overflow-hidden">
+                <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest animate-pulse whitespace-nowrap">
+                  {slideOffset.x < -20 ? 'Solte para cancelar' : 'Deslize para cancelar ←'}
+                </span>
+              </div>
+            ) : (
+              <div className="flex-1 flex justify-center">
+                <span className="text-emerald-500 text-[9px] font-black uppercase tracking-widest animate-pulse">Gravando Transcrição...</span>
+              </div>
+            )}
+
+            {isLocked && (
+              <button
+                onClick={() => stopRecording(true)}
+                className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <Trash2 size={14} className="text-red-500" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="relative">
+        {isRecording && !isLocked && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-8 flex flex-col items-center animate-bounce">
+            <div className="bg-neutral-800 p-2 rounded-full border border-white/10 shadow-lg">
+              <Lock size={14} className="text-white/40" />
+            </div>
+            <div className="w-px h-3 bg-gradient-to-t from-white/10 to-transparent mt-1"></div>
+          </div>
+        )}
+
+        <button
+          onMouseDown={startRecording}
+          onMouseUp={() => !isLocked && stopRecording()}
+          onMouseMove={handleMove}
+          onTouchStart={startRecording}
+          onTouchEnd={() => !isLocked && stopRecording()}
+          onTouchMove={handleMove}
+          onClick={() => isLocked && stopRecording()}
+          className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl touch-none",
+            isRecording
+              ? "bg-red-500 scale-125 z-50 text-white"
+              : "bg-emerald-500 hover:bg-emerald-400 text-white"
+          )}
+          style={{
+            transform: isRecording && !isLocked ? `translate(${slideOffset.x}px, ${slideOffset.y}px)` : undefined
+          }}
+        >
+          {isLocked ? <Send size={18} /> : <Mic size={20} />}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 
 const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(
@@ -1420,23 +1604,11 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
   });
   const [isUploading, setIsUploading] = useState(false);
   const [marketingVerified, setMarketingVerified] = useState(existingVisit ? true : false);
-  const [lastVisit, setLastVisit] = useState<Visit | null>(null);
   const [isEditingVisit, setIsEditingVisit] = useState(false);
   const [editedVisit, setEditedVisit] = useState<Partial<Visit>>({});
   const [showTimeInfo, setShowTimeInfo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const fetchLastVisit = async () => {
-      try {
-        const last = await DatabaseService.getLastVisit(academy.id);
-        setLastVisit(last);
-      } catch (error) {
-        console.error("Error fetching last visit:", error);
-      }
-    };
-    fetchLastVisit();
-  }, [academy.id]);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1720,15 +1892,12 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
       </div>
 
       {/* Fixed Header */}
-      <div className="sticky top-0 bg-black/40 backdrop-blur-xl p-5 border-b border-white/5 z-50 flex flex-col space-y-4">
+      <div className="sticky top-0 bg-black/60 backdrop-blur-2xl p-4 border-b border-white/5 z-50 flex flex-col space-y-3 shadow-2xl">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
-              <span className="text-emerald-500 font-bold">🥋</span>
-            </div>
             <div>
-              <h3 className="text-lg font-black text-white leading-tight tracking-tight">{academy.name}</h3>
-              <p className="text-neutral-500 text-[10px] font-black uppercase tracking-[0.2em]">{academy.city} • {academy.state}</p>
+              <h3 className="text-base font-black text-white leading-tight tracking-tight">{academy.name}</h3>
+              <p className="text-neutral-500 text-[9px] font-black uppercase tracking-[0.2em]">{academy.city} • {academy.state}</p>
             </div>
           </div>
           <button
@@ -1743,24 +1912,24 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
         </div>
 
         {/* Step Indicator */}
-        <div className="flex items-center justify-between px-2 pt-2">
+        <div className="flex items-center justify-between px-1 pt-0.5">
           {steps.map((s, idx) => (
-            <div key={s.id} className="flex flex-col items-center space-y-1.5 relative flex-1">
+            <div key={s.id} className="flex flex-col items-center space-y-1 relative flex-1">
               <div className={cn(
-                "w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-500 relative z-10",
+                "w-5 h-5 rounded-lg flex items-center justify-center transition-all duration-500 relative z-10",
                 idx <= currentStepIndex ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-white/5 text-white/20 border border-white/5"
               )}>
-                {idx < currentStepIndex ? <CheckCircle2 size={12} strokeWidth={3} /> : s.icon}
+                {idx < currentStepIndex ? <CheckCircle2 size={10} strokeWidth={3} /> : s.icon}
               </div>
               <span className={cn(
-                "text-[8px] font-black uppercase tracking-widest transition-colors duration-500",
+                "text-[7px] font-black uppercase tracking-tighter transition-colors duration-500",
                 idx <= currentStepIndex ? "text-emerald-500" : "text-white/10"
               )}>
                 {s.label}
               </span>
               {/* Connector line */}
               {idx < steps.length - 1 && (
-                <div className="absolute top-3 left-[50%] w-full h-[2px] -z-0">
+                <div className="absolute top-2.5 left-[50%] w-full h-[2px] -z-0">
                   <div className={cn(
                     "h-full transition-all duration-500",
                     idx < currentStepIndex ? "bg-emerald-500" : "bg-white/5"
@@ -1772,36 +1941,11 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
         </div>
       </div>
 
-      <div className="p-6 pb-40 space-y-8 max-w-lg mx-auto relative z-10">
+      <div className="px-4 pb-40 space-y-2 max-w-lg mx-auto relative z-10">
         {/* History Card (Context) */}
-        {lastVisit && step === 'ACTIVE' && (
-          <div className="relative group overflow-hidden bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 backdrop-blur-xl border border-emerald-500/20 rounded-[2rem] p-6 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-500">
-            <div className="absolute -top-12 -right-12 w-24 h-24 bg-emerald-500/20 rounded-full blur-3xl opacity-50"></div>
-
-            <div className="flex items-center space-x-2 mb-4 relative z-10">
-              <div className="p-1.5 bg-emerald-500/20 rounded-lg text-emerald-500">
-                <History size={12} strokeWidth={3} />
-              </div>
-              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] flex-1">Inteligência Anterior</span>
-              <span className="text-[10px] text-white/20 font-bold">• {new Date(lastVisit.finishedAt!).toLocaleDateString('pt-BR')}</span>
-            </div>
-
-            <div className="space-y-4 relative z-10">
-              <div className="flex flex-wrap gap-2">
-                {lastVisit.leftBanner && <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-[9px] font-black border border-emerald-500/20 uppercase">Banner Entregue 🚩</span>}
-                {lastVisit.leftFlyers && <span className="bg-white/5 text-white/60 px-2.5 py-1 rounded-full text-[9px] font-black border border-white/10 uppercase">Flyers Entregues 📄</span>}
-              </div>
-              {lastVisit.summary && (
-                <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
-                  <p className="text-xs text-white/60 italic leading-relaxed">"{lastVisit.summary}"</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Content Container */}
-        <div className="relative min-h-[400px]">
+        <div className="relative">
 
           {step === 'START' && (
             <div className="flex flex-col items-center justify-center py-16 text-center space-y-10 animate-in zoom-in-95 duration-500">
@@ -1852,10 +1996,10 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { val: ContactPerson.OWNER, label: 'Proprietário', icon: '👑' },
-                    { val: ContactPerson.TEACHER, label: 'Professor', icon: '👤' },
-                    { val: ContactPerson.STAFF, label: 'Secretaria', icon: '💼' },
-                    { val: ContactPerson.NOBODY, label: 'Ninguém', icon: '❌' }
+                    { val: ContactPerson.OWNER, label: 'Proprietário' },
+                    { val: ContactPerson.TEACHER, label: 'Professor' },
+                    { val: ContactPerson.STAFF, label: 'Secretaria' },
+                    { val: ContactPerson.NOBODY, label: 'Ninguém' }
                   ].map(p => (
                     <button
                       key={p.val}
@@ -1867,7 +2011,6 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                           : "bg-white/5 border-white/5 text-white/40 hover:border-white/10"
                       )}
                     >
-                      <span className={cn("text-2xl transition-transform duration-500 group-hover:scale-110", visit.contactPerson === p.val ? "opacity-100" : "opacity-30")}>{p.icon}</span>
                       <span className={cn("text-[11px] font-black uppercase tracking-wider", visit.contactPerson === p.val ? "text-emerald-400" : "text-white/20")}>{p.label}</span>
                     </button>
                   ))}
@@ -1877,7 +2020,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
               {/* Card Temperatura */}
               <div className="space-y-4">
                 <div className="flex items-center space-x-2 px-1">
-                  <div className="w-1 h-4 bg-[hsl(262,83%,58%)] rounded-full"></div>
+                  <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
                   <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Temperatura da Oportunidade <span className="text-red-500">*</span></label>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -1912,15 +2055,18 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
 
               {/* Card Resumo */}
               <div className="space-y-4">
-                <div className="flex items-center space-x-2 px-1">
-                  <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
-                  <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Resumo Executivo <span className="text-white/20 text-[9px] font-medium lowercase ml-1">(opcional)</span></label>
+                <div className="flex items-center justify-between px-1 mb-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Resumo Executivo <span className="text-white/20 text-[9px] font-medium lowercase ml-1">(opcional)</span></label>
+                  </div>
+                  <WhatsAppVoiceMic onTranscript={(text) => setVisit(p => ({ ...p, summary: (p.summary ? p.summary + ' ' : '') + text }))} />
                 </div>
                 <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-br from-purple-500/20 to-transparent rounded-[2rem] blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
+                  <div className="absolute -inset-0.5 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-[2rem] blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
                   <textarea
                     placeholder="Quais os pontos principais desta visita? Algo importante para o futuro?"
-                    className="relative w-full h-36 bg-white/[0.03] text-white p-6 rounded-[2rem] text-sm outline-none transition-all placeholder:text-white/10 border border-white/5 focus:border-purple-500/30 focus:bg-white/[0.05]"
+                    className="relative w-full h-36 bg-white/[0.03] text-white p-6 rounded-[2rem] text-sm outline-none transition-all placeholder:text-white/10 border border-white/5 focus:border-emerald-500/30 focus:bg-white/[0.05]"
                     value={visit.summary}
                     onChange={e => setVisit(p => ({ ...p, summary: e.target.value }))}
                   />
@@ -2014,19 +2160,19 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
             </div>
           )}
 
-          {/* Fixed Footer for Actions */}
+          {/* Actions for Step ACTIVE */}
           {step === 'ACTIVE' && (
-            <div className="fixed bottom-0 left-0 right-0 p-6 z-50 animate-in slide-in-from-bottom duration-500">
+            <div className="pt-8 pb-12 animate-in fade-in duration-700">
               <div className="max-w-md mx-auto flex gap-4">
                 <button
                   onClick={handleFinishVisit}
-                  className="flex-1 bg-white/5 backdrop-blur-xl text-white/40 border border-white/10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-2xl"
+                  className="flex-1 bg-white/5 backdrop-blur-xl text-white/40 border border-white/10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-xl"
                 >
                   Finalizar
                 </button>
                 <button
                   onClick={handleGenerateVoucher}
-                  className="flex-[2] bg-emerald-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all shadow-2xl shadow-emerald-500/40 flex items-center justify-center space-x-3"
+                  className="flex-[2] bg-emerald-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl flex items-center justify-center space-x-3"
                 >
                   <Ticket size={20} strokeWidth={3} />
                   <span>Gerar Vouchers</span>
@@ -2153,8 +2299,8 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
         )}
 
         {step === 'SUMMARY' && (
-          <div className="space-y-12 animate-in slide-in-from-bottom-10 duration-700 py-10">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <div className="space-y-2 animate-in slide-in-from-bottom-10 duration-700">
+            <div className="flex flex-col items-center justify-center space-y-1 text-center">
               <div className="relative">
                 <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full scale-150"></div>
                 <div className="relative w-24 h-24 bg-emerald-500/10 text-emerald-500 rounded-[2rem] flex items-center justify-center border border-emerald-500/20 shadow-xl overflow-hidden group">
@@ -2168,7 +2314,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
               </div>
             </div>
 
-            <div className="space-y-12 pl-8 border-l-2 border-emerald-500/10 relative mx-2">
+            <div className="space-y-4 pl-8 border-l-2 border-emerald-500/10 relative mx-2">
               {/* Timeline Items refined */}
               <div className="relative">
                 <div className="absolute -left-[39px] top-1.5 w-4 h-4 bg-[#0a0a0a] border-4 border-emerald-500 rounded-full shadow-lg shadow-emerald-500/20"></div>
@@ -2225,19 +2371,21 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
             </div>
 
             {/* Final Actions */}
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={handleStartEdit}
-                className="bg-white/5 border border-white/10 text-white/60 py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
-              >
-                Refazer/Editar
-              </button>
-              <button
-                onClick={() => onCancel()}
-                className="bg-emerald-600 text-white py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-2xl shadow-emerald-500/40"
-              >
-                Fechar
-              </button>
+            <div className="pt-8 pb-12">
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={handleStartEdit}
+                  className="bg-white/5 border border-white/10 text-white/60 py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Refazer/Editar
+                </button>
+                <button
+                  onClick={() => onCancel()}
+                  className="bg-emerald-600 text-white py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-2xl shadow-emerald-500/40"
+                >
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2282,7 +2430,9 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                           : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
                           }`}
                       >
-                        {person}
+                        {person === ContactPerson.OWNER ? 'Proprietário' :
+                          person === ContactPerson.TEACHER ? 'Professor' :
+                            person === ContactPerson.STAFF ? 'Secretaria' : 'Ninguém'}
                       </button>
                     ))}
                   </div>
@@ -2429,7 +2579,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 <div className="flex items-center gap-4 pt-4 border-t border-white/5">
                   <button
                     onClick={handleGenerateVoucherFromModal}
-                    className="flex-1 h-12 bg-purple-600/10 text-purple-400 rounded-2xl font-bold hover:bg-purple-600/20 transition-all border border-purple-500/20 flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
+                    className="flex-1 h-12 bg-white/5 text-white/40 rounded-2xl font-bold hover:bg-white/10 transition-all border border-white/5 flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
                   >
                     Gerar Voucher
                   </button>
@@ -2919,7 +3069,7 @@ const AppContent: React.FC = () => {
         {currentUser.role === UserRole.SALES && (
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full"></div>
-            <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[40%] bg-[hsl(262,83%,58%)]/5 blur-[120px] rounded-full"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[40%] bg-zinc-500/5 blur-[120px] rounded-full"></div>
           </div>
         )}
 
@@ -2931,37 +3081,31 @@ const AppContent: React.FC = () => {
             activeTab={activeTab}
             onOpenElevationPrompt={() => setShowElevationPrompt(true)}
           />
-        ) : (
+        ) : activeTab !== 'visit_detail' ? (
           /* Premium Salesperson Header - Native Feel */
-          <header className="sticky top-0 z-40 bg-black/40 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex items-center justify-between shrink-0">
+          <header className="sticky top-0 z-40 bg-black/40 backdrop-blur-xl border-b border-white/5 px-6 py-3 flex items-center justify-between shrink-0">
             <div className="flex items-center space-x-3 transition-transform active:scale-95 cursor-default">
-              <div className="w-10 h-10 rounded-2xl bg-white/5 p-1.5 border border-white/10 flex items-center justify-center">
-                <img src="/oss_logo.jpg" alt="Logo" className="w-full h-full object-contain mix-blend-screen filter brightness-125" />
+              <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
+                <img src="/oss_logo.jpg" alt="Logo" className="w-full h-full object-contain mix-blend-screen filter invert hue-rotate-180 brightness-150 contrast-125" />
               </div>
               <div>
-                <h1 className="text-lg font-black text-white tracking-tight leading-none">BJJVisits</h1>
-                <p className="text-[10px] text-emerald-500/70 font-black uppercase tracking-widest mt-1">Live Dashboard</p>
+                <h1 className="text-base font-black text-white tracking-tight leading-none italic">BJJVisits</h1>
+                <p className="text-[9px] text-emerald-500/70 font-black uppercase tracking-widest mt-0.5">Live Dashboard</p>
               </div>
             </div>
 
             <div className="flex items-center space-x-3">
-              <div className="text-right hidden sm:block">
+              <div className="text-right">
                 <p className="text-xs font-black text-white/90 leading-none">{currentUser.name}</p>
                 <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">Consultor</p>
               </div>
-              <div
-                onClick={logout}
-                className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500/60 active:scale-90 transition-all"
-              >
-                <LogOut size={18} />
-              </div>
             </div>
           </header>
-        )}
+        ) : null}
 
         <div className={cn(
           "flex-1 overflow-y-auto relative z-10 custom-scrollbar",
-          currentUser.role === UserRole.SALES ? "p-6 pb-32" : "p-4 md:p-6 lg:p-8"
+          currentUser.role === UserRole.SALES ? "p-4 pb-44" : "p-4 md:p-6 lg:p-8"
         )}>
           {/* Real-time Toast System (Success/Info/Error for the actor) */}
           {globalToast && (
@@ -2970,7 +3114,7 @@ const AppContent: React.FC = () => {
                 "p-4 rounded-[1.5rem] shadow-2xl border backdrop-blur-xl flex items-center space-x-3",
                 globalToast.type === 'success' ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" :
                   globalToast.type === 'error' ? "bg-red-500/20 border-red-500/30 text-red-400" :
-                    "bg-[hsl(262,83%,58%)]/20 border-[hsl(262,83%,58%)]/30 text-white"
+                    "bg-zinc-800 border-white/10 text-white"
               )}>
                 <div className={cn(
                   "p-2 rounded-xl",
@@ -3001,10 +3145,10 @@ const AppContent: React.FC = () => {
               </div>
               {notifications.filter(n => n.userId === currentUser.id && !n.read).map((n) => (
                 <div key={n.id} className="group relative overflow-hidden bg-gradient-to-r from-neutral-800 to-neutral-800/50 backdrop-blur-xl border border-white/10 rounded-[1.5rem] p-4 flex justify-between items-center shadow-xl animate-in slide-in-from-left-4 duration-500 hover:border-white/20 transition-all">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                   <div className="flex items-center space-x-4 relative z-10">
-                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-purple-400 border border-white/5 group-hover:scale-110 transition-transform">
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-emerald-400 border border-white/5 group-hover:scale-110 transition-transform">
                       <Bell size={18} strokeWidth={2} />
                     </div>
                     <div>

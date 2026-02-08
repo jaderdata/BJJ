@@ -135,24 +135,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }, [visits, filteredEvents]);
 
     // KPIs
-    const activeEventsCount = events.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING).length;
+    const activeEventsCount = events.filter(e =>
+        (e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING) &&
+        !e.name.trim().toUpperCase().endsWith('TESTE')
+    ).length;
 
     const filteredVisits = useMemo(() => {
-        return visits.filter(v =>
-            v.status === VisitStatus.VISITED &&
-            v.finishedAt &&
-            new Date(v.finishedAt).getFullYear().toString() === selectedYear
-        );
-    }, [visits, selectedYear]);
+        return visits.filter(v => {
+            const event = events.find(e => e.id === v.eventId);
+            if (event?.name.trim().toUpperCase().endsWith('TESTE')) return false;
 
-    const filteredVouchers = useMemo(() => vouchers.filter(v => new Date(v.createdAt).getFullYear().toString() === selectedYear), [vouchers, selectedYear]);
+            return v.status === VisitStatus.VISITED &&
+                v.finishedAt &&
+                new Date(v.finishedAt).getFullYear().toString() === selectedYear;
+        });
+    }, [visits, selectedYear, events]);
 
-    const activeEvents = useMemo(() => events.filter(e => e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING), [events]);
+    const filteredVouchers = useMemo(() => {
+        return vouchers.filter(v => {
+            const event = events.find(e => e.id === v.eventId);
+            if (event?.name.trim().toUpperCase().endsWith('TESTE')) return false;
+            return new Date(v.createdAt).getFullYear().toString() === selectedYear;
+        });
+    }, [vouchers, selectedYear, events]);
+
+    const activeEvents = useMemo(() =>
+        events.filter(e =>
+            (e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING) &&
+            !e.name.trim().toUpperCase().endsWith('TESTE')
+        ), [events]);
 
     const pendingVisitsCount = useMemo(() => {
         let count = 0;
         activeEvents.forEach(e => {
-            const visitedInEvent = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED).length;
+            const visitedInEvent = (e.academiesIds || []).filter(aid =>
+                visits.some(v => v.eventId === e.id && v.academyId === aid && v.status === VisitStatus.VISITED)
+            ).length;
             count += Math.max(0, (e.academiesIds?.length || 0) - visitedInEvent);
         });
         return count;
@@ -210,9 +228,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return (
         <div className="space-y-6 p-4">
             {/* Header with Gradient */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-[hsl(262,83%,58%)] via-[hsl(262,83%,48%)] to-[hsl(262,83%,38%)] p-6 rounded-2xl shadow-2xl">
+            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
                 {/* Glassmorphism overlay */}
-                <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-sm"></div>
 
                 {/* Decorative elements */}
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
@@ -292,10 +310,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {
                         label: 'Vouchers Gerados',
                         value: filteredVouchers.length,
-                        gradient: 'from-purple-500 to-pink-500',
-                        bgGlow: 'bg-purple-500/20',
-                        iconBg: 'bg-purple-500/20',
-                        iconColor: 'text-purple-400',
+                        gradient: 'from-emerald-500 to-blue-500',
+                        bgGlow: 'bg-emerald-500/20',
+                        iconBg: 'bg-emerald-500/20',
+                        iconColor: 'text-emerald-400',
                         hasAction: true
                     }
                 ].map((kpi, i) => (
@@ -339,7 +357,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
                 {/* Background decoration */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/10 rounded-full blur-[80px] -ml-24 -mb-24"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/10 rounded-full blur-[80px] -ml-24 -mb-24"></div>
 
                 <div className="relative z-10">
                     {/* Header */}
@@ -452,8 +470,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Bottom Grid - Leaderboard & Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Top Sellers */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
+                <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-sm"></div>
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
 
                     <div className="relative z-10">
                         <div className="flex items-center space-x-2 mb-4">

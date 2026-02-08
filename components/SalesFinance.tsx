@@ -40,22 +40,18 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700">
-            {/* Header - Premium Glassmorphism */}
-            <div className="relative group overflow-hidden bg-gradient-to-br from-[hsl(262,83%,58%)] to-[hsl(262,83%,40%)] p-8 rounded-[2.5rem] shadow-2xl transition-all duration-500">
-                <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]"></div>
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 animate-pulse"></div>
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-[hsl(262,83%,80%)]/10 rounded-full blur-3xl -ml-24 -mb-24"></div>
+            {/* Header - Premium Monochrome/Emerald */}
+            <div className="relative group overflow-hidden bg-neutral-900 border border-white/10 p-8 rounded-[2.5rem] shadow-2xl transition-all duration-500">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
 
                 <div className="relative z-10 space-y-2">
                     <div className="flex items-center space-x-2">
-                        <div className="p-2 bg-white/10 rounded-xl backdrop-blur-md">
-                            <Wallet size={20} className="text-white" />
-                        </div>
-                        <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">Finanças Pessoais</span>
+                        <span className="text-[10px] font-black text-emerald-500/60 uppercase tracking-[0.3em]">Finanças Pessoais</span>
                     </div>
                     <div>
                         <h1 className="text-3xl font-black text-white tracking-tighter italic uppercase">Controle de Verbas</h1>
-                        <p className="text-white/60 text-xs font-medium uppercase tracking-widest mt-1">Gestão de repasses por evento</p>
+                        <p className="text-white/40 text-xs font-medium uppercase tracking-widest mt-1">Gestão de repasses por evento</p>
                     </div>
                 </div>
             </div>
@@ -63,7 +59,6 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
             {/* KPI Section with improved cards */}
             <div className="space-y-6">
                 <div className="flex items-center space-x-2 px-2">
-                    <TrendingUp size={14} className="text-white/20" />
                     <h2 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Resumo do Portfólio</h2>
                 </div>
 
@@ -74,9 +69,6 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
                             <div className="space-y-1">
                                 <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Total Acumulado</p>
                                 <p className="text-4xl font-black text-white italic tracking-tighter tabular-nums">${totalAmount.toFixed(2)}</p>
-                            </div>
-                            <div className="bg-emerald-500/10 text-emerald-400 p-3 rounded-2xl">
-                                <DollarSign size={24} />
                             </div>
                         </div>
                     </div>
@@ -97,7 +89,6 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
             {/* Finance Records List Overhaul */}
             <div className="space-y-6">
                 <div className="flex items-center space-x-2 px-2">
-                    <Clock size={14} className="text-white/20" />
                     <h2 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Histórico de Lançamentos</h2>
                 </div>
 
@@ -124,7 +115,7 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
                                         <div className="flex justify-between items-start">
                                             <div className="space-y-1 max-w-[70%]">
                                                 <div className="flex items-center space-x-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                     <h4 className="text-sm font-black text-white uppercase tracking-tight truncate">
                                                         {event?.name || 'Evento não encontrado'}
                                                     </h4>

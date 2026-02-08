@@ -205,7 +205,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
     const getRoleBadge = (role: UserRole) => {
         switch (role) {
             case UserRole.ADMIN:
-                return { bg: 'bg-purple-500/20', text: 'text-purple-400', label: 'Admin' };
+                return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Admin' };
             case UserRole.SALES:
                 return { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Vendedor' };
             default:

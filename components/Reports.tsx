@@ -118,18 +118,23 @@ export const Reports: React.FC<ReportsProps> = ({
     // Advanced Data Filtering & Transformation
     const filteredVisits = useMemo(() => {
         return visits.filter(v => {
+            const event = events.find(e => e.id === v.eventId);
+            if (event?.name.trim().toUpperCase().endsWith('TESTE')) return false;
+
             const matchesYear = !yearFilter || (v.finishedAt && new Date(v.finishedAt).getFullYear().toString() === yearFilter);
             const matchesEvent = !eventFilter || v.eventId === eventFilter;
             const matchesSales = !salesFilter || v.salespersonId === salesFilter;
             return matchesYear && matchesEvent && matchesSales;
         });
-    }, [visits, yearFilter, eventFilter, salesFilter]);
+    }, [visits, yearFilter, eventFilter, salesFilter, events]);
 
     const filteredVouchers = useMemo(() => {
         return vouchers.filter(v => {
             const visit = visits.find(vis => vis.id === v.visitId);
             const academy = academies.find(a => a.id === v.academyId);
             const event = events.find(e => e.id === v.eventId);
+
+            if (event?.name.trim().toUpperCase().endsWith('TESTE')) return false;
 
             const matchesSearch = !searchTerm ||
                 v.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -154,16 +159,17 @@ export const Reports: React.FC<ReportsProps> = ({
     // 1. Funnel Data (Attribution -> Visit -> Voucher)
     const funnelData = useMemo(() => {
         // Find academies assigned to events in filter
-        const relevantEvents = eventFilter ? events.filter(e => e.id === eventFilter) : events;
+        const relevantEvents = (eventFilter ? events.filter(e => e.id === eventFilter) : events)
+            .filter(e => !e.name.trim().toUpperCase().endsWith('TESTE'));
         const totalAssignedAcademies = relevantEvents.reduce((acc, e) => acc + e.academiesIds.length, 0);
 
         const totalVisits = filteredVisits.length;
         const totalVouchers = filteredVouchers.length;
 
         return [
-            { name: 'Possíveis Atribuições', value: totalAssignedAcademies, color: '#6366f1' },
-            { name: 'Visitas Realizadas', value: totalVisits, color: '#8b5cf6' },
-            { name: 'Vouchers Gerados', value: totalVouchers, color: '#ec4899' }
+            { name: 'Possíveis Atribuições', value: totalAssignedAcademies, color: '#3b82f6' },
+            { name: 'Visitas Realizadas', value: totalVisits, color: '#10b981' },
+            { name: 'Vouchers Gerados', value: totalVouchers, color: '#0ea5e9' }
         ];
     }, [events, eventFilter, filteredVisits, filteredVouchers]);
 
@@ -314,7 +320,7 @@ export const Reports: React.FC<ReportsProps> = ({
 
             // Header
             doc.setFontSize(20);
-            doc.setTextColor(124, 58, 237); // Purple color
+            doc.setTextColor(16, 185, 129); // Emerald color
             doc.text('Relatório de Vouchers', 14, 20);
 
             doc.setFontSize(10);
@@ -392,7 +398,7 @@ export const Reports: React.FC<ReportsProps> = ({
                 body: tableData,
                 theme: 'striped',
                 headStyles: {
-                    fillColor: [124, 58, 237], // Purple
+                    fillColor: [16, 185, 129], // Emerald
                     textColor: 255,
                     fontStyle: 'bold',
                     fontSize: 9
@@ -511,8 +517,8 @@ export const Reports: React.FC<ReportsProps> = ({
             )}
 
             {/* Header with Gradient */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-[hsl(262,83%,58%)] via-[hsl(262,83%,48%)] to-[hsl(262,83%,38%)] p-6 rounded-2xl shadow-2xl print:hidden">
-                <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl print:hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-sm"></div>
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
 
@@ -559,8 +565,8 @@ export const Reports: React.FC<ReportsProps> = ({
                         label: 'Vouchers Gerados',
                         value: filteredVouchers.length,
                         subValue: `${filteredVisits.length} visitas`,
-                        iconBg: 'bg-purple-500/20',
-                        iconColor: 'text-purple-400'
+                        iconBg: 'bg-emerald-500/20',
+                        iconColor: 'text-emerald-400'
                     },
                     {
                         label: 'Lead Time Médio',
@@ -581,7 +587,7 @@ export const Reports: React.FC<ReportsProps> = ({
 
 
                             <div>
-                                <h3 className="text-xl font-black text-white mb-0.5 tracking-tight group-hover:text-purple-300 transition-colors">
+                                <h3 className="text-xl font-black text-white mb-0.5 tracking-tight group-hover:text-emerald-400 transition-colors">
                                     {kpi.value}
                                 </h3>
                                 <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2 font-mono">
@@ -611,12 +617,12 @@ export const Reports: React.FC<ReportsProps> = ({
                             <AreaChart data={timelineData}>
                                 <defs>
                                     <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                                     </linearGradient>
                                     <linearGradient id="colorVouchers" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -642,7 +648,7 @@ export const Reports: React.FC<ReportsProps> = ({
                                     name="Visitas"
                                     type="monotone"
                                     dataKey="visits"
-                                    stroke="#8b5cf6"
+                                    stroke="#10b981"
                                     strokeWidth={3}
                                     fillOpacity={1}
                                     fill="url(#colorVisits)"
@@ -651,7 +657,7 @@ export const Reports: React.FC<ReportsProps> = ({
                                     name="Vouchers"
                                     type="monotone"
                                     dataKey="vouchers"
-                                    stroke="#ec4899"
+                                    stroke="#0ea5e9"
                                     strokeWidth={3}
                                     fillOpacity={1}
                                     fill="url(#colorVouchers)"
@@ -896,7 +902,7 @@ export const Reports: React.FC<ReportsProps> = ({
                                         return (
                                             <tr key={v.code} className="hover:bg-white/5 transition-colors group">
                                                 <td className="px-4 py-3">
-                                                    <span className="font-mono font-black text-sm text-purple-400 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20 group-hover:border-purple-500/40 transition-all">
+                                                    <span className="font-mono font-black text-sm text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 group-hover:border-emerald-500/40 transition-all">
                                                         {v.code}
                                                     </span>
                                                 </td>
@@ -941,11 +947,11 @@ export const Reports: React.FC<ReportsProps> = ({
                                         const vouchersInGroup = groupVouchers as Voucher[];
                                         return (
                                             <React.Fragment key={groupName}>
-                                                <tr className="bg-white/5 border-l-4 border-purple-500">
+                                                <tr className="bg-white/5 border-l-4 border-emerald-500">
                                                     <td colSpan={5} className="px-4 py-2">
                                                         <div className="flex items-center justify-between">
                                                             <span className="text-xs font-black text-white uppercase tracking-widest">{groupName}</span>
-                                                            <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+                                                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                                                                 {vouchersInGroup.length} vouchers
                                                             </span>
                                                         </div>
@@ -959,7 +965,7 @@ export const Reports: React.FC<ReportsProps> = ({
                                                     return (
                                                         <tr key={v.code} className="hover:bg-white/5 transition-colors group">
                                                             <td className="px-4 py-3">
-                                                                <span className="font-mono font-black text-xs text-white/40 group-hover:text-purple-400 transition-all pl-4">
+                                                                <span className="font-mono font-black text-xs text-white/40 group-hover:text-emerald-400 transition-all pl-4">
                                                                     {v.code}
                                                                 </span>
                                                             </td>
