@@ -14,7 +14,7 @@ export default defineConfig({
         },
         server: {
             deps: {
-                inline: [/html-encoding-sniffer/],
+                inline: [/html-encoding-sniffer/, /@exodus\/bytes/],
             },
         },
     },
