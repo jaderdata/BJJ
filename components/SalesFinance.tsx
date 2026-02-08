@@ -2,9 +2,12 @@ import React from 'react';
 import {
     CheckCircle2,
     Clock,
-    DollarSign
+    DollarSign,
+    Wallet,
+    TrendingUp
 } from 'lucide-react';
 import { FinanceRecord, FinanceStatus, Event } from '../types';
+import { cn } from '../lib/utils';
 
 interface SalesFinanceProps {
     finance: FinanceRecord[];
@@ -20,13 +23,13 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
     const getStatusBadge = (status: FinanceStatus) => {
         switch (status) {
             case FinanceStatus.RECEIVED:
-                return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Concluído' };
+                return { bg: 'bg-emerald-500/10', text: 'text-emerald-400', label: 'Concluído', icon: <CheckCircle2 size={12} /> };
             case FinanceStatus.PAID:
-                return { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Pago' };
+                return { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Pago', icon: <Clock size={12} /> };
             case FinanceStatus.PENDING:
-                return { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Pendente' };
+                return { bg: 'bg-amber-500/10', text: 'text-amber-400', label: 'Pendente', icon: <Clock size={12} /> };
             default:
-                return { bg: 'bg-white/10', text: 'text-white/60', label: status };
+                return { bg: 'bg-white/5', text: 'text-white/40', label: status, icon: <Clock size={12} /> };
         }
     };
 
@@ -36,148 +39,155 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
     const pendingAmount = finance.filter(f => f.status === FinanceStatus.PENDING).reduce((sum, f) => sum + f.amount, 0);
 
     return (
-        <div className="space-y-6 p-4">
-            {/* Header */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-[hsl(262,83%,58%)] via-[hsl(262,83%,48%)] to-[hsl(262,83%,38%)] p-6 rounded-2xl shadow-2xl">
-                <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700">
+            {/* Header - Premium Glassmorphism */}
+            <div className="relative group overflow-hidden bg-gradient-to-br from-[hsl(262,83%,58%)] to-[hsl(262,83%,40%)] p-8 rounded-[2.5rem] shadow-2xl transition-all duration-500">
+                <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 animate-pulse"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-[hsl(262,83%,80%)]/10 rounded-full blur-3xl -ml-24 -mb-24"></div>
 
-                <div className="relative z-10">
-                    <h1 className="text-xl md:text-2xl font-black text-white mb-1 tracking-tight">
-                        Controle Financeiro
-                    </h1>
-                    <p className="text-white/80 text-sm font-medium">
-                        Gestão de pagamentos e recebimentos
-                    </p>
+                <div className="relative z-10 space-y-2">
+                    <div className="flex items-center space-x-2">
+                        <div className="p-2 bg-white/10 rounded-xl backdrop-blur-md">
+                            <Wallet size={20} className="text-white" />
+                        </div>
+                        <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">Finanças Pessoais</span>
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-black text-white tracking-tighter italic uppercase">Controle de Verbas</h1>
+                        <p className="text-white/60 text-xs font-medium uppercase tracking-widest mt-1">Gestão de repasses por evento</p>
+                    </div>
                 </div>
             </div>
 
-            {/* KPIs */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {[
-                    {
-                        label: 'Total',
-                        value: `$${totalAmount.toFixed(2)}`,
-                        icon: DollarSign,
-                        gradient: 'from-purple-500 to-pink-500',
-                        bgGlow: 'bg-purple-500/20',
-                        iconBg: 'bg-purple-500/20',
-                        iconColor: 'text-purple-400'
-                    },
-                    {
-                        label: 'Recebido',
-                        value: `$${receivedAmount.toFixed(2)}`,
-                        icon: CheckCircle2,
-                        gradient: 'from-emerald-500 to-teal-500',
-                        bgGlow: 'bg-emerald-500/20',
-                        iconBg: 'bg-emerald-500/20',
-                        iconColor: 'text-emerald-400'
-                    },
-                    {
-                        label: 'Pendente',
-                        value: `$${pendingAmount.toFixed(2)}`,
-                        icon: Clock,
-                        gradient: 'from-amber-500 to-orange-500',
-                        bgGlow: 'bg-amber-500/20',
-                        iconBg: 'bg-amber-500/20',
-                        iconColor: 'text-amber-400'
-                    }
-                ].map((kpi, i) => (
-                    <div
-                        key={i}
-                        className="group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
-                    >
-                        <div className={`absolute -top-24 -right-24 w-48 h-48 ${kpi.bgGlow} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+            {/* KPI Section with improved cards */}
+            <div className="space-y-6">
+                <div className="flex items-center space-x-2 px-2">
+                    <TrendingUp size={14} className="text-white/20" />
+                    <h2 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Resumo do Portfólio</h2>
+                </div>
 
-                        <div className="relative z-10">
-                            {/* <div className={`inline-flex p-2 rounded-xl ${kpi.iconBg} ${kpi.iconColor} mb-2 group-hover:scale-110 transition-transform duration-300`}>
-                                <kpi.icon size={18} strokeWidth={2} />
-                            </div> */}
-
-                            <div>
-                                <h3 className="text-2xl font-black text-white mb-1 tracking-tight">
-                                    {kpi.value}
-                                </h3>
-                                <p className="text-xs font-bold text-white/60 uppercase tracking-wider">
-                                    {kpi.label}
-                                </p>
+                <div className="grid grid-cols-1 gap-4">
+                    <div className="relative group overflow-hidden bg-neutral-900/50 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-xl transition-all duration-500 hover:border-emerald-500/20">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-emerald-500/10 transition-colors"></div>
+                        <div className="flex items-end justify-between relative z-10">
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Total Acumulado</p>
+                                <p className="text-4xl font-black text-white italic tracking-tighter tabular-nums">${totalAmount.toFixed(2)}</p>
+                            </div>
+                            <div className="bg-emerald-500/10 text-emerald-400 p-3 rounded-2xl">
+                                <DollarSign size={24} />
                             </div>
                         </div>
                     </div>
-                ))}
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white/5 border border-white/5 rounded-[1.5rem] p-5 space-y-1">
+                            <p className="text-[9px] font-black text-emerald-500/40 uppercase tracking-[0.15em]">Confirmado</p>
+                            <p className="text-xl font-black text-white tracking-tighter">${receivedAmount.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-white/5 border border-white/5 rounded-[1.5rem] p-5 space-y-1 text-right">
+                            <p className="text-[9px] font-black text-amber-500/40 uppercase tracking-[0.15em] text-right">A Receber</p>
+                            <p className="text-xl font-black text-white tracking-tighter">${pendingAmount.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Finance Records */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {finance.length === 0 ? (
-                    <div className="col-span-2 text-center py-20">
-                        <div className="inline-flex p-4 bg-white/5 rounded-2xl mb-4 font-bold text-xl text-white/20">
-                            $
-                        </div>
-                        <p className="text-white/40 font-medium">Nenhum registro financeiro</p>
-                    </div>
-                ) : (
-                    finance.map(f => {
-                        const badge = getStatusBadge(f.status);
-                        const event = events.find(e => e.id === f.eventId);
+            {/* Finance Records List Overhaul */}
+            <div className="space-y-6">
+                <div className="flex items-center space-x-2 px-2">
+                    <Clock size={14} className="text-white/20" />
+                    <h2 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Histórico de Lançamentos</h2>
+                </div>
 
-                        return (
-                            <div
-                                key={f.id}
-                                className="group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500"
-                            >
-                                {/* Glow effect */}
-                                <div className={`absolute -top-24 -right-24 w-48 h-48 ${f.status === FinanceStatus.RECEIVED ? 'bg-emerald-500/20' :
-                                    f.status === FinanceStatus.PAID ? 'bg-blue-500/20' :
-                                        'bg-amber-500/20'
-                                    } rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
-
-                                <div className="relative z-10">
-                                    {/* Header */}
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className={`p-2 ${badge.bg} rounded-xl`}>
-                                            {/* Icon removed */}
-                                        </div>
-                                        <span className={`text-xs font-black px-2 py-1 rounded-lg uppercase ${badge.bg} ${badge.text}`}>
-                                            {badge.label}
-                                        </span>
-                                    </div>
-
-                                    {/* Content */}
-                                    <h4 className="text-base font-black text-white mb-1">
-                                        {event?.name || 'Evento não encontrado'}
-                                    </h4>
-                                    <p className="text-3xl font-black text-white mb-4 tabular-nums">
-                                        ${f.amount.toFixed(2)}
-                                    </p>
-
-                                    {/* Action Button */}
-                                    {f.status === FinanceStatus.PAID && (
-                                        <button
-                                            onClick={() => onConfirm(f.id)}
-                                            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-emerald-500/50 flex items-center justify-center space-x-2"
-                                        >
-                                            <span>Confirmar Recebimento</span>
-                                        </button>
-                                    )}
-
-                                    {f.status === FinanceStatus.RECEIVED && (
-                                        <div className="w-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 py-3 rounded-xl font-bold text-center text-xs flex items-center justify-center space-x-2">
-                                            <span>RECEBIDO E CONCLUÍDO</span>
-                                        </div>
-                                    )}
-
-                                    {f.status === FinanceStatus.PENDING && (
-                                        <div className="w-full bg-amber-500/10 border border-amber-500/20 text-amber-400 py-3 rounded-xl font-bold text-center text-xs flex items-center justify-center space-x-2">
-                                            <span>AGUARDANDO PAGAMENTO</span>
-                                        </div>
-                                    )}
-                                </div>
+                <div className="space-y-4">
+                    {finance.length === 0 ? (
+                        <div className="bg-neutral-900/50 border border-white/5 rounded-[2.5rem] py-20 flex flex-col items-center space-y-4 text-center">
+                            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-white/10 border border-white/5">
+                                <DollarSign size={32} strokeWidth={1} />
                             </div>
-                        );
-                    })
-                )}
+                            <p className="text-xs font-black text-white/20 uppercase tracking-widest leading-relaxed px-10">Nenhum registro financeiro<br />atribuído ao seu perfil.</p>
+                        </div>
+                    ) : (
+                        finance.map((f, idx) => {
+                            const badge = getStatusBadge(f.status);
+                            const event = events.find(e => e.id === f.eventId);
+
+                            return (
+                                <div
+                                    key={f.id}
+                                    className="group relative overflow-hidden bg-neutral-900/50 backdrop-blur-xl border border-white/10 rounded-[2.5rem] shadow-xl transition-all duration-500 hover:border-white/20 animate-in slide-in-from-bottom-4"
+                                    style={{ animationDelay: `${idx * 100}ms` }}
+                                >
+                                    <div className="p-6 relative z-10 space-y-6">
+                                        <div className="flex justify-between items-start">
+                                            <div className="space-y-1 max-w-[70%]">
+                                                <div className="flex items-center space-x-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                                                    <h4 className="text-sm font-black text-white uppercase tracking-tight truncate">
+                                                        {event?.name || 'Evento não encontrado'}
+                                                    </h4>
+                                                </div>
+                                                <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest truncate">
+                                                    Referente ao projeto alocado
+                                                </p>
+                                            </div>
+                                            <div className={cn(
+                                                "flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                                                badge.bg, badge.text, "border-white/5"
+                                            )}>
+                                                {badge.icon}
+                                                <span>{badge.label}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-end justify-between">
+                                            <div className="space-y-1">
+                                                <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Verba Destinada</p>
+                                                <p className="text-3xl font-black text-white italic tracking-tighter tabular-nums">
+                                                    ${f.amount.toFixed(2)}
+                                                </p>
+                                            </div>
+
+                                            <div className="text-right">
+                                                <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Atualizado em</p>
+                                                <p className="text-[10px] font-bold text-white/40 mt-1">
+                                                    {new Date(f.updatedAt || f.createdAt).toLocaleDateString('pt-BR')}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Action Button Integrated */}
+                                        {f.status === FinanceStatus.PAID && (
+                                            <button
+                                                onClick={() => onConfirm(f.id)}
+                                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center space-x-3 active:scale-[0.98]"
+                                            >
+                                                <CheckCircle2 size={18} strokeWidth={3} />
+                                                <span>Confirmar Recebimento</span>
+                                            </button>
+                                        )}
+
+                                        {f.status === FinanceStatus.RECEIVED && (
+                                            <div className="w-full bg-white/5 border border-white/5 text-white/40 h-12 rounded-2xl font-black text-[9px] uppercase tracking-[0.3em] flex items-center justify-center space-x-2">
+                                                <CheckCircle2 size={14} className="opacity-40" />
+                                                <span>Transação Finalizada</span>
+                                            </div>
+                                        )}
+
+                                        {f.status === FinanceStatus.PENDING && (
+                                            <div className="w-full bg-amber-500/10 border border-amber-500/10 text-amber-500/60 h-12 rounded-2xl font-black text-[9px] uppercase tracking-[0.3em] flex items-center justify-center space-x-2">
+                                                <Clock size={14} className="opacity-40 animate-pulse" />
+                                                <span>Aguardando Lançamento Admin</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
             </div>
         </div>
     );

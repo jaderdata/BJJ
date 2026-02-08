@@ -128,12 +128,14 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                 <div></div>
                                 <div className="flex items-center space-x-1">
                                     <button
+                                        aria-label="Editar Academia"
                                         onClick={() => openEditModal(academy)}
                                         className="p-1.5 text-white/40 hover:text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all"
                                     >
                                         <Edit3 size={14} strokeWidth={2} />
                                     </button>
                                     <button
+                                        aria-label="Excluir Academia"
                                         onClick={() => handleDelete(academy.id, academy.name)}
                                         className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
                                     >

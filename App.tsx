@@ -29,7 +29,9 @@ import {
   Loader2,
   Play,
   Image as ImageIcon,
-  Upload
+  Upload,
+  LogOut,
+  Wallet
 } from 'lucide-react';
 import {
   User,
@@ -1134,27 +1136,23 @@ const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any, events
 
 
 const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visits: Visit[], notifications: any, onDismissNotif: any, onSelectAcademy: any, currentUserId: string }> = ({ events, academies, visits, notifications, onDismissNotif, onSelectAcademy, currentUserId }) => {
-  // Calculate global progress for the salesperson
   const totalAcademies = events.reduce((acc, e) => acc + (e.academiesIds?.length || 0), 0);
-
-  // completedVisitsCount should be the count of unique assignments that have been visited
   const completedVisitsCount = events.reduce((acc, e) => {
     const visitedInEvent = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED);
     const uniqueVisitedIds = new Set(visitedInEvent.map(v => v.academyId));
-    // Somente contamos academias que realmente fazem parte deste evento
     const validVisitedCount = Array.from(uniqueVisitedIds).filter(aid => e.academiesIds.includes(aid)).length;
     return acc + validVisitedCount;
   }, 0);
 
-  // Check for active/pending visits for this user
   const activeVisit = visits.find(v => v.salespersonId === currentUserId && v.status === VisitStatus.PENDING);
-  const isOverdue = activeVisit && activeVisit.startedAt && (Date.now() - new Date(activeVisit.startedAt).getTime() > 3600000); // 1 hour
+  const isOverdue = activeVisit && activeVisit.startedAt && (Date.now() - new Date(activeVisit.startedAt).getTime() > 3600000);
 
   const handleAcademyClick = (eventId: string, academyId: string) => {
-    // Rule: Cannot start/open another visit if one is already pending (unless it's the same one)
     if (activeVisit) {
       if (activeVisit.academyId !== academyId || activeVisit.eventId !== eventId) {
-        alert("Você já tem uma visita em andamento! Por favor, finalize a visita atual antes de iniciar outra.");
+        toast.error("Você já tem uma visita em andamento!", {
+          description: "Finalize a visita atual antes de iniciar outra."
+        });
         return;
       }
     }
@@ -1162,125 +1160,241 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
   };
 
   return (
-    <div className="space-y-6 pb-20"> {/* pb-20 to ensure content is above bottom nav */}
+    <div className="space-y-10 pb-40 animate-in fade-in slide-in-from-bottom-5 duration-700">
 
-      {/* Alert for Overdue Visit */}
-      {isOverdue && (
-        <div className="bg-red-500/20 border border-red-500/50 p-4 rounded-2xl animate-pulse">
-          <div className="flex items-start space-x-3">
-            <div className="bg-red-500/20 p-2 rounded-full">
-              <AlertCircle size={24} className="text-red-500" />
+      {/* Dynamic Header Badge for Active Tasks - Premium Glassmorphism */}
+      {activeVisit && (
+        <div
+          onClick={() => handleAcademyClick(activeVisit.eventId, activeVisit.academyId)}
+          className={cn(
+            "relative overflow-hidden p-6 rounded-[2.5rem] border backdrop-blur-3xl cursor-pointer group transition-all duration-500 hover:-translate-y-1 active:scale-[0.98] shadow-2xl",
+            isOverdue
+              ? "bg-red-500/10 border-red-500/30 shadow-red-500/20"
+              : "bg-emerald-500/15 border-emerald-500/30 shadow-emerald-500/20"
+          )}
+        >
+          {/* Animated decorative glow */}
+          <div className={cn(
+            "absolute inset-0 bg-gradient-to-r transition-opacity duration-1000",
+            isOverdue ? "from-red-500/10 to-transparent" : "from-emerald-500/10 to-transparent"
+          )} />
+
+          <div className="flex items-center space-x-5 relative z-10">
+            <div className={cn(
+              "w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-2xl transition-transform duration-500 group-hover:scale-110",
+              isOverdue ? "bg-red-500 text-white" : "bg-emerald-500 text-white shadow-emerald-500/40"
+            )}>
+              {isOverdue ? <AlertCircle size={32} className="animate-pulse" /> : <Play size={32} fill="currentColor" className="ml-1" />}
             </div>
-            <div>
-              <h4 className="font-bold text-red-500 text-lg">Visita Excedeu 1 Hora!</h4>
-              <p className="text-red-400 text-sm mt-1">
-                Sua visita na academia <span className="font-black">{academies.find(a => a.id === activeVisit.academyId)?.name}</span> está aberta há muito tempo.
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-2">
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em]",
+                  isOverdue ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
+                )}>
+                  {isOverdue ? "Crítico" : "Em Andamento"}
+                </span>
+                {isOverdue && <span className="text-[10px] font-black text-red-500 animate-pulse">⏰ HÁ +1H</span>}
+              </div>
+              <h4 className="text-xl font-black text-white tracking-tight mt-1 truncate">
+                {academies.find(a => a.id === activeVisit.academyId)?.name}
+              </h4>
+              <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mt-1">
+                Toque para continuar o atendimento
               </p>
-              <p className="text-red-300 text-xs mt-2 font-bold uppercase tracking-wider">
-                Por favor, finalize a visita agora.
-              </p>
-              <button
-                onClick={() => handleAcademyClick(activeVisit.eventId, activeVisit.academyId)}
-                className="mt-3 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg transition-colors"
-              >
-                Ir para Visita
-              </button>
             </div>
+            <ChevronRight size={24} className={cn("transition-transform group-hover:translate-x-2", isOverdue ? "text-red-500/40" : "text-emerald-500/40")} />
           </div>
         </div>
       )}
 
-      <div className="bg-neutral-800 p-4 rounded-2xl border border-neutral-700 shadow-sm">
-        <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2">Seu Progresso de Visitas</h3>
-        <ProgressBar total={totalAcademies} completed={completedVisitsCount} />
+      {/* Hero Stats Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between px-2">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-black text-white tracking-tighter italic uppercase">Desempenho</h2>
+            <p className="text-[10px] text-white/30 font-black uppercase tracking-[0.2em]">Meta de Visitas do Evento</p>
+          </div>
+          <div className="text-right">
+            <span className="text-3xl font-black text-emerald-500 italic tracking-tighter">
+              {Math.round((completedVisitsCount / (totalAcademies || 1)) * 100)}%
+            </span>
+          </div>
+        </div>
+
+        <div className="relative group p-1">
+          <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/20 to-emerald-500/20 rounded-[2.5rem] blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+          <ProgressBar total={totalAcademies} completed={completedVisitsCount} className="relative z-10 h-4 rounded-full bg-white/5 border border-white/10" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 px-2">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">Total Alocado</p>
+            <p className="text-xl font-black text-white mt-1">{totalAcademies}</p>
+          </div>
+          <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 text-right">
+            <p className="text-[9px] font-black text-emerald-500/30 uppercase tracking-widest text-right">Concluídos</p>
+            <p className="text-xl font-black text-emerald-500 mt-1">{completedVisitsCount}</p>
+          </div>
+        </div>
       </div>
 
-      {events.map(e => {
-        const allAcademies = e.academiesIds.map(aid => academies.find(a => a.id === aid)).filter(Boolean) as Academy[];
-        const completedIds = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED).map(v => v.academyId);
-        const pendingAcademies = allAcademies.filter(a => !completedIds.includes(a.id));
-        const finishedAcademies = allAcademies.filter(a => completedIds.includes(a.id));
+      <div className="space-y-6">
+        <div className="flex items-center space-x-3 px-2">
+          <div className="h-px flex-1 bg-white/5"></div>
+          <div className="flex items-center space-x-2">
+            <CalendarDays size={14} className="text-white/20" />
+            <h2 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Cronograma Ativo</h2>
+          </div>
+          <div className="h-px flex-1 bg-white/5"></div>
+        </div>
 
-        return (
-          <div key={e.id} className="bg-neutral-800 rounded-2xl border border-neutral-700 overflow-hidden shadow-sm">
-            <div className="bg-neutral-950 p-4 text-white font-bold flex items-center justify-between">
-              <div className="flex items-center">
-                <span className="truncate max-w-[200px]">{e.name}</span>
-              </div>
-              <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${e.status === EventStatus.IN_PROGRESS ? 'bg-emerald-900/30 text-emerald-400' : 'bg-neutral-800 text-neutral-300'}`}>
-                {e.status === EventStatus.IN_PROGRESS ? 'ATIVO' : e.status}
-              </span>
+        {events.length === 0 ? (
+          <div className="bg-neutral-900/50 border border-white/5 rounded-[3rem] p-16 text-center space-y-6 animate-in zoom-in-95 duration-500">
+            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto text-white/10 border border-white/5">
+              <CalendarDays size={40} strokeWidth={1} />
             </div>
-            <div className="p-4 space-y-6">
-              <div>
-                <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 flex items-center">
-                  <span className="mr-1">Pendentes</span>
-                  <span className="bg-neutral-700 text-white px-1.5 py-0.5 rounded text-[10px]">{pendingAcademies.length}</span>
-                </h4>
-                <div className="grid grid-cols-1 gap-3">
-                  {pendingAcademies.map(a => {
-                    // Check if this specific academy is the active one
-                    const isActive = activeVisit?.academyId === a.id && activeVisit?.eventId === e.id;
-
-                    return (
-                      <div key={a.id} onClick={() => handleAcademyClick(e.id, a.id)} className={`p-4 flex justify-between items-center bg-neutral-700/30 rounded-xl active:bg-neutral-700 active:scale-[0.98] cursor-pointer group transition-all border ${isActive ? 'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-900/10' : 'border-neutral-700 hover:border-neutral-500'}`}>
-                        <div className="flex items-center space-x-3 w-full">
-                          <div className={`p-2.5 rounded-xl shrink-0 font-bold text-xs uppercase ${isActive ? 'bg-emerald-500 text-white' : 'bg-neutral-800 text-neutral-400'}`}>
-                            {isActive ? 'ABERTA' : 'ACAD'}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-bold text-white text-sm truncate">{a.name}</p>
-                            <p className="text-xs text-neutral-400 truncate">{a.city} • <span className="text-neutral-500">{a.responsible}</span></p>
-                            {isActive && <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mt-1 animate-pulse">Visita em Andamento</p>}
-                          </div>
-                        </div>
-                        <ChevronRight size={18} className="text-neutral-500 shrink-0" />
-                      </div>
-                    );
-                  })}
-                  {pendingAcademies.length === 0 && <p className="text-center text-xs text-neutral-500 italic py-2">Nenhuma academia pendente neste evento.</p>}
-                </div>
-              </div>
-
-              {finishedAcademies.length > 0 && (
-                <div className="pt-4 border-t border-neutral-700">
-                  <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 flex items-center">
-                    <span className="mr-1">Concluídas</span>
-                    <span className="bg-emerald-900/30 text-emerald-500 px-1.5 py-0.5 rounded text-[10px]">{finishedAcademies.length}</span>
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {finishedAcademies.map(a => {
-                      const visit = visits.find(v => v.eventId === e.id && v.academyId === a.id);
-                      return (
-                        <div key={a.id} onClick={() => handleAcademyClick(e.id, a.id)} className="p-3 flex justify-between items-center bg-neutral-800/50 rounded-xl border border-neutral-800">
-                          <div className="flex items-center space-x-3 min-w-0">
-                            <div className="p-1.5 rounded-lg bg-emerald-900/10 text-emerald-600/50 font-bold text-[10px]">
-                              OK
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-white text-sm opacity-50 truncate">{a.name}</p>
-                              <div className="flex items-center space-x-2 mt-0.5">
-                                {visit?.temperature && (
-                                  <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${visit.temperature === AcademyTemperature.HOT ? 'bg-red-900/20 text-red-500/70' : 'bg-neutral-900/30 text-neutral-600'}`}>
-                                    {visit.temperature}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+            <div className="space-y-2">
+              <p className="text-lg font-black text-white italic uppercase tracking-tight">Roteiro Vazio</p>
+              <p className="text-xs text-white/30 max-w-[200px] mx-auto leading-relaxed">Aguarde a atribuição de novos eventos pelos administradores.</p>
             </div>
           </div>
-        );
-      })}
+        ) : (
+          <div className="space-y-8">
+            {events.map((e, idx) => {
+              const allAcademies = e.academiesIds.map(aid => academies.find(a => a.id === aid)).filter(Boolean) as Academy[];
+              const completedIds = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED).map(v => v.academyId);
+              const pendingAcademies = allAcademies.filter(a => !completedIds.includes(a.id));
+              const finishedAcademies = allAcademies.filter(a => completedIds.includes(a.id));
+              const progress = Math.round((completedIds.length / (allAcademies.length || 1)) * 100);
 
-      {/* Spacer for bottom nav */}
-      <div className="h-12"></div>
+              return (
+                <div
+                  key={e.id}
+                  className="group relative animate-in slide-in-from-bottom-8 duration-700"
+                  style={{ animationDelay: `${idx * 150}ms` }}
+                >
+                  {/* Event Card Header - Integrated Feel */}
+                  <div className="mb-4 flex items-end justify-between px-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></span>
+                        <h3 className="text-lg font-black text-white italic uppercase tracking-tight">{e.name}</h3>
+                      </div>
+                      <p className="text-[9px] text-white/20 font-black uppercase tracking-[0.2em]">{e.city} • {e.state}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-1">Progresso</span>
+                      <div className="h-1 w-24 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500" style={{ width: `${progress}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-neutral-900/50 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all duration-500 group-hover:border-white/20">
+                    {/* Event Content */}
+                    <div className="p-2 space-y-2">
+                      {/* Pendentes */}
+                      {pendingAcademies.map(a => {
+                        const isActive = activeVisit?.academyId === a.id && activeVisit?.eventId === e.id;
+                        return (
+                          <div
+                            key={a.id}
+                            onClick={() => handleAcademyClick(e.id, a.id)}
+                            className={cn(
+                              "relative group m-1 p-4 flex justify-between items-center rounded-2xl cursor-pointer transition-all duration-500 active:scale-[0.98]",
+                              isActive
+                                ? "bg-emerald-500 text-white shadow-2xl shadow-emerald-500/20"
+                                : "bg-white/5 hover:bg-white/[0.08] text-white/90 border border-white/5"
+                            )}
+                          >
+                            <div className="flex items-center space-x-4 min-w-0">
+                              <div className={cn(
+                                "w-12 h-12 rounded-xl flex items-center justify-center font-black transition-all duration-500",
+                                isActive ? "bg-white/10" : "bg-white/5 text-white/20"
+                              )}>
+                                {isActive ? (
+                                  <div className="relative">
+                                    <Loader2 className="animate-spin" size={20} />
+                                    <div className="absolute inset-0 bg-white blur-md opacity-20"></div>
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] uppercase tracking-tighter">🥋</span>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className={cn("font-black text-sm tracking-tight truncate uppercase", isActive ? "text-white" : "text-white/80")}>{a.name}</p>
+                                <div className="flex items-center space-x-2 mt-0.5">
+                                  <p className={cn("text-[9px] font-bold truncate opacity-60 uppercase tracking-widest", isActive ? "text-white" : "text-white/40")}>
+                                    {a.responsible}
+                                  </p>
+                                  <span className="text-[8px] opacity-20">•</span>
+                                  <p className={cn("text-[9px] font-bold opacity-60 uppercase tracking-widest", isActive ? "text-white" : "text-white/40")}>
+                                    {a.city}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className={cn(
+                              "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
+                              isActive ? "bg-white/10" : "bg-white/5 group-hover:bg-white/10"
+                            )}>
+                              <ChevronRight size={18} strokeWidth={3} className={cn("transition-transform group-active:translate-x-1", isActive ? "text-white" : "text-white/20")} />
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {pendingAcademies.length === 0 && (
+                        <div className="py-12 bg-emerald-500/5 m-1 rounded-[2rem] border border-dashed border-emerald-500/10 flex flex-col items-center justify-center text-center space-y-3">
+                          <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500/40">
+                            <CheckCircle2 size={24} />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs font-black text-emerald-500/40 uppercase tracking-[0.2em]">Roteiro Concluído</p>
+                            <p className="text-[9px] text-emerald-500/20 font-black uppercase tracking-widest">Nenhuma academia pendente neste evento</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Concluídas (Simplified list with better styling) */}
+                      {finishedAcademies.length > 0 && (
+                        <div className="m-1 pt-6 pb-2 border-t border-white/5">
+                          <div className="flex items-center justify-between px-3 mb-4">
+                            <h4 className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Visitas Realizadas</h4>
+                            <span className="text-[9px] font-black text-emerald-500/40 uppercase bg-emerald-500/5 px-2 py-0.5 rounded-full">
+                              {finishedAcademies.length} Academias
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 px-2">
+                            {finishedAcademies.map(a => {
+                              const visit = visits.find(v => v.eventId === e.id && v.academyId === a.id);
+                              return (
+                                <div
+                                  key={a.id}
+                                  onClick={() => handleAcademyClick(e.id, a.id)}
+                                  className="px-4 py-2 bg-white/[0.03] border border-white/5 rounded-full flex items-center space-x-2 active:scale-95 transition-all group/done hover:bg-white/5"
+                                >
+                                  <div className={cn(
+                                    "w-1.5 h-1.5 rounded-full",
+                                    visit?.temperature === AcademyTemperature.HOT ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] animate-pulse' : 'bg-emerald-500/40'
+                                  )}></div>
+                                  <span className="text-[9px] font-black text-white/30 uppercase tracking-tighter truncate max-w-[100px] group-hover/done:text-white/60 transition-colors">{a.name}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -1577,85 +1691,135 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
 
   const adjust = (c: number) => { if (c > 0) { const code = generateVoucherCode(); setVisit(p => ({ ...p, vouchersGenerated: [...(p.vouchersGenerated || []), code] })); } else setVisit(p => ({ ...p, vouchersGenerated: (p.vouchersGenerated || []).slice(0, -1) })); };
 
-  // Gera o link para a landing page pública
-  // Gera o link para a landing page pública
   const generateShareLink = () => {
-    // Prefer public app URL if configured (for QR codes generated in protected environments)
-    const origin = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
-    const cleanOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
-
-    // We append pathname to handle sub-paths if necessary, but typically with hash routing and custom domains it might just be /
-    // If the VITE_PUBLIC_APP_URL is full domain like "https://app.com", likely we just want to append hash.
-    // However, keeping pathname logic for safety if they are on "https://app.com/app/"
-    const currentPath = window.location.pathname === '/' ? '' : window.location.pathname;
-
-    const baseUrl = cleanOrigin + currentPath;
-    const academyName = encodeURIComponent(academy.name);
-    const codes = encodeURIComponent(visit.vouchersGenerated?.join(',') || '');
+    const baseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
+    const codesStr = visit.vouchersGenerated?.join(',') || '';
     const timestamp = Date.now();
-    return `${baseUrl}/#/public-voucher/${academyName}|${codes}|${timestamp}`;
+    return `${baseUrl}/#/public-voucher/${encodeURIComponent(academy.name)}|${encodeURIComponent(codesStr)}|${timestamp}`;
   };
 
   const handleFinishWithQr = () => {
     setStep('QR_CODE');
   };
 
+  const steps = [
+    { id: 'START', label: 'Início', icon: <Play size={12} /> },
+    { id: 'ACTIVE', label: 'Atendimento', icon: <Edit3 size={12} /> },
+    { id: 'VOUCHERS', label: 'Vouchers', icon: <Ticket size={12} /> },
+    { id: 'QR_CODE', label: 'Resgate', icon: <QrCode size={12} /> },
+    { id: 'SUMMARY', label: 'Resumo', icon: <CheckCircle2 size={12} /> },
+  ];
+
+  const currentStepIndex = steps.findIndex(s => s.id === step);
+
   return (
-    <div className="fixed inset-0 z-[60] bg-[#0f0f0f] overflow-y-auto animate-in slide-in-from-right duration-300 antialiased selection:bg-emerald-500/30">
-      {/* Fixed Header */}
-      <div className="sticky top-0 bg-[#0f0f0f]/80 backdrop-blur-xl p-5 border-b border-white/5 z-10 flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20">
-            <span className="text-emerald-500 font-bold">🥋</span>
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white leading-tight tracking-tight">{academy.name}</h3>
-            <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest">{academy.city} • {academy.state}</p>
-          </div>
-        </div>
-        <button onClick={onCancel} className="bg-neutral-800/50 hover:bg-neutral-800 text-white p-2.5 rounded-2xl transition-all active:scale-90 border border-white/5">
-          <X size={20} strokeWidth={2} />
-        </button>
+    <div className="fixed inset-0 z-[60] bg-[#0a0a0a] overflow-y-auto animate-in slide-in-from-right duration-300 antialiased selection:bg-emerald-500/30 custom-scrollbar">
+      {/* Background Decorative Gradient */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full"></div>
       </div>
 
-      <div className="p-5 pb-40 space-y-6 max-w-lg mx-auto">
+      {/* Fixed Header */}
+      <div className="sticky top-0 bg-black/40 backdrop-blur-xl p-5 border-b border-white/5 z-50 flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
+              <span className="text-emerald-500 font-bold">🥋</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-white leading-tight tracking-tight">{academy.name}</h3>
+              <p className="text-neutral-500 text-[10px] font-black uppercase tracking-[0.2em]">{academy.city} • {academy.state}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (step === 'ACTIVE' && !confirm('Deseja realmente cancelar a visita? O progresso será perdido.')) return;
+              onCancel();
+            }}
+            className="bg-white/5 hover:bg-white/10 text-white/40 hover:text-white p-2.5 rounded-2xl transition-all active:scale-90 border border-white/5"
+          >
+            <X size={20} strokeWidth={2.5} />
+          </button>
+        </div>
 
+        {/* Step Indicator */}
+        <div className="flex items-center justify-between px-2 pt-2">
+          {steps.map((s, idx) => (
+            <div key={s.id} className="flex flex-col items-center space-y-1.5 relative flex-1">
+              <div className={cn(
+                "w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-500 relative z-10",
+                idx <= currentStepIndex ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-white/5 text-white/20 border border-white/5"
+              )}>
+                {idx < currentStepIndex ? <CheckCircle2 size={12} strokeWidth={3} /> : s.icon}
+              </div>
+              <span className={cn(
+                "text-[8px] font-black uppercase tracking-widest transition-colors duration-500",
+                idx <= currentStepIndex ? "text-emerald-500" : "text-white/10"
+              )}>
+                {s.label}
+              </span>
+              {/* Connector line */}
+              {idx < steps.length - 1 && (
+                <div className="absolute top-3 left-[50%] w-full h-[2px] -z-0">
+                  <div className={cn(
+                    "h-full transition-all duration-500",
+                    idx < currentStepIndex ? "bg-emerald-500" : "bg-white/5"
+                  )}></div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
 
+      <div className="p-6 pb-40 space-y-8 max-w-lg mx-auto relative z-10">
         {/* History Card (Context) */}
         {lastVisit && step === 'ACTIVE' && (
-          <div className="glass-card p-5 bg-emerald-500/[0.03] border-emerald-500/10 animate-in fade-in slide-in-from-top-2 duration-500">
-            <div className="flex items-center space-x-2 mb-3">
-              <History size={14} className="text-emerald-500" />
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Última Visita</span>
-              <span className="text-[10px] text-neutral-500">• {new Date(lastVisit.finishedAt!).toLocaleDateString('pt-BR')}</span>
+          <div className="relative group overflow-hidden bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 backdrop-blur-xl border border-emerald-500/20 rounded-[2rem] p-6 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-500">
+            <div className="absolute -top-12 -right-12 w-24 h-24 bg-emerald-500/20 rounded-full blur-3xl opacity-50"></div>
+
+            <div className="flex items-center space-x-2 mb-4 relative z-10">
+              <div className="p-1.5 bg-emerald-500/20 rounded-lg text-emerald-500">
+                <History size={12} strokeWidth={3} />
+              </div>
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] flex-1">Inteligência Anterior</span>
+              <span className="text-[10px] text-white/20 font-bold">• {new Date(lastVisit.finishedAt!).toLocaleDateString('pt-BR')}</span>
             </div>
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                {lastVisit.leftBanner && <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-lg text-[9px] font-bold border border-emerald-500/20">Banner já entregue 🚩</span>}
-                {lastVisit.leftFlyers && <span className="bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded-lg text-[9px] font-bold border border-sky-500/20">Flyers já entregue 📄</span>}
+
+            <div className="space-y-4 relative z-10">
+              <div className="flex flex-wrap gap-2">
+                {lastVisit.leftBanner && <span className="bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-[9px] font-black border border-emerald-500/20 uppercase">Banner Entregue 🚩</span>}
+                {lastVisit.leftFlyers && <span className="bg-white/5 text-white/60 px-2.5 py-1 rounded-full text-[9px] font-black border border-white/10 uppercase">Flyers Entregues 📄</span>}
               </div>
               {lastVisit.summary && (
-                <p className="text-xs text-neutral-400 italic line-clamp-2 leading-relaxed">"{lastVisit.summary}"</p>
+                <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
+                  <p className="text-xs text-white/60 italic leading-relaxed">"{lastVisit.summary}"</p>
+                </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Content Container - removed heavy borders for mobile full screen feel */}
-        <div className="relative">
+        {/* Content Container */}
+        <div className="relative min-h-[400px]">
 
           {step === 'START' && (
-            <div className="flex flex-col items-center justify-center py-12 text-center space-y-8 animate-in zoom-in-95 duration-500">
+            <div className="flex flex-col items-center justify-center py-16 text-center space-y-10 animate-in zoom-in-95 duration-500">
               <div className="relative">
-                <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full"></div>
-                <div className="relative w-24 h-24 bg-neutral-900/50 text-emerald-500 rounded-3xl flex items-center justify-center border border-emerald-500/30 shadow-2xl shadow-emerald-500/20">
-                  <Clock size={40} strokeWidth={1.5} />
+                <div className="absolute inset-0 bg-emerald-500/20 blur-[60px] rounded-full animate-pulse"></div>
+                <div className="relative w-32 h-32 bg-neutral-900 border-2 border-emerald-500/30 text-emerald-500 rounded-[3rem] flex items-center justify-center shadow-2xl shadow-emerald-500/10 transition-transform hover:scale-105 duration-500">
+                  <Play size={48} strokeWidth={1} fill="currentColor" className="ml-1 opacity-20" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Clock size={40} strokeWidth={1.5} className="animate-[spin_10s_linear_infinite]" />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <h4 className="text-2xl font-bold text-white tracking-tight">Iniciar Atendimento</h4>
-                <p className="text-neutral-500 text-sm max-w-xs mx-auto leading-relaxed">Prepare-se para o registro oficial. O tempo de visita será contabilizado a partir do início.</p>
+
+              <div className="space-y-3">
+                <h4 className="text-3xl font-black text-white tracking-tighter">Pronto para a visita?</h4>
+                <p className="text-white/40 text-sm max-w-xs mx-auto leading-relaxed font-medium">O cronômetro iniciará assim que você tocar no botão abaixo. Garanta um registro fiel do seu esforço.</p>
               </div>
+
               <button
                 onClick={() => {
                   const startDetails = {
@@ -1667,174 +1831,205 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                   setStep('ACTIVE');
                   onStart(startDetails);
                 }}
-                className="w-full bg-emerald-600 text-white py-5 rounded-[2rem] font-bold shadow-2xl shadow-emerald-500/20 hover:bg-emerald-500 hover:-translate-y-1 transition-all active:scale-95 text-lg"
+                className="group relative w-full h-20 bg-emerald-600 rounded-[2.5rem] p-1 flex items-center shadow-2xl shadow-emerald-500/20 active:scale-[0.98] transition-all overflow-hidden"
               >
-                Começar Agora 🥋
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="w-full h-full rounded-[2.2rem] border-2 border-white/20 flex items-center justify-center space-x-3 relative z-10 transition-transform group-hover:scale-[0.99]">
+                  <span className="text-white text-xl font-black uppercase tracking-tight">Iniciar Atendimento</span>
+                  <ChevronRight size={24} className="text-white group-hover:translate-x-1 transition-transform" />
+                </div>
               </button>
             </div>
           )}
 
           {step === 'ACTIVE' && (
-            <div className="space-y-6 animate-in fade-in duration-500">
+            <div className="space-y-8 animate-in fade-in duration-500">
               {/* Card Conversa */}
-              <div className="glass-card p-6 space-y-4">
-                <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                  Conversa com <span className="text-red-400 ml-1">*</span>
-                </label>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 px-1">
+                  <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                  <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Pessoa de Contato <span className="text-red-500">*</span></label>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {[ContactPerson.OWNER, ContactPerson.TEACHER, ContactPerson.STAFF, ContactPerson.NOBODY].map(person => (
+                  {[
+                    { val: ContactPerson.OWNER, label: 'Proprietário', icon: '👑' },
+                    { val: ContactPerson.TEACHER, label: 'Professor', icon: '👤' },
+                    { val: ContactPerson.STAFF, label: 'Secretaria', icon: '💼' },
+                    { val: ContactPerson.NOBODY, label: 'Ninguém', icon: '❌' }
+                  ].map(p => (
                     <button
-                      key={person}
-                      onClick={() => setVisit(p => ({ ...p, contactPerson: person }))}
-                      className={`py-4 rounded-2xl font-bold transition-all border text-sm ${visit.contactPerson === person ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20' : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'}`}
+                      key={p.val}
+                      onClick={() => setVisit(v => ({ ...v, contactPerson: p.val }))}
+                      className={cn(
+                        "group relative overflow-hidden py-5 px-4 rounded-[2rem] border transition-all duration-300 flex flex-col items-center justify-center space-y-2 active:scale-95",
+                        visit.contactPerson === p.val
+                          ? "bg-emerald-500/10 border-emerald-500/30 shadow-lg shadow-emerald-500/10"
+                          : "bg-white/5 border-white/5 text-white/40 hover:border-white/10"
+                      )}
                     >
-                      {person}
+                      <span className={cn("text-2xl transition-transform duration-500 group-hover:scale-110", visit.contactPerson === p.val ? "opacity-100" : "opacity-30")}>{p.icon}</span>
+                      <span className={cn("text-[11px] font-black uppercase tracking-wider", visit.contactPerson === p.val ? "text-emerald-400" : "text-white/20")}>{p.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Card Temperatura */}
-              <div className="glass-card p-6 space-y-4">
-                <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                  Temperatura <span className="text-red-400 ml-1">*</span>
-                </label>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 px-1">
+                  <div className="w-1 h-4 bg-[hsl(262,83%,58%)] rounded-full"></div>
+                  <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Temperatura da Oportunidade <span className="text-red-500">*</span></label>
+                </div>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { value: AcademyTemperature.COLD, label: 'Fria ❄️', color: 'blue' },
-                    { value: AcademyTemperature.WARM, label: 'Morna 🌤️', color: 'orange' },
-                    { value: AcademyTemperature.HOT, label: 'Quente 🔥', color: 'red' }
+                    { value: AcademyTemperature.COLD, label: 'Fria', icon: '❄️', color: 'blue' },
+                    { value: AcademyTemperature.WARM, label: 'Morna', icon: '🌤️', color: 'amber' },
+                    { value: AcademyTemperature.HOT, label: 'Quente', icon: '🔥', color: 'red' }
                   ].map(t => (
                     <button
                       key={t.value}
                       onClick={() => setVisit(p => ({ ...p, temperature: t.value }))}
-                      className={`py-4 rounded-2xl font-bold transition-all border text-[11px] ${visit.temperature === t.value
-                        ? t.color === 'blue' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
-                          : t.color === 'orange' ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-600/20'
-                            : 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20'
-                        : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'}`}
+                      className={cn(
+                        "group py-5 rounded-[2rem] border transition-all duration-500 flex flex-col items-center justify-center space-y-2 active:scale-95",
+                        visit.temperature === t.value
+                          ? t.color === 'blue' ? 'bg-blue-500/10 border-blue-500/30'
+                            : t.color === 'amber' ? 'bg-amber-500/10 border-amber-500/30'
+                              : 'bg-red-500/10 border-red-500/30'
+                          : 'bg-white/5 border-white/5 text-white/40'
+                      )}
                     >
-                      {t.label}
+                      <span className={cn("text-2xl transition-transform duration-500 group-hover:scale-110", visit.temperature === t.value ? "opacity-100" : "opacity-30")}>{t.icon}</span>
+                      <span className={cn(
+                        "text-[10px] font-black uppercase tracking-wider",
+                        visit.temperature === t.value
+                          ? t.color === 'blue' ? 'text-blue-400' : t.color === 'amber' ? 'text-amber-400' : 'text-red-400'
+                          : "text-white/20"
+                      )}>{t.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Card Resumo */}
-              <div className="glass-card p-6 space-y-4">
-                <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                  Resumo da Visita <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
-                </label>
-                <textarea
-                  placeholder="Descreva pontos importantes da conversa..."
-                  className="w-full h-32 bg-neutral-800/50 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-600 border border-white/5 focus:border-emerald-500/30"
-                  value={visit.summary}
-                  onChange={e => setVisit(p => ({ ...p, summary: e.target.value }))}
-                />
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 px-1">
+                  <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
+                  <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Resumo Executivo <span className="text-white/20 text-[9px] font-medium lowercase ml-1">(opcional)</span></label>
+                </div>
+                <div className="relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-br from-purple-500/20 to-transparent rounded-[2rem] blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
+                  <textarea
+                    placeholder="Quais os pontos principais desta visita? Algo importante para o futuro?"
+                    className="relative w-full h-36 bg-white/[0.03] text-white p-6 rounded-[2rem] text-sm outline-none transition-all placeholder:text-white/10 border border-white/5 focus:border-purple-500/30 focus:bg-white/[0.05]"
+                    value={visit.summary}
+                    onChange={e => setVisit(p => ({ ...p, summary: e.target.value }))}
+                  />
+                </div>
               </div>
 
-              {/* Fotos da visita */}
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-neutral-400 flex justify-between">
-                  <span>Fotos da Visita <span className="text-neutral-500 text-xs font-normal">(opcional - até 3)</span></span>
-                  <span className="text-[10px] text-neutral-500">{visit.photos?.length || 0}/3</span>
-                </label>
-                <div className="flex gap-3">
+              {/* Fotos */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-1 h-4 bg-sky-500 rounded-full"></div>
+                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Evidências Fotográficas</label>
+                  </div>
+                  <span className="text-[10px] font-black text-white/20">{visit.photos?.length || 0}/3</span>
+                </div>
+
+                <div className="flex gap-4">
                   {visit.photos?.map((photo, index) => (
-                    <div key={index} className="relative w-20 h-20 bg-neutral-800 rounded-xl overflow-hidden border border-neutral-700 shadow-inner group">
-                      <img src={photo} alt={`Visit ${index}`} className="w-full h-full object-cover" />
+                    <div key={index} className="relative w-24 h-24 bg-white/5 rounded-[1.5rem] overflow-hidden border border-white/10 group animate-in zoom-in-95">
+                      <img src={photo} alt={`Visit ${index}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                       <button
                         onClick={() => setVisit(p => ({ ...p, photos: p.photos?.filter((_, i) => i !== index) }))}
-                        className="absolute top-1 right-1 bg-red-600/80 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-xl p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                       >
-                        <X size={10} />
+                        <X size={12} strokeWidth={3} />
                       </button>
                     </div>
                   ))}
                   {(visit.photos?.length || 0) < 3 && (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="w-20 h-20 bg-neutral-800 border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center justify-center text-neutral-500 hover:border-emerald-500 hover:text-emerald-500 transition-all active:scale-95"
+                    <div
+                      onClick={() => !isUploading && fileInputRef.current?.click()}
+                      className="w-24 h-24 bg-white/5 border-2 border-dashed border-white/10 rounded-[1.5rem] flex flex-col items-center justify-center text-white/20 hover:border-sky-500/40 hover:text-sky-400 transition-all cursor-pointer active:scale-95 group"
                     >
-                      {isUploading ? <RefreshCw className="animate-spin" size={20} /> : <Camera size={24} strokeWidth={1.5} />}
-                    </button>
+                      {isUploading ? <Loader2 className="animate-spin text-sky-500" size={24} /> : (
+                        <>
+                          <Camera size={28} strokeWidth={1.5} className="group-hover:scale-110 transition-transform" />
+                          <span className="text-[8px] font-black uppercase mt-1">Anexar</span>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
+                <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handlePhotoUpload} />
               </div>
 
               {/* Card Marketing */}
-              <div className="glass-card p-6 space-y-4">
-                <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                  Materiais <span className="text-red-400 ml-1">*</span>
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => {
-                      setVisit(p => ({ ...p, leftBanner: !p.leftBanner }));
-                      setMarketingVerified(true);
-                    }}
-                    className={`flex-1 py-4 rounded-2xl font-bold transition-all border text-sm flex flex-col items-center justify-center space-y-1 ${visit.leftBanner ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20' : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'}`}
-                  >
-                    <span className="text-lg">🚩</span>
-                    <span className="text-[10px] uppercase tracking-tighter">Banner</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setVisit(p => ({ ...p, leftFlyers: !p.leftFlyers }));
-                      setMarketingVerified(true);
-                    }}
-                    className={`flex-1 py-4 rounded-2xl font-bold transition-all border text-sm flex flex-col items-center justify-center space-y-1 ${visit.leftFlyers ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20' : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'}`}
-                  >
-                    <span className="text-lg">📄</span>
-                    <span className="text-[10px] uppercase tracking-tighter">Flyers</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      const none = !(!visit.leftBanner && !visit.leftFlyers && marketingVerified);
-                      if (none) {
-                        setVisit(p => ({ ...p, leftBanner: false, leftFlyers: false }));
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 px-1">
+                  <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                  <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Entrega de Marketing <span className="text-red-500">*</span></label>
+                </div>
+                <div className="flex flex-wrap gap-4">
+                  {[
+                    { key: 'leftBanner', label: 'Banner 🚩', icon: '🚩' },
+                    { key: 'leftFlyers', label: 'Flyers 📄', icon: '📄' }
+                  ].map(m => (
+                    <button
+                      key={m.key}
+                      onClick={() => {
+                        setVisit(p => ({ ...p, [m.key]: !p[m.key as keyof Visit] }));
                         setMarketingVerified(true);
-                      } else {
-                        setMarketingVerified(false);
-                      }
+                      }}
+                      className={cn(
+                        "flex-1 group relative overflow-hidden py-6 rounded-[2rem] border transition-all duration-500 flex flex-col items-center justify-center space-y-2 active:scale-95",
+                        visit[m.key as keyof Visit]
+                          ? "bg-emerald-500/10 border-emerald-500/30"
+                          : "bg-white/5 border-white/5 text-white/40"
+                      )}
+                    >
+                      <span className={cn("text-2xl transition-transform duration-500 group-hover:scale-110", visit[m.key as keyof Visit] ? "opacity-100" : "opacity-30")}>{m.icon}</span>
+                      <span className={cn("text-[10px] font-black uppercase tracking-wider", visit[m.key as keyof Visit] ? "text-emerald-400" : "text-white/20")}>{m.label}</span>
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => {
+                      setVisit(p => ({ ...p, leftBanner: false, leftFlyers: false }));
+                      setMarketingVerified(true);
                     }}
-                    className={`w-full py-3 rounded-2xl font-bold transition-all border text-[10px] uppercase tracking-widest ${!visit.leftBanner && !visit.leftFlyers && marketingVerified ? 'bg-neutral-700 text-white border-neutral-600' : 'bg-neutral-900/50 text-neutral-600 border-white/5 hover:bg-neutral-800'}`}
+                    className={cn(
+                      "w-full py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] border transition-all active:scale-95",
+                      !visit.leftBanner && !visit.leftFlyers && marketingVerified
+                        ? "bg-white/20 border-white/20 text-white"
+                        : "bg-white/5 border-white/5 text-white/20"
+                    )}
                   >
-                    Nenhum material deixado
+                    Nenhum material entregue
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Fixed Footer for Actions (One-Handed Use) */}
+          {/* Fixed Footer for Actions */}
           {step === 'ACTIVE' && (
-            <div className="fixed bottom-0 left-0 right-0 p-5 bottom-bar z-20 animate-in slide-in-from-bottom border-t border-white/5">
-              <div className="flex gap-3 max-w-lg mx-auto">
+            <div className="fixed bottom-0 left-0 right-0 p-6 z-50 animate-in slide-in-from-bottom duration-500">
+              <div className="max-w-md mx-auto flex gap-4">
                 <button
                   onClick={handleFinishVisit}
-                  className="flex-1 bg-neutral-800 text-neutral-400 py-4 rounded-3xl font-bold hover:bg-neutral-700 transition-all border border-white/5 active:scale-95 text-xs uppercase tracking-widest"
+                  className="flex-1 bg-white/5 backdrop-blur-xl text-white/40 border border-white/10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-2xl"
                 >
-                  Finalizar Visita
+                  Finalizar
                 </button>
                 <button
                   onClick={handleGenerateVoucher}
-                  className="flex-[1.5] bg-emerald-600 text-white py-4 rounded-3xl font-bold hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-500/20 active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center space-x-2"
+                  className="flex-[2] bg-emerald-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all shadow-2xl shadow-emerald-500/40 flex items-center justify-center space-x-3"
                 >
-                  <Ticket size={16} />
-                  <span>Gerar Voucher</span>
+                  <Ticket size={20} strokeWidth={3} />
+                  <span>Gerar Vouchers</span>
                 </button>
               </div>
             </div>
@@ -1842,204 +2037,208 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
         </div>
 
         {step === 'VOUCHERS' && (
-          <div className="space-y-8 animate-in slide-in-from-right-4 duration-500 text-center py-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-emerald-500/10 blur-3xl rounded-full"></div>
-              <div className="glass-card p-8 flex items-center justify-center space-x-10 animate-in zoom-in-95">
-                <button onClick={() => adjust(-1)} className="bg-neutral-800/80 p-4 rounded-2xl border border-white/5 shadow-inner active:scale-90 text-white hover:bg-neutral-700 transition-all">
-                  <Minus size={20} />
-                </button>
-                <div className="flex flex-col">
-                  <span className="text-5xl font-black text-white tabular-nums tracking-tighter">{visit.vouchersGenerated?.length || 0}</span>
-                  <span className="text-xs font-bold text-neutral-500 uppercase tracking-widest mt-1">Vouchers</span>
-                </div>
-                <button onClick={() => adjust(1)} className="bg-neutral-800/80 p-4 rounded-2xl border border-white/5 shadow-inner active:scale-90 text-white hover:bg-neutral-700 transition-all">
-                  <Plus size={20} />
-                </button>
-              </div>
+          <div className="space-y-12 animate-in slide-in-from-right-10 duration-500 text-center py-10">
+            <div className="space-y-2">
+              <h4 className="text-3xl font-black text-white tracking-tighter italic uppercase">Gerador de Vouchers</h4>
+              <p className="text-white/40 text-xs font-medium max-w-[200px] mx-auto uppercase tracking-widest">Selecione o volume de benefícios para esta academia.</p>
             </div>
 
-            <div className="flex flex-wrap gap-2 justify-center max-w-sm mx-auto">
+            <div className="relative group flex items-center justify-center space-x-12 py-10">
+              <div className="absolute inset-0 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none"></div>
+
+              <button
+                onClick={() => adjust(-1)}
+                className="w-20 h-20 bg-white/5 rounded-[2rem] border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-90 shadow-2xl"
+              >
+                <Minus size={24} strokeWidth={3} />
+              </button>
+
+              <div className="flex flex-col items-center">
+                <div className="text-8xl font-black text-white italic tracking-tighter tabular-nums drop-shadow-[0_10px_30px_rgba(16,185,129,0.3)]">
+                  {visit.vouchersGenerated?.length || 0}
+                </div>
+                <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mt-2">Vouchers Ativos</div>
+              </div>
+
+              <button
+                onClick={() => adjust(1)}
+                className="w-20 h-20 bg-emerald-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-emerald-500/40 hover:bg-emerald-400 transition-all active:scale-90"
+              >
+                <Plus size={24} strokeWidth={3} />
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-center max-w-sm mx-auto min-h-[40px]">
               {visit.vouchersGenerated?.map((c, i) => (
-                <span key={i} className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-xl font-mono text-xs font-bold animate-in fade-in duration-300">
+                <div key={i} className="bg-white/5 border border-white/10 px-3 py-2 rounded-xl font-mono text-[10px] font-black text-emerald-400 animate-in zoom-in-95" style={{ animationDelay: `${i * 50}ms` }}>
                   {c}
-                </span>
+                </div>
               ))}
             </div>
 
             <button
               onClick={handleFinishWithQr}
-              className="w-full bg-white text-neutral-900 py-5 rounded-[2rem] font-bold shadow-2xl hover:bg-neutral-200 transition-all active:scale-95 flex items-center justify-center space-x-3 text-lg"
+              disabled={!visit.vouchersGenerated?.length}
+              className={cn(
+                "w-full h-20 rounded-[2.5rem] font-black text-lg uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center space-x-4 shadow-2xl",
+                visit.vouchersGenerated?.length
+                  ? "bg-white text-black shadow-white/10"
+                  : "bg-white/5 text-white/10 cursor-not-allowed"
+              )}
             >
-              <QrCode size={22} />
+              <QrCode size={24} strokeWidth={2.5} />
               <span>Confirmar Vouchers</span>
+            </button>
+
+            <button
+              onClick={() => setStep('ACTIVE')}
+              className="text-white/20 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+            >
+              Voltar ao formulário
             </button>
           </div>
         )}
 
         {step === 'QR_CODE' && (
-          <div className="space-y-8 animate-in zoom-in-95 duration-500 text-center py-6">
+          <div className="space-y-12 animate-in zoom-in-95 duration-700 text-center py-10">
             <div className="space-y-2">
-              <h4 className="text-xl font-bold text-white tracking-tight">QR Code Gerado</h4>
-              <p className="text-neutral-500 text-xs">Apresente ao professor para resgate dos benefícios.</p>
+              <div className="inline-flex p-3 bg-emerald-500/20 text-emerald-500 rounded-2xl mb-4">
+                <QrCode size={32} strokeWidth={1.5} />
+              </div>
+              <h4 className="text-3xl font-black text-white tracking-tighter">Resgate Pronto!</h4>
+              <p className="text-white/40 text-xs font-bold uppercase tracking-widest leading-relaxed">Mostre este código para o responsável<br />da academia ou envie o link.</p>
             </div>
 
-            <div className="relative inline-block">
-              <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full"></div>
-              <div className="relative bg-white p-6 rounded-[2.5rem] shadow-2xl border-4 border-emerald-500/30 transform hover:scale-105 transition-transform duration-500">
+            <div className="relative inline-block group">
+              <div className="absolute -inset-8 bg-emerald-500/10 blur-[60px] rounded-full animate-pulse transition-all group-hover:bg-emerald-500/20"></div>
+              <div className="relative bg-white p-6 rounded-[3rem] shadow-2xl border-[6px] border-emerald-500/10 transition-transform duration-700 hover:rotate-2">
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(generateShareLink())}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(generateShareLink())}`}
                   alt="Voucher QR Code"
-                  className="w-48 h-48 mx-auto mix-blend-multiply"
+                  className="w-56 h-56 mx-auto mix-blend-multiply"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
               <button
                 onClick={() => {
-                  const landingText = `Thank you for being part of the upcoming PBJJF event! 🥋\n\nYour academy (${academy.name}) has received the following vouchers:\n👉 ${visit.vouchersGenerated?.join(', ')}\n\nTo redeem, please send a text message to (407) 633-9166 with the academy name and the voucher codes listed above.`;
+                  const landingText = `Obrigado por fazer parte BJJVisits! 🥋\n\nSua academia (${academy.name}) recebeu ${visit.vouchersGenerated?.length} vouchers:\n${visit.vouchersGenerated?.join(', ')}\n\nLink para resgate:\n${generateShareLink()}`;
                   navigator.clipboard.writeText(landingText);
-                  toast.success("Texto copiado! 📋");
+                  toast.success("Copiado para o WhatsApp!", {
+                    icon: <MessageCircle size={16} className="text-emerald-500" />
+                  });
                 }}
-                className="bg-neutral-800/50 border border-white/5 text-neutral-300 py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 text-xs uppercase tracking-widest hover:bg-neutral-800 transition-all"
+                className="bg-white/5 border border-white/10 text-white/60 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
               >
-                <Copy size={16} />
-                <span>Copiar</span>
+                <MessageCircle size={16} />
+                <span>Zap Texto</span>
               </button>
               <button
                 onClick={() => window.open(generateShareLink(), '_blank')}
-                className="bg-neutral-800/50 border border-white/5 text-neutral-300 py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 text-xs uppercase tracking-widest hover:bg-neutral-800 transition-all"
+                className="bg-white/5 border border-white/10 text-white/60 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
               >
                 <ExternalLink size={16} />
-                <span>Ver Link</span>
+                <span>Ver Landing</span>
               </button>
             </div>
 
             <button
               onClick={() => onFinish(visit)}
-              className="w-full bg-emerald-600 text-white py-5 rounded-[2rem] font-bold shadow-2xl hover:bg-emerald-500 transition-all active:scale-95 text-lg"
+              className="w-full h-20 bg-emerald-600 text-white rounded-[2.5rem] font-black text-xl uppercase tracking-widest shadow-2xl shadow-emerald-500/40 active:scale-[0.98] transition-all"
             >
-              Concluir Atendimento
+              Concluir Visita
             </button>
           </div>
         )}
 
         {step === 'SUMMARY' && (
-          <div className="space-y-8 animate-in zoom-in-95 duration-500">
-            <div className="flex flex-col items-center justify-center space-y-4 py-4">
-              <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center border border-emerald-500/20 shadow-lg">
-                <CheckCircle2 size={32} />
+          <div className="space-y-12 animate-in slide-in-from-bottom-10 duration-700 py-10">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full scale-150"></div>
+                <div className="relative w-24 h-24 bg-emerald-500/10 text-emerald-500 rounded-[2rem] flex items-center justify-center border border-emerald-500/20 shadow-xl overflow-hidden group">
+                  <div className="absolute inset-0 bg-emerald-500 opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                  <CheckCircle2 size={48} strokeWidth={2.5} className="animate-in zoom-in-50 duration-500" />
+                </div>
               </div>
-              <h4 className="text-xl font-bold text-white tracking-tight">Atendimento Concluído</h4>
+              <div>
+                <h4 className="text-3xl font-black text-white tracking-tighter">Visitado 🏁</h4>
+                <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mt-2 italic">Registro persistido no sistema</p>
+              </div>
             </div>
 
-            <div className="space-y-8 pl-6 border-l border-white/5 relative mx-2">
-              {/* Timeline Item 1: Base */}
+            <div className="space-y-12 pl-8 border-l-2 border-emerald-500/10 relative mx-2">
+              {/* Timeline Items refined */}
               <div className="relative">
-                <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
+                <div className="absolute -left-[39px] top-1.5 w-4 h-4 bg-[#0a0a0a] border-4 border-emerald-500 rounded-full shadow-lg shadow-emerald-500/20"></div>
                 <div className="space-y-3">
-                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Informações Base</span>
-                  <div className="glass-card p-5 grid grid-cols-2 gap-4 border border-white/5">
-                    <div className="space-y-1">
-                      <span className="text-[9px] uppercase font-bold text-neutral-600 block">Conversa com</span>
-                      <span className="text-sm font-bold text-white">{visit.contactPerson}</span>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] uppercase font-bold text-neutral-600 block">Temperatura</span>
-                      <span className={`text-[10px] font-bold ${visit.temperature === AcademyTemperature.HOT ? 'text-red-400' : visit.temperature === AcademyTemperature.WARM ? 'text-orange-400' : 'text-blue-400'}`}>
-                        {visit.temperature === AcademyTemperature.HOT ? 'Quente 🔥' : visit.temperature === AcademyTemperature.WARM ? 'Morna 🌤️' : 'Fria ❄️'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timeline Item 2: Resumo da Visita */}
-              <div className="relative">
-                <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
-                <div className="space-y-3">
-                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Resumo da Visita</span>
-                  <div className="glass-card p-5 border border-white/5">
-                    <p className="text-sm text-neutral-300 leading-relaxed italic">
-                      {visit.summary || 'Nenhum resumo registrado.'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timeline Item 3: Marketing */}
-              <div className="relative">
-                <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
-                <div className="space-y-3">
-                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Marketing</span>
-                  <div className="glass-card p-5 border border-white/5">
-                    <div className="flex flex-wrap gap-2">
-                      {visit.leftBanner && <span className="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-lg text-[9px] font-bold border border-emerald-500/20">Banner 🚩</span>}
-                      {visit.leftFlyers && <span className="bg-sky-500/10 text-sky-400 px-2 py-1 rounded-lg text-[9px] font-bold border border-sky-500/20">Flyers 📄</span>}
-                      {!visit.leftBanner && !visit.leftFlyers && <span className="text-neutral-600 text-[10px] italic">Nenhum material deixado</span>}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timeline Item 4: Relacionamento */}
-              <div className="relative">
-                <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
-                <div className="space-y-3">
-                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Relacionamento</span>
-                  <div className="glass-card p-5 border border-white/5 flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Ticket size={14} className="text-emerald-500" />
-                      <span className="text-sm font-bold text-white">{visit.vouchersGenerated?.length || 0} Vouchers</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timeline Item 5: Fotos */}
-              {visit.photos && visit.photos.length > 0 && (
-                <div className="relative">
-                  <div className="absolute -left-[30px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-4 ring-[#0f0f0f]"></div>
-                  <div className="space-y-3">
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Fotos</span>
-                    <div className="flex gap-2">
-                      {visit.photos.map((p, i) => (
-                        <div key={i} className="w-16 h-16 rounded-xl overflow-hidden glass-card p-0.5 border-white/10 shadow-lg">
-                          <img src={p} alt="" className="w-full h-full object-cover rounded-[10px]" />
+                  <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Resumo da Atividade</span>
+                  <div className="bg-white/5 rounded-[2rem] p-6 border border-white/10 space-y-4">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <span className="text-[9px] uppercase font-black text-white/20 tracking-widest">Contato</span>
+                        <p className="text-sm font-black text-white/90">{visit.contactPerson}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <span className="text-[9px] uppercase font-black text-white/20 tracking-widest">Temperatura</span>
+                        <div className="flex items-center space-x-2">
+                          <div className={cn(
+                            "w-2 h-2 rounded-full",
+                            visit.temperature === AcademyTemperature.HOT ? 'bg-red-500' : visit.temperature === AcademyTemperature.WARM ? 'bg-amber-500' : 'bg-blue-500'
+                          )}></div>
+                          <span className={cn(
+                            "text-xs font-black uppercase tracking-tight",
+                            visit.temperature === AcademyTemperature.HOT ? 'text-red-400' : visit.temperature === AcademyTemperature.WARM ? 'text-amber-400' : 'text-blue-400'
+                          )}>
+                            {visit.temperature}
+                          </span>
                         </div>
-                      ))}
+                      </div>
                     </div>
+                    {visit.summary && (
+                      <div className="pt-4 border-t border-white/5">
+                        <span className="text-[9px] uppercase font-black text-white/20 tracking-widest">Observações</span>
+                        <p className="text-xs text-white/60 leading-relaxed italic mt-2">"{visit.summary}"</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
+
+              {/* Photos & Items */}
+              <div className="relative">
+                <div className="absolute -left-[39px] top-1.5 w-4 h-4 bg-[#0a0a0a] border-4 border-white/10 rounded-full"></div>
+                <div className="space-y-3">
+                  <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Evidências & Marketing</span>
+                  <div className="flex flex-wrap gap-2">
+                    {visit.leftBanner && <div className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-full text-[9px] font-black uppercase">Banner 🚩</div>}
+                    {visit.leftFlyers && <div className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-3 py-1.5 rounded-full text-[9px] font-black uppercase">Flyers 📄</div>}
+                    {visit.photos?.map((p, i) => (
+                      <div key={i} className="w-12 h-12 rounded-xl overflow-hidden border border-white/10">
+                        <img src={p} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Botões de ação */}
-            <div className="flex gap-3">
+            {/* Final Actions */}
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={handleStartEdit}
-                className="flex-1 bg-sky-600 text-white py-5 rounded-[2rem] font-bold hover:bg-sky-500 transition-all active:scale-95 text-lg shadow-xl shadow-sky-500/20"
+                className="bg-white/5 border border-white/10 text-white/60 py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
               >
-                Editar
+                Refazer/Editar
               </button>
-
-              {(!visit.finishedAt || visit.status !== VisitStatus.VISITED) && (
-                <button
-                  onClick={handleFinishVisit}
-                  className="flex-1 bg-emerald-600 text-white py-5 rounded-[2rem] font-bold hover:bg-emerald-500 transition-all active:scale-95 text-lg shadow-xl shadow-emerald-500/20"
-                >
-                  Finalizar Visita
-                </button>
-              )}
+              <button
+                onClick={() => onCancel()}
+                className="bg-emerald-600 text-white py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-2xl shadow-emerald-500/40"
+              >
+                Fechar
+              </button>
             </div>
-
-            <button
-              onClick={() => onCancel()}
-              className="w-full bg-neutral-800 text-neutral-400 py-5 rounded-[2rem] font-bold hover:bg-neutral-700 transition-all border border-white/5 active:scale-95 text-lg mt-3"
-            >
-              Fechar
-            </button>
           </div>
         )}
 
@@ -2711,9 +2910,20 @@ const AppContent: React.FC = () => {
       }
 
       {/* Main Content Area */}
-      <main className={`flex-1 flex flex-col h-screen overflow-hidden ${currentUser.role === UserRole.SALES ? 'pb-16' : ''} ${isElevated ? 'pt-24' : ''}`}> {/* Add padding top for admin indicator */}
+      <main className={cn(
+        "flex-1 flex flex-col h-screen overflow-hidden relative transition-all duration-500",
+        currentUser.role === UserRole.SALES ? "bg-[#0a0a0a]" : "bg-neutral-900",
+        isElevated ? "pt-24" : ""
+      )}>
+        {/* Background Decorative Gradient - Mobile Only */}
+        {currentUser.role === UserRole.SALES && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[40%] bg-[hsl(262,83%,58%)]/5 blur-[120px] rounded-full"></div>
+          </div>
+        )}
 
-        {/* Navbar - Only for Admin (Salesperson uses simplified header or just content) */}
+        {/* Header Logic */}
         {currentUser.role === UserRole.ADMIN ? (
           <Navbar
             sidebarOpen={sidebarOpen}
@@ -2722,19 +2932,37 @@ const AppContent: React.FC = () => {
             onOpenElevationPrompt={() => setShowElevationPrompt(true)}
           />
         ) : (
-          /* Salesperson Header */
-          <header className="bg-neutral-900 border-b border-neutral-800 p-4 shrink-0 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <img src="/oss_logo.jpg" alt="Logo" className="w-8 h-8 object-contain mix-blend-screen filter invert hue-rotate-180 brightness-110 contrast-125 saturate-150" />
-              <h1 className="text-lg font-bold text-white tracking-tight">BJJVisits</h1>
+          /* Premium Salesperson Header - Native Feel */
+          <header className="sticky top-0 z-40 bg-black/40 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex items-center justify-between shrink-0">
+            <div className="flex items-center space-x-3 transition-transform active:scale-95 cursor-default">
+              <div className="w-10 h-10 rounded-2xl bg-white/5 p-1.5 border border-white/10 flex items-center justify-center">
+                <img src="/oss_logo.jpg" alt="Logo" className="w-full h-full object-contain mix-blend-screen filter brightness-125" />
+              </div>
+              <div>
+                <h1 className="text-lg font-black text-white tracking-tight leading-none">BJJVisits</h1>
+                <p className="text-[10px] text-emerald-500/70 font-black uppercase tracking-widest mt-1">Live Dashboard</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">{currentUser.name}</p>
+
+            <div className="flex items-center space-x-3">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-black text-white/90 leading-none">{currentUser.name}</p>
+                <p className="text-[9px] text-white/40 font-bold uppercase tracking-wider mt-1">Consultor</p>
+              </div>
+              <div
+                onClick={logout}
+                className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500/60 active:scale-90 transition-all"
+              >
+                <LogOut size={18} />
+              </div>
             </div>
           </header>
         )}
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0 relative">
+        <div className={cn(
+          "flex-1 overflow-y-auto relative z-10 custom-scrollbar",
+          currentUser.role === UserRole.SALES ? "p-6 pb-32" : "p-4 md:p-6 lg:p-8"
+        )}>
           {/* Real-time Toast System (Success/Info/Error for the actor) */}
           {globalToast && (
             <div className="fixed top-20 right-4 left-4 md:left-auto md:w-96 z-[200] animate-in slide-in-from-top-4 duration-500">
