@@ -1328,7 +1328,9 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if ((visit.photos?.length || 0) >= 3) {
+    const currentPhotos = isEditingVisit ? (editedVisit.photos || []) : (visit.photos || []);
+
+    if (currentPhotos.length >= 3) {
       alert("Você pode adicionar no máximo 3 fotos.");
       return;
     }
@@ -1336,10 +1338,18 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
     try {
       setIsUploading(true);
       const photoUrl = await DatabaseService.uploadVisitPhoto(file);
-      setVisit(p => ({
-        ...p,
-        photos: [...(p.photos || []), photoUrl]
-      }));
+
+      if (isEditingVisit) {
+        setEditedVisit(p => ({
+          ...p,
+          photos: [...(p.photos || []), photoUrl]
+        }));
+      } else {
+        setVisit(p => ({
+          ...p,
+          photos: [...(p.photos || []), photoUrl]
+        }));
+      }
     } catch (error) {
       console.error("Error uploading photo:", error);
       alert("Erro ao fazer upload da foto.");
@@ -1426,7 +1436,8 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
       temperature: visit.temperature,
       summary: visit.summary,
       leftBanner: visit.leftBanner,
-      leftFlyers: visit.leftFlyers
+      leftFlyers: visit.leftFlyers,
+      photos: visit.photos || []
     });
     setIsEditingVisit(true);
   };
@@ -1462,8 +1473,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
         // Campos opcionais preservados
         startedAt: visit.startedAt,
         finishedAt: visit.finishedAt,
-        notes: visit.notes,
-        photos: visit.photos,
+        photos: editedVisit.photos || visit.photos,
         updatedAt: new Date().toISOString()
       };
 
@@ -1472,8 +1482,12 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
       const result = await DatabaseService.upsertVisit(updatedVisit);
       console.log("✅ Resultado do salvamento:", result);
 
-      setVisit(updatedVisit);
+      setVisit(result);
       setIsEditingVisit(false);
+
+      // Propagar mudanças para o componente pai
+      await onFinish(result);
+
       toast.success("✅ Visita atualizada com sucesso!");
     } catch (error: any) {
       console.error("❌ [App] Error updating visit FULL OBJECT:", error);
@@ -1494,7 +1508,8 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
       editedVisit.temperature !== visit.temperature ||
       editedVisit.summary !== visit.summary ||
       editedVisit.leftBanner !== visit.leftBanner ||
-      editedVisit.leftFlyers !== visit.leftFlyers
+      editedVisit.leftFlyers !== visit.leftFlyers ||
+      JSON.stringify(editedVisit.photos) !== JSON.stringify(visit.photos)
     );
   };
 
@@ -2145,6 +2160,50 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                     </button>
                   </div>
                 </div>
+
+                {/* Fotos da Visita */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center justify-between">
+                    <span className="flex items-center">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                      Fotos <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional - até 3)</span>
+                    </span>
+                    <span className="text-[10px] text-neutral-500">{(editedVisit.photos?.length || 0)}/3</span>
+                  </label>
+                  <div className="flex gap-3 flex-wrap">
+                    {editedVisit.photos?.map((photo, index) => (
+                      <div key={index} className="relative w-20 h-20 bg-neutral-800 rounded-xl overflow-hidden border border-neutral-700 shadow-inner group">
+                        <img src={photo} alt={`Visit ${index}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => setEditedVisit(p => ({ ...p, photos: p.photos?.filter((_, i) => i !== index) }))}
+                          className="absolute top-1 right-1 bg-red-600/80 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {(editedVisit.photos?.length || 0) < 3 && (
+                      <label className="w-20 h-20 bg-neutral-800/50 border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-800 hover:border-emerald-500/30 transition-all group">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handlePhotoUpload}
+                          disabled={isUploading}
+                        />
+                        {isUploading ? (
+                          <Loader2 size={20} className="text-emerald-500 animate-spin" />
+                        ) : (
+                          <>
+                            <Camera size={20} className="text-neutral-600 group-hover:text-emerald-500 transition-colors" />
+                            <span className="text-[9px] text-neutral-600 group-hover:text-emerald-500 mt-1">Adicionar</span>
+                          </>
+                        )}
+                      </label>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Botões do modal - Reorganizados para maior fluidez */}
@@ -2158,7 +2217,6 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                       : 'bg-neutral-800 text-neutral-600 cursor-not-allowed'
                       }`}
                   >
-                    <Save size={18} />
                     Salvar Alterações
                   </button>
                   <button
