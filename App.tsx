@@ -2286,7 +2286,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 className="bg-white/5 border border-white/10 text-white/60 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
               >
                 <MessageCircle size={16} />
-                <span>Zap Texto</span>
+                <span>WhatsApp</span>
               </button>
               <button
                 onClick={() => window.open(generateShareLink(), '_blank')}
@@ -3116,7 +3116,7 @@ const AppContent: React.FC = () => {
 
         <div className={cn(
           "flex-1 overflow-y-auto relative z-10 custom-scrollbar",
-          currentUser.role === UserRole.SALES ? "p-4 pb-44" : "p-4 md:p-6 lg:p-8"
+          currentUser.role === UserRole.SALES ? "p-4 pb-48" : "p-4 md:p-6 lg:p-8"
         )}>
           {/* Real-time Toast System (Success/Info/Error for the actor) */}
           {globalToast && (
