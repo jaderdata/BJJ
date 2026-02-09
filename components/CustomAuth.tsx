@@ -129,10 +129,9 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                     <img
                         src="/oss_logo.jpg"
                         alt="OSS Logo"
-                        className="w-48 h-auto mb-1 mix-blend-screen filter invert hue-rotate-180 brightness-110 contrast-125 saturate-150 object-contain"
+                        className="w-48 h-auto mb-4 object-contain mix-blend-screen pointer-events-none select-none"
                         style={{
-                            WebkitMaskImage: 'radial-gradient(circle, black 30%, transparent 70%)',
-                            maskImage: 'radial-gradient(circle, black 30%, transparent 70%)'
+                            filter: 'invert(1) hue-rotate(180deg) contrast(1.5)',
                         }}
                     />
                     <h1 className="text-3xl font-black text-white tracking-tight">BJJVisits</h1>
