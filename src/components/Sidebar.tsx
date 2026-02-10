@@ -11,7 +11,7 @@ import {
   X
 } from 'lucide-react';
 import { User, UserRole } from '../types';
-import pkg from '../package.json';
+import pkg from '../../package.json';
 
 const { version } = pkg;
 

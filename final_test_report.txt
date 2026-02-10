@@ -1,0 +1,19 @@
+﻿
+> bjjvisits---controle-de-visitas@2.1.1 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/hp user/Documents/Dev/Visits[39m
+
+ [32mΓ£ô[39m tests/components/AdminDashboard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 239[2mms[22m[39m
+ [32mΓ£ô[39m tests/components/Auth.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 449[2mms[22m[39m
+ [32mΓ£ô[39m tests/components/AcademiesManager.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 996[2mms[22m[39m
+ [32mΓ£ô[39m tests/unit/supabase-service.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mΓ£ô[39m tests/integration/auth.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mΓ£ô[39m tests/integration/error-handling.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m6 passed[39m[22m[90m (6)[39m
+[2m      Tests [22m [1m[32m18 passed[39m[22m[90m (18)[39m
+[2m   Start at [22m 16:45:18
+[2m   Duration [22m 7.66s[2m (transform 715ms, setup 1.54s, import 2.96s, tests 1.71s, environment 12.26s)[22m
+

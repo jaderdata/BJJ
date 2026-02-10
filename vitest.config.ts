@@ -10,7 +10,8 @@ export default defineConfig({
         setupFiles: './tests/setup.ts',
         exclude: [...configDefaults.exclude, 'tests/e2e/**'],
         alias: {
-            '@': path.resolve(__dirname, '.'),
+            '@': path.resolve(__dirname, './src'),
+            '@tests': path.resolve(__dirname, './tests'),
         },
         server: {
             deps: {

@@ -1,15 +1,16 @@
-// Setup: supabase functions new refine-text
-// Deploy: supabase functions deploy refine-text --no-verify-jwt
-
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+// @ts-ignore: Deno runtime uses URL imports
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+
+declare const Deno: any;
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
     }
@@ -61,8 +62,8 @@ Retorne APENAS o texto refinado final, sem comentários adicionais.`
             status: 200,
         });
 
-    } catch (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+    } catch (error: any) {
+        return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 500,
         });

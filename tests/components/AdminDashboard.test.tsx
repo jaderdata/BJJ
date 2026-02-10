@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@/tests/utils/test-utils'
+import { render, screen, waitFor } from '@tests/utils/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { AdminDashboard } from '@/components/AdminDashboard'
+import { AdminDashboard } from '@/pages/AdminDashboard'
 import { DatabaseService } from '@/lib/supabase'
 import { EventStatus, VisitStatus, UserRole } from '@/types'
 

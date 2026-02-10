@@ -105,6 +105,7 @@ export interface FinanceRecord {
   amount: number;
   status: FinanceStatus;
   updatedAt: string;
+  createdAt?: string;
   observation?: string;
 }
 
@@ -113,4 +114,12 @@ export interface SystemSetting {
   key: string;
   value: any;
   updatedAt: string;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  message: string;
+  read: boolean;
+  timestamp: string;
 }

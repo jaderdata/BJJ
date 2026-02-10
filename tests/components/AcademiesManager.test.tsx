@@ -1,6 +1,7 @@
-import { render, screen, fireEvent, waitFor } from '@/tests/utils/test-utils'
+import { render, screen, fireEvent, waitFor } from '@tests/utils/test-utils'
+import Auth from '@/pages/CustomAuth'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { AcademiesManager } from '@/components/AcademiesManager'
+import { AcademiesManager } from '@/pages/AcademiesManager'
 import { DatabaseService } from '@/lib/supabase'
 import { UserRole } from '@/types'
 
@@ -19,8 +20,8 @@ vi.mock('@/lib/supabase', () => {
 })
 
 const mockAcademies = [
-    { id: '1', name: 'Gracie Barra', city: 'Rio de Janeiro', state: 'RJ', address: 'Rua A' },
-    { id: '2', name: 'Alliance', city: 'São Paulo', state: 'SP', address: 'Rua B' }
+    { id: '1', name: 'Gracie Barra', city: 'Rio de Janeiro', state: 'RJ', address: 'Rua A', responsible: 'Carlos', phone: '123', createdAt: new Date().toISOString() },
+    { id: '2', name: 'Alliance', city: 'São Paulo', state: 'SP', address: 'Rua B', responsible: 'Fabio', phone: '456', createdAt: new Date().toISOString() }
 ]
 
 const adminUser = {

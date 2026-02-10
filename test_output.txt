@@ -1,0 +1,20 @@
+﻿
+> bjjvisits---controle-de-visitas@2.1.1 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/hp user/Documents/Dev/Visits[39m
+
+ [32mΓ£ô[39m tests/components/AdminDashboard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 299[2mms[22m[39m
+ [32mΓ£ô[39m tests/components/Auth.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 552[2mms[22m[39m
+ [32mΓ£ô[39m tests/components/AcademiesManager.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1122[2mms[22m[39m
+     [33m[2mΓ£ô[22m[39m should open the modal when "Nova Academia" is clicked [32m 300[2mms[22m[39m
+ [32mΓ£ô[39m tests/unit/supabase-service.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mΓ£ô[39m tests/integration/auth.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32mΓ£ô[39m tests/integration/error-handling.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m6 passed[39m[22m[90m (6)[39m
+[2m      Tests [22m [1m[32m18 passed[39m[22m[90m (18)[39m
+[2m   Start at [22m 16:33:09
+[2m   Duration [22m 9.30s[2m (transform 2.73s, setup 1.74s, import 5.57s, tests 2.00s, environment 13.91s)[22m
+
