@@ -536,6 +536,33 @@ export const DatabaseService = {
             throw error;
         }
         console.log("✅ [DatabaseService] Visita deletada com sucesso");
+    },
+
+    /**
+     * Refina o texto transcrito usando IA via Supabase Edge Function
+     */
+    async refineVoiceText(text: string): Promise<string> {
+        console.log("🤖 [DatabaseService] Refinando texto com IA...");
+        try {
+            const { data, error } = await supabase.functions.invoke('refine-text', {
+                body: { text }
+            });
+
+            if (error) {
+                console.warn("⚠️ [DatabaseService] Erro na Edge Function, usando fallback local:", error);
+                throw error;
+            }
+
+            return data.refinedText || text;
+        } catch (error) {
+            // Fallback robusto: Capitalização básica e limpeza manual rápida
+            let refined = text.trim();
+            if (refined.length > 0) {
+                refined = refined.charAt(0).toUpperCase() + refined.slice(1);
+                if (!/[.!?]$/.test(refined)) refined += '.';
+            }
+            return refined;
+        }
     }
 };
 

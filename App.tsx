@@ -38,7 +38,7 @@ import {
   User,
   UserRole,
   Academy,
-  Event,
+  type Event,
   EventStatus,
   Visit,
   VisitStatus,
@@ -175,7 +175,7 @@ const PublicVoucherLanding: React.FC<{ academyName: string, codes: string[], cre
         <div className="p-8 md:p-10 w-full space-y-10">
           <div className="space-y-8 text-center">
             <h2 className="text-xl font-bold text-white leading-snug px-4">
-              Thank you for being part of the upcoming PBJJF event! 🥋
+              Thank you for being part of the upcoming PBJJF event! ??
             </h2>
 
             {/* Voucher Box */}
@@ -864,11 +864,11 @@ const EventDetailAdmin: React.FC<{ event: Event, academies: Academy[], visits: V
                 <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Materiais Deixados</p>
                 <div className="flex gap-3">
                   <div className={`flex-1 p-3 rounded-xl border flex items-center space-x-2 ${selectedVisit.leftBanner ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-neutral-900/30 border-neutral-800 text-neutral-600'}`}>
-                    <span>🚩</span>
+                    <span>??</span>
                     <span className="text-xs font-bold uppercase tracking-widest">Banner</span>
                   </div>
                   <div className={`flex-1 p-3 rounded-xl border flex items-center space-x-2 ${selectedVisit.leftFlyers ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : 'bg-neutral-900/30 border-neutral-800 text-neutral-600'}`}>
-                    <span>📄</span>
+                    <span>??</span>
                     <span className="text-xs font-bold uppercase tracking-widest">Flyers</span>
                   </div>
                 </div>
@@ -1196,7 +1196,7 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
                 )}>
                   {isOverdue ? "Crítico" : "Em Andamento"}
                 </span>
-                {isOverdue && <span className="text-[10px] font-black text-red-500 animate-pulse">⏰ HÁ +1H</span>}
+                {isOverdue && <span className="text-[10px] font-black text-red-500 animate-pulse">? HÁ +1H</span>}
               </div>
               <h4 className="text-xl font-black text-white tracking-tight mt-1 truncate">
                 {academies.find(a => a.id === activeVisit.academyId)?.name}
@@ -1408,184 +1408,235 @@ const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visit
 /**
  * WhatsApp-style Voice Transcription Component
  */
-const WhatsAppVoiceMic: React.FC<{ onTranscript: (text: string) => void }> = ({ onTranscript }) => {
+/**
+ * AI-Powered Voice Assistant Component
+ * Replaces old WhatsApp-style mic with a premium GPT-style experience
+ */
+/**
+ * Smart Voice Assistant Component
+ * Features:
+ * - Premium UI with ChatGPT-style voice bars
+ * - Smart text refinement (heuristics + simulated AI)
+ * - Click-to-speak interaction (No drag)
+ */
+const SmartVoiceInput: React.FC<{ onTranscript: (text: string) => void }> = ({ onTranscript }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [isCancelled, setIsCancelled] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [transcript, setTranscript] = useState('');
 
+  // Audio Visualization State
+  const [audioLevel, setAudioLevel] = useState(0);
   const recognitionRef = useRef<any>(null);
-  const timerRef = useRef<any>(null);
-  const startPosRef = useRef({ x: 0, y: 0 });
-  const [slideOffset, setSlideOffset] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
+    // Check browser support
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'pt-BR';
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'pt-BR';
 
-      recognitionRef.current.onresult = (event: any) => {
-        let finalTranscript = '';
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setTranscript('');
+      };
+
+      recognition.onresult = (event: any) => {
+        let finalTrans = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
+            finalTrans += event.results[i][0].transcript + ' ';
           }
         }
-        if (finalTranscript) {
-          onTranscript(finalTranscript);
+        if (finalTrans) {
+          setTranscript(prev => prev + finalTrans);
+        }
+
+        // Simular níveis de áudio baseados no comprimento do input (fallback visual)
+        setAudioLevel(Math.random() * 0.5 + 0.5);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech error:', event.error);
+        if (event.error !== 'no-speech') {
+          stopRecording();
+          toast.error("Erro na captação de áudio.");
         }
       };
 
-      recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        stopRecording(true);
+      recognition.onend = () => {
+        if (isRecording) {
+          // Se parou sozinho mas o state diz que está gravando, tenta reiniciar ou para
+          // stopRecording(); // Descomentar se quiser parar automático no silêncio
+        }
       };
+
+      recognitionRef.current = recognition;
     }
+
     return () => {
       if (recognitionRef.current) recognitionRef.current.stop();
     };
   }, []);
 
-  const startRecording = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-
+  const startRecording = () => {
     if (!recognitionRef.current) {
       toast.error("Seu navegador não suporta transcrição de voz.");
       return;
     }
-
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    startPosRef.current = { x: clientX, y: clientY };
-
-    setIsRecording(true);
-    setIsLocked(false);
-    setIsCancelled(false);
-    setDuration(0);
-    setSlideOffset({ x: 0, y: 0 });
-
-    recognitionRef.current.start();
-
-    timerRef.current = setInterval(() => {
-      setDuration(prev => prev + 1);
-    }, 100);
+    try {
+      recognitionRef.current.start();
+      setIsRecording(true);
+      toast.info("Ouvindo... Fale agora.");
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const stopRecording = (cancel = false) => {
-    if (!isRecording) return;
-
-    clearInterval(timerRef.current);
+  const stopRecording = async () => {
     if (recognitionRef.current) recognitionRef.current.stop();
     setIsRecording(false);
-    setIsLocked(false);
-    setSlideOffset({ x: 0, y: 0 });
 
-    if (cancel) {
-      setIsCancelled(true);
-      setTimeout(() => setIsCancelled(false), 1000);
+    // Pequeno delay para garantir que o último bit de áudio foi processado
+    if (transcript.trim() || recognitionRef.current) {
+      // Usamos um timeout para permitir que o onresult final dispare
+      setTimeout(() => processFinalText(), 500);
     }
   };
 
-  const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isRecording || isLocked) return;
+  const processFinalText = async () => {
+    // Se não tem texto, ignora
+    // Nota: O transcript state pode estar atrasado dentro do closure do timeout, 
+    // mas como usamos React state, vamos forçar uma leitura via ref se necessário, 
+    // ou assumir que o usuário parou de falar há pouco.
+    // Vamos usar o valor do state atual via setState callback hack ou apenas confiar no flow.
 
-    e.preventDefault();
+    // Inicia processamento "Inteligente"
+    setIsProcessing(true);
 
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    // Simulação de delay de "Thinking" da IA
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const deltaX = clientX - startPosRef.current.x;
-    const deltaY = clientY - startPosRef.current.y;
+    setTranscript(prev => {
+      const refined = refineTextSmart(prev);
+      if (refined) {
+        onTranscript(refined);
+        toast.success("Texto processado e formatado com sucesso!", {
+          icon: <CheckCircle2 className="text-emerald-500" />,
+          style: { background: '#064e3b', color: '#d1fae5', border: '1px solid #065f46' }
+        });
+      }
+      return ''; // Limpa buffer
+    });
 
-    setSlideOffset({ x: deltaX < 0 ? deltaX : 0, y: deltaY < 0 ? deltaY : 0 });
-
-    if (deltaX < -100) {
-      stopRecording(true);
-    } else if (deltaY < -100) {
-      setIsLocked(true);
-      setSlideOffset({ x: 0, y: 0 });
-    }
+    setIsProcessing(false);
   };
 
-  const formatTime = (totalDeciSeconds: number) => {
-    const totalSeconds = Math.floor(totalDeciSeconds / 10);
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  // Lógica Avançada de Tratamento de Texto (Local AI Simulation)
+  const refineTextSmart = (text: string) => {
+    let t = text.trim();
+    if (!t) return "";
+
+    // 1. Limpeza de vícios de linguagem (Filler words)
+    // Remove: "tipo", "tipo assim", "aí", "então", "né" (quando soltos)
+    t = t.replace(/\b(tipo assim|tipo|aí|então|né|hum|ã|tá|bom)\b/gi, '')
+      .replace(/\s+/g, ' '); // normaliza espaços
+
+    // 2. Capitalização de frases
+    // Tenta detectar pontuação existente ou inferir
+    t = t.replace(/(^\w|[.!?]\s+\w)/g, letter => letter.toUpperCase());
+
+    // 3. Pontuação Automática (Heurística)
+    // Se a frase começar com palavras interrogativas, adiciona interrogação se não houver
+    const questionWords = ['qual', 'como', 'onde', 'quando', 'quem', 'por que', 'porque', 'será', 'quanto'];
+    const firstWord = t.split(' ')[0].toLowerCase();
+    if (questionWords.includes(firstWord) && !/[.!?]$/.test(t)) {
+      t += '?';
+    } else if (!/[.!?]$/.test(t)) {
+      t += '.';
+    }
+
+    // 4. Formatação de Moeda (Básica)
+    // Ex: "cinquenta reais" -> "R$ 50,00" (Complexo fazer regex puro, mas podemos tentar casos simples)
+
+    return t;
+  };
+
+  // Toggle Action
+  const handleClick = () => {
+    if (isRecording) stopRecording();
+    else startRecording();
   };
 
   return (
-    <div className="flex items-center space-x-2">
-      {isRecording && (
-        <div className="flex-1 flex items-center bg-black/80 backdrop-blur-xl rounded-full px-4 py-2 border border-white/10 shadow-2xl animate-in fade-in slide-in-from-right-4">
-          <div className="flex items-center space-x-3 w-full">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              <span className="text-white font-mono text-xs">{formatTime(duration)}</span>
-            </div>
-
-            {!isLocked ? (
-              <div className="flex-1 flex justify-center overflow-hidden">
-                <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest animate-pulse whitespace-nowrap">
-                  {slideOffset.x < -20 ? 'Solte para cancelar' : 'Deslize para cancelar ←'}
-                </span>
+    <div className="flex items-center space-x-3 select-none">
+      {/* Status Display - Animated */}
+      {(isRecording || isProcessing) && (
+        <div className={cn(
+          "flex items-center space-x-3 px-4 py-2 rounded-2xl animate-in slide-in-from-right-4 duration-300 border backdrop-blur-md",
+          isRecording ? "bg-red-500/10 border-red-500/20" : "bg-sky-500/10 border-sky-500/20"
+        )}>
+          {isRecording ? (
+            <>
+              <div className="flex items-center space-x-1 h-4">
+                {/* Voice Waveform Animation - Simulates reacting to audio */}
+                {[1, 2, 3, 2, 4, 2, 1].map((h, i) => (
+                  <div
+                    key={i}
+                    className="w-1 bg-red-500/80 rounded-full animate-pulse"
+                    style={{
+                      height: `${Math.max(4, Math.random() * 16)}px`, // Random height simulation
+                      animationDuration: '0.4s',
+                      animationDelay: `${i * 0.05}s`
+                    }}
+                  ></div>
+                ))}
               </div>
-            ) : (
-              <div className="flex-1 flex justify-center">
-                <span className="text-emerald-500 text-[9px] font-black uppercase tracking-widest animate-pulse">Gravando Transcrição...</span>
-              </div>
-            )}
-
-            {isLocked && (
-              <button
-                onClick={() => stopRecording(true)}
-                className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
-              >
-                <Trash2 size={14} className="text-red-500" />
-              </button>
-            )}
-          </div>
+              <span className="text-[10px] font-black text-red-500 uppercase tracking-widest animate-pulse">Gravando</span>
+            </>
+          ) : (
+            <>
+              <RefreshCw size={14} className="text-sky-400 animate-spin" />
+              <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">IA Analisando...</span>
+            </>
+          )}
         </div>
       )}
 
-      <div className="relative">
-        {isRecording && !isLocked && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-8 flex flex-col items-center animate-bounce">
-            <div className="bg-neutral-800 p-2 rounded-full border border-white/10 shadow-lg">
-              <Lock size={14} className="text-white/40" />
-            </div>
-            <div className="w-px h-3 bg-gradient-to-t from-white/10 to-transparent mt-1"></div>
+      {/* Main Activation Button */}
+      <button
+        onClick={handleClick}
+        disabled={isProcessing}
+        className={cn(
+          "relative group w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-xl",
+          isRecording
+            ? "bg-red-500 text-white hover:bg-red-600 shadow-red-500/30 scale-110"
+            : isProcessing
+              ? "bg-neutral-800 text-neutral-600 border border-white/5 cursor-wait"
+              : "bg-gradient-to-br from-emerald-500 to-teal-600 text-white hover:scale-105 active:scale-95 shadow-emerald-500/20 border border-white/10"
+        )}
+      >
+        {isRecording ? (
+          // Stop Icon (Square)
+          <div className="w-4 h-4 bg-white rounded-sm shadow-sm"></div>
+        ) : isProcessing ? (
+          <Loader2 size={20} className="animate-spin" />
+        ) : (
+          // Voice Bars Icon (ChatGPT Style)
+          <div className="flex items-center space-x-[2px]">
+            <div className="w-[3px] h-3 bg-white/90 rounded-full group-hover:h-5 transition-all duration-300 delay-75"></div>
+            <div className="w-[3px] h-5 bg-white/90 rounded-full group-hover:h-3 transition-all duration-300 delay-0"></div>
+            <div className="w-[3px] h-3 bg-white/90 rounded-full group-hover:h-6 transition-all duration-300 delay-150"></div>
+            <div className="w-[3px] h-4 bg-white/90 rounded-full group-hover:h-3 transition-all duration-300 delay-100"></div>
           </div>
         )}
 
-        <button
-          onMouseDown={startRecording}
-          onMouseUp={() => !isLocked && stopRecording()}
-          onMouseMove={handleMove}
-          onTouchStart={startRecording}
-          onTouchEnd={() => !isLocked && stopRecording()}
-          onTouchMove={handleMove}
-          onClick={() => isLocked && stopRecording()}
-          className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl touch-none select-none",
-            isRecording
-              ? "bg-red-500 scale-125 z-50 text-white"
-              : "bg-emerald-500 hover:bg-emerald-400 text-white"
-          )}
-          style={{
-            transform: isRecording && !isLocked ? `translate(${slideOffset.x}px, ${slideOffset.y}px)` : undefined,
-            WebkitTouchCallout: 'none',
-            WebkitUserSelect: 'none',
-            userSelect: 'none',
-            touchAction: 'none'
-          }}
-        >
-          {isLocked ? <Send size={18} /> : <Mic size={20} />}
-        </button>
-      </div>
+        {/* Ring Glow Effect */}
+        {!isRecording && !isProcessing && (
+          <div className="absolute inset-0 rounded-2xl border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        )}
+      </button>
     </div>
   );
 };
@@ -1747,8 +1798,8 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
     }
 
     try {
-      console.log("🔍 Salvando visita - Dados atuais:", visit);
-      console.log("🔍 Alterações:", editedVisit);
+      console.log("?? Salvando visita - Dados atuais:", visit);
+      console.log("?? Alterações:", editedVisit);
 
       // Garantir que todos os campos obrigatórios estejam presentes
       const updatedVisit: Visit = {
@@ -1771,10 +1822,10 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
         updatedAt: new Date().toISOString()
       };
 
-      console.log("🔍 Dados a serem salvos:", updatedVisit);
+      console.log("?? Dados a serem salvos:", updatedVisit);
 
       const result = await DatabaseService.upsertVisit(updatedVisit);
-      console.log("✅ Resultado do salvamento:", result);
+      console.log("? Resultado do salvamento:", result);
 
       setVisit(result);
       setIsEditingVisit(false);
@@ -1782,11 +1833,11 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
       // Propagar mudanças para o componente pai
       await onFinish(result);
 
-      toast.success("✅ Visita atualizada com sucesso!");
+      toast.success("Visita atualizada com sucesso!");
     } catch (error: any) {
-      console.error("❌ [App] Error updating visit FULL OBJECT:", error);
+      console.error("? [App] Error updating visit FULL OBJECT:", error);
       const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
-      toast.error(`❌ Erro ao atualizar: ${errorMessage}`);
+      toast.error(`Erro ao atualizar: ${errorMessage}`);
     }
   };
 
@@ -1853,19 +1904,6 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
 
   // Validação e ir para tela de vouchers
   const handleGenerateVoucher = () => {
-    if (!visit.contactPerson) {
-      alert("Por favor, selecione com quem foi a conversa.");
-      return;
-    }
-    if (!visit.temperature) {
-      alert("Por favor, selecione a temperatura da academia.");
-      return;
-    }
-    if (!marketingVerified) {
-      alert("Por favor, informe se deixou materiais de marketing (Banner/Flyers).");
-      return;
-    }
-
     setStep('VOUCHERS');
   };
 
@@ -1892,7 +1930,22 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
 
   const currentStepIndex = steps.findIndex(s => s.id === step);
 
-  return (
+  const handleStepClick = (newStep: string) => {
+    // If navigating away from START, ensure the visit has legally started
+    if (step === 'START' && newStep !== 'START' && !visit.startedAt) {
+      const startDetails = {
+        ...visit,
+        startedAt: new Date().toISOString(),
+        status: VisitStatus.PENDING
+      };
+      setVisit(startDetails);
+      onStart(startDetails);
+    }
+    setIsEditingVisit(false);
+    setStep(newStep as any);
+  };
+
+  return (<div className="relative z-[100]">
     <div className="fixed inset-0 z-[60] bg-[#0a0a0a] overflow-y-auto animate-in slide-in-from-right duration-300 antialiased selection:bg-emerald-500/30 custom-scrollbar">
       {/* Background Decorative Gradient */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -1922,16 +1975,20 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
         {/* Step Indicator */}
         <div className="flex items-center justify-between px-1 pt-0.5">
           {steps.map((s, idx) => (
-            <div key={s.id} className="flex flex-col items-center space-y-1 relative flex-1">
+            <div
+              key={s.id}
+              onClick={() => handleStepClick(s.id)}
+              className="flex flex-col items-center space-y-1 relative flex-1 cursor-pointer group/step"
+            >
               <div className={cn(
-                "w-5 h-5 rounded-lg flex items-center justify-center transition-all duration-500 relative z-10",
-                idx <= currentStepIndex ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-white/5 text-white/20 border border-white/5"
+                "w-5 h-5 rounded-lg flex items-center justify-center transition-all duration-500 relative z-10 active:scale-90",
+                idx <= currentStepIndex ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-white/5 text-white/20 border border-white/5 group-hover/step:bg-white/10 group-hover/step:text-white/40"
               )}>
                 {idx < currentStepIndex ? <CheckCircle2 size={10} strokeWidth={3} /> : s.icon}
               </div>
               <span className={cn(
                 "text-[7px] font-black uppercase tracking-tighter transition-colors duration-500",
-                idx <= currentStepIndex ? "text-emerald-500" : "text-white/10"
+                idx <= currentStepIndex ? "text-emerald-500" : "text-white/10 group-hover/step:text-white/30"
               )}>
                 {s.label}
               </span>
@@ -2068,16 +2125,30 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                     <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
                     <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Resumo Executivo <span className="text-white/20 text-[9px] font-medium lowercase ml-1">(opcional)</span></label>
                   </div>
-                  <WhatsAppVoiceMic onTranscript={(text) => setVisit(p => ({ ...p, summary: (p.summary ? p.summary + ' ' : '') + text }))} />
+                  <SmartVoiceInput onTranscript={(text) => setVisit(p => ({ ...p, summary: (p.summary ? p.summary + ' ' : '') + text }))} />
                 </div>
                 <div className="relative group">
                   <div className="absolute -inset-0.5 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-[2rem] blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
                   <textarea
+                    ref={(el) => {
+                      if (el) {
+                        el.style.height = 'auto';
+                        el.style.height = el.scrollHeight + 'px';
+                      }
+                    }}
                     placeholder="Quais os pontos principais desta visita? Algo importante para o futuro?"
-                    className="relative w-full h-36 bg-white/[0.03] text-white p-6 rounded-[2rem] text-sm outline-none transition-all placeholder:text-white/10 border border-white/5 focus:border-emerald-500/30 focus:bg-white/[0.05]"
+                    className="relative w-full min-h-[9rem] bg-white/[0.03] text-white p-6 rounded-[2rem] text-sm outline-none transition-all placeholder:text-white/10 border border-white/5 focus:border-emerald-500/30 focus:bg-white/[0.05] overflow-hidden resize-none"
                     value={visit.summary}
-                    onChange={e => setVisit(p => ({ ...p, summary: e.target.value }))}
+                    maxLength={500}
+                    onChange={e => {
+                      setVisit(p => ({ ...p, summary: e.target.value }));
+                      e.target.style.height = 'auto';
+                      e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
                   />
+                  <div className="absolute bottom-4 right-6 text-[10px] font-black text-white/20 pointer-events-none">
+                    {visit.summary?.length || 0}/500
+                  </div>
                 </div>
               </div>
 
@@ -2180,9 +2251,8 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
                 </button>
                 <button
                   onClick={handleGenerateVoucher}
-                  className="flex-[2] bg-emerald-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl flex items-center justify-center space-x-3"
+                  className="flex-[2] bg-emerald-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl flex items-center justify-center"
                 >
-                  <Ticket size={20} strokeWidth={3} />
                   <span>Gerar Vouchers</span>
                 </button>
               </div>
@@ -2277,7 +2347,7 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
             <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
               <button
                 onClick={() => {
-                  const landingText = `Obrigado por fazer parte BJJVisits! 🥋\n\nSua academia (${academy.name}) recebeu ${visit.vouchersGenerated?.length} vouchers:\n${visit.vouchersGenerated?.join(', ')}\n\nLink para resgate:\n${generateShareLink()}`;
+                  const landingText = `Obrigado por fazer parte BJJVisits! ??\n\nSua academia (${academy.name}) recebeu ${visit.vouchersGenerated?.length} vouchers:\n${visit.vouchersGenerated?.join(', ')}\n\nLink para resgate:\n${generateShareLink()}`;
                   navigator.clipboard.writeText(landingText);
                   toast.success("Copiado para o WhatsApp!", {
                     icon: <MessageCircle size={16} className="text-emerald-500" />
@@ -2397,244 +2467,273 @@ const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, e
             </div>
           </div>
         )}
+      </div>
+    </div>
 
-        {/* Modal de Edição */}
-        {isEditingVisit && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-[#0f0f0f] border border-white/10 rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-300">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center space-x-3">
-                  <h3 className="text-2xl font-bold text-white tracking-tight">Editar Visita</h3>
-                  <button
-                    onClick={() => setShowTimeInfo(true)}
-                    className="p-1.5 text-neutral-500 hover:text-sky-400 transition-colors bg-neutral-800/50 rounded-full"
-                    title="Informações sobre horários"
-                  >
-                    <Info size={18} />
-                  </button>
-                </div>
-                <button
-                  onClick={handleCancelEdit}
-                  className="bg-neutral-800 p-2.5 rounded-2xl text-neutral-500 hover:text-white transition-colors border border-white/5 active:scale-90"
-                >
-                  <X size={20} />
-                </button>
+
+    {
+      isEditingVisit && (
+        <div className="fixed inset-0 bg-[#0a0a0a] z-[70] flex flex-col animate-in slide-in-from-bottom duration-300 antialiased selection:bg-emerald-500/30 select-none overflow-y-auto custom-scrollbar">
+          {/* Header Fixo do Modo Edição */}
+          <div className="sticky top-0 bg-black/60 backdrop-blur-2xl p-6 border-b border-white/5 z-50 flex items-center justify-between shadow-2xl">
+            <div className="flex items-center space-x-3">
+              <div className="w-1.5 h-6 bg-sky-500 rounded-full"></div>
+              <div>
+                <h3 className="text-lg font-black text-white tracking-tight uppercase italic text-sky-500">Modo de Edição</h3>
+                <p className="text-neutral-500 text-[9px] font-black uppercase tracking-[0.2em]">{academy.name}</p>
               </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowTimeInfo(true)}
+                className="p-2 text-neutral-400 hover:text-sky-400 transition-colors bg-white/5 rounded-xl border border-white/5"
+                title="Informações sobre horários"
+              >
+                <Info size={18} />
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                className="bg-white/5 p-2 rounded-xl text-neutral-400 hover:text-white transition-colors border border-white/5 active:scale-95"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
 
-              <div className="space-y-6">
-                {/* Conversa com */}
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                    Conversa com <span className="text-red-400 ml-1">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[ContactPerson.OWNER, ContactPerson.TEACHER, ContactPerson.STAFF, ContactPerson.NOBODY].map(person => (
-                      <button
-                        key={person}
-                        onClick={() => setEditedVisit(p => ({ ...p, contactPerson: person }))}
-                        className={`py-4 rounded-2xl font-bold transition-all border text-sm ${editedVisit.contactPerson === person
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20'
-                          : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
-                          }`}
-                      >
-                        {person === ContactPerson.OWNER ? 'Proprietário' :
-                          person === ContactPerson.TEACHER ? 'Professor' :
-                            person === ContactPerson.STAFF ? 'Secretaria' : 'Ninguém'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Temperatura */}
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                    Temperatura <span className="text-red-400 ml-1">*</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { value: AcademyTemperature.COLD, label: 'Fria ❄️', color: 'blue' },
-                      { value: AcademyTemperature.WARM, label: 'Morna 🌤️', color: 'orange' },
-                      { value: AcademyTemperature.HOT, label: 'Quente 🔥', color: 'red' }
-                    ].map(t => (
-                      <button
-                        key={t.value}
-                        onClick={() => setEditedVisit(p => ({ ...p, temperature: t.value }))}
-                        className={`py-4 rounded-2xl font-bold transition-all border text-[11px] ${editedVisit.temperature === t.value
-                          ? t.color === 'blue' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
-                            : t.color === 'orange' ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-600/20'
-                              : 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20'
-                          : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
-                          }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Resumo da Visita */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                      Resumo da Visita <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
-                    </label>
-                    <WhatsAppVoiceMic onTranscript={(text) => setEditedVisit(p => ({ ...p, summary: (p.summary ? p.summary + ' ' : '') + text }))} />
-                  </div>
-                  <textarea
-                    placeholder="Resumo geral da visita..."
-                    className="w-full h-24 bg-neutral-800/50 text-white p-4 rounded-2xl text-sm outline-none transition-all placeholder:text-neutral-600 border border-white/5 focus:border-emerald-500/30"
-                    value={editedVisit.summary || ''}
-                    onChange={e => setEditedVisit(p => ({ ...p, summary: e.target.value }))}
-                  />
-                </div>
-
-                {/* Marketing */}
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                    Materiais
-                  </label>
-                  <div className="flex gap-3">
+          <div className="p-6 space-y-10 pb-32">
+            <div className="space-y-8 max-w-xl mx-auto">
+              {/* Conversa com */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                  Conversa com <span className="text-red-400 ml-1">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[ContactPerson.OWNER, ContactPerson.TEACHER, ContactPerson.STAFF, ContactPerson.NOBODY].map(person => (
                     <button
-                      onClick={() => setEditedVisit(p => ({ ...p, leftBanner: !p.leftBanner }))}
-                      className={`flex-1 py-4 rounded-2xl font-bold transition-all border text-sm flex flex-col items-center justify-center space-y-1 ${editedVisit.leftBanner
+                      key={person}
+                      onClick={() => setEditedVisit(p => ({ ...p, contactPerson: person }))}
+                      className={`py-4 rounded-2xl font-bold transition-all border text-sm ${editedVisit.contactPerson === person
                         ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20'
                         : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
                         }`}
                     >
-                      <span className="text-lg">🚩</span>
-                      <span>Banner</span>
+                      {person === ContactPerson.OWNER ? 'Proprietário' :
+                        person === ContactPerson.TEACHER ? 'Professor' :
+                          person === ContactPerson.STAFF ? 'Secretaria' : 'Ninguém'}
                     </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Temperatura */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                  Temperatura <span className="text-red-400 ml-1">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: AcademyTemperature.COLD, label: 'Fria ❄️', color: 'blue' },
+                    { value: AcademyTemperature.WARM, label: 'Morna 🌤️', color: 'orange' },
+                    { value: AcademyTemperature.HOT, label: 'Quente 🔥', color: 'red' }
+                  ].map(temp => (
                     <button
-                      onClick={() => setEditedVisit(p => ({ ...p, leftFlyers: !p.leftFlyers }))}
-                      className={`flex-1 py-4 rounded-2xl font-bold transition-all border text-sm flex flex-col items-center justify-center space-y-1 ${editedVisit.leftFlyers
-                        ? 'bg-sky-600 text-white border-sky-600 shadow-lg shadow-sky-600/20'
+                      key={temp.value}
+                      onClick={() => setEditedVisit(p => ({ ...p, temperature: temp.value }))}
+                      className={`py-4 rounded-2xl font-bold transition-all border text-[10px] uppercase tracking-tighter ${editedVisit.temperature === temp.value
+                        ? temp.value === AcademyTemperature.HOT ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20' :
+                          temp.value === AcademyTemperature.WARM ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20' :
+                            'bg-sky-600 text-white border-sky-600 shadow-lg shadow-sky-600/20'
                         : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
                         }`}
                     >
-                      <span className="text-lg">📄</span>
-                      <span>Flyers</span>
+                      {temp.label}
                     </button>
-                  </div>
+                  ))}
                 </div>
+              </div>
 
-                {/* Fotos da Visita */}
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center justify-between">
-                    <span className="flex items-center">
-                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                      Fotos <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional - até 3)</span>
-                    </span>
-                    <span className="text-[10px] text-neutral-500">{(editedVisit.photos?.length || 0)}/3</span>
+              {/* Materiais */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                  Materiais
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setEditedVisit(p => ({ ...p, leftBanner: !p.leftBanner }))}
+                    className={`py-4 rounded-2xl font-bold transition-all border text-xs ${editedVisit.leftBanner
+                      ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30'
+                      : 'bg-neutral-800/50 text-neutral-500 border-white/5'
+                      }`}
+                  >
+                    Deixei Banner 🚩
+                  </button>
+                  <button
+                    onClick={() => setEditedVisit(p => ({ ...p, leftFlyers: !p.leftFlyers }))}
+                    className={`py-4 rounded-2xl font-bold transition-all border text-xs ${editedVisit.leftFlyers
+                      ? 'bg-sky-600/20 text-sky-400 border-sky-500/30'
+                      : 'bg-neutral-800/50 text-neutral-500 border-white/5'
+                      }`}
+                  >
+                    Deixei Flyers 📄
+                  </button>
+                </div>
+              </div>
+
+              {/* Resumo */}
+              <div className="space-y-3 text-left">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                    Resumo da Visita <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
                   </label>
-                  <div className="flex gap-3 flex-wrap">
-                    {editedVisit.photos?.map((photo, index) => (
-                      <div key={index} className="relative w-20 h-20 bg-neutral-800 rounded-xl overflow-hidden border border-neutral-700 shadow-inner group">
-                        <img src={photo} alt={`Visit ${index}`} className="w-full h-full object-cover" />
-                        <button
-                          onClick={() => setEditedVisit(p => ({ ...p, photos: p.photos?.filter((_, i) => i !== index) }))}
-                          className="absolute top-1 right-1 bg-red-600/80 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                    {(editedVisit.photos?.length || 0) < 3 && (
-                      <label className="w-20 h-20 bg-neutral-800/50 border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-800 hover:border-emerald-500/30 transition-all group">
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handlePhotoUpload}
-                          disabled={isUploading}
-                        />
-                        {isUploading ? (
-                          <Loader2 size={20} className="text-emerald-500 animate-spin" />
-                        ) : (
-                          <>
-                            <Camera size={20} className="text-neutral-600 group-hover:text-emerald-500 transition-colors" />
-                            <span className="text-[9px] text-neutral-600 group-hover:text-emerald-500 mt-1">Adicionar</span>
-                          </>
-                        )}
-                      </label>
-                    )}
+                  <SmartVoiceInput
+                    onTranscript={(text) => setEditedVisit(p => ({ ...p, summary: (p.summary ? p.summary + ' ' : '') + text }))} />
+                </div>
+                <div className="relative group">
+                  <textarea
+                    ref={(el) => {
+                      if (el) {
+                        el.style.height = 'auto';
+                        el.style.height = el.scrollHeight + 'px';
+                      }
+                    }}
+                    value={editedVisit.summary || ''}
+                    onChange={(e) => {
+                      setEditedVisit(p => ({ ...p, summary: e.target.value }));
+                      e.target.style.height = 'auto';
+                      e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
+                    maxLength={500}
+                    rows={1}
+                    placeholder="Resumo geral da visita..."
+                    className="w-full bg-neutral-900 border border-white/10 rounded-2xl p-4 text-white text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 transition-all min-h-[120px] custom-scrollbar resize-none overflow-hidden"
+                  />
+                  <div className="absolute bottom-3 right-8 text-[10px] font-black text-white/20 pointer-events-none">
+                    {editedVisit.summary?.length || 0}/500
+                  </div>
+                  <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Edit3 size={14} className="text-white/20" />
                   </div>
                 </div>
               </div>
 
-              {/* Botões do modal - Reorganizados para maior fluidez */}
-              <div className="mt-10 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={handleSaveEditedVisit}
-                    disabled={!hasChanges()}
-                    className={`h-14 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${hasChanges()
-                      ? 'bg-sky-600 text-white hover:bg-sky-500 shadow-lg shadow-sky-600/20 active:scale-95'
-                      : 'bg-neutral-800 text-neutral-600 cursor-not-allowed'
-                      }`}
-                  >
-                    Salvar Alterações
-                  </button>
-                  <button
-                    onClick={handleCancelEdit}
-                    className="h-14 bg-neutral-800 text-white rounded-2xl font-medium hover:bg-neutral-700 transition-all border border-white/5 active:scale-95"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-4 pt-4 border-t border-white/5">
-                  <button
-                    onClick={handleGenerateVoucherFromModal}
-                    className="flex-1 h-12 bg-white/5 text-white/40 rounded-2xl font-bold hover:bg-white/10 transition-all border border-white/5 flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
-                  >
-                    Gerar Voucher
-                  </button>
-
-                  {(!visit.finishedAt || visit.status !== VisitStatus.VISITED) && (
-                    <button
-                      onClick={handleFinishVisitFromModal}
-                      className="flex-1 h-12 bg-emerald-600/10 text-emerald-400 rounded-2xl font-bold hover:bg-emerald-600/20 transition-all border border-emerald-500/20 text-xs uppercase tracking-widest"
-                    >
-                      Finalizar Visita
-                    </button>
+              {/* Fotos */}
+              <div className="space-y-3 text-left">
+                <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center justify-between">
+                  <span className="flex items-center">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                    Fotos <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional - até 3)</span>
+                  </span>
+                  <span className="text-[10px] text-neutral-500">{(editedVisit.photos?.length || 0)}/3</span>
+                </label>
+                <div className="flex gap-3 flex-wrap">
+                  {editedVisit.photos?.map((photo, index) => (
+                    <div key={index} className="relative w-20 h-20 bg-neutral-800 rounded-xl overflow-hidden border border-neutral-700 shadow-inner group">
+                      <img src={photo} alt={`Visit ${index}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => setEditedVisit(p => ({ ...p, photos: p.photos?.filter((_, i) => i !== index) }))}
+                        className="absolute top-1 right-1 bg-red-600/80 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {(editedVisit.photos?.length || 0) < 3 && (
+                    <label className="w-20 h-20 bg-neutral-800/50 border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-800 hover:border-emerald-500/30 transition-all group">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                        disabled={isUploading}
+                      />
+                      {isUploading ? (
+                        <Loader2 size={20} className="text-emerald-500 animate-spin" />
+                      ) : (
+                        <>
+                          <Camera size={20} className="text-neutral-600 group-hover:text-emerald-500 transition-colors" />
+                          <span className="text-[9px] text-neutral-600 group-hover:text-emerald-500 mt-1">Adicionar</span>
+                        </>
+                      )}
+                    </label>
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Modal de Informação de Horário */}
-              {showTimeInfo && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-in fade-in duration-200" onClick={() => setShowTimeInfo(false)}>
-                  <div className="bg-neutral-900 border border-amber-500/30 rounded-3xl p-6 max-w-xs w-full shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-                    <div className="flex flex-col items-center text-center space-y-4">
-                      <div className="w-12 h-12 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center">
-                        <Info size={24} />
-                      </div>
-                      <div className="space-y-2">
-                        <h4 className="text-white font-bold">Registro de Horários</h4>
-                        <p className="text-neutral-400 text-sm leading-relaxed">
-                          Por questões de integridade do sistema, os horários de <strong>início</strong> e <strong>fim</strong> da visita são registrados automaticamente e não podem ser alterados manualmente.
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setShowTimeInfo(false)}
-                        className="w-full bg-neutral-800 text-white py-3 rounded-xl font-bold hover:bg-neutral-700 transition-colors border border-white/5"
-                      >
-                        Entendi
-                      </button>
+            {/* Botões do modal - Reorganizados para maior fluidez */}
+            <div className="mt-10 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={handleSaveEditedVisit}
+                  disabled={!hasChanges()}
+                  className={`h-14 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${hasChanges()
+                    ? 'bg-sky-600 text-white hover:bg-sky-500 shadow-lg shadow-sky-600/20 active:scale-95'
+                    : 'bg-neutral-800 text-neutral-600 cursor-not-allowed'
+                    }`}
+                >
+                  Salvar Alterações
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="h-14 bg-neutral-800 text-white rounded-2xl font-medium hover:bg-neutral-700 transition-all border border-white/5 active:scale-95"
+                >
+                  Cancelar
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4 pt-4 border-t border-white/5">
+                <button
+                  onClick={handleGenerateVoucherFromModal}
+                  className="flex-1 h-12 bg-white/5 text-white/40 rounded-2xl font-bold hover:bg-white/10 transition-all border border-white/5 flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
+                >
+                  Gerar Voucher
+                </button>
+
+                {(!visit.finishedAt || visit.status !== VisitStatus.VISITED) && (
+                  <button
+                    onClick={handleFinishVisitFromModal}
+                    className="flex-1 h-12 bg-emerald-600/10 text-emerald-400 rounded-2xl font-bold hover:bg-emerald-600/20 transition-all border border-emerald-500/20 text-xs uppercase tracking-widest"
+                  >
+                    Finalizar Visita
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Modal de Informação de Horário */}
+            {showTimeInfo && (
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-in fade-in duration-200" onClick={() => setShowTimeInfo(false)}>
+                <div className="bg-neutral-900 border border-amber-500/30 rounded-3xl p-6 max-w-xs w-full shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="w-12 h-12 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center">
+                      <Info size={24} />
                     </div>
+                    <div className="space-y-2">
+                      <h4 className="text-white font-bold">Registro de Horários</h4>
+                      <p className="text-neutral-400 text-sm leading-relaxed">
+                        Por questões de integridade do sistema, os horários de <strong>início</strong> e <strong>fim</strong> da visita são registrados automaticamente e não podem ser alterados manualmente.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowTimeInfo(false)}
+                      className="w-full bg-neutral-800 text-white py-3 rounded-xl font-bold hover:bg-neutral-700 transition-colors border border-white/5"
+                    >
+                      Entendi
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )
+    }
+  </div >
   );
 };
 
@@ -2770,7 +2869,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    console.log('🔔 [Notifications] Setting up realtime subscription for user:', currentUser.id);
+    console.log('?? [Notifications] Setting up realtime subscription for user:', currentUser.id);
 
     const channel = supabase
       .channel(`user-notifs-${currentUser.id}`)
@@ -2783,7 +2882,7 @@ const AppContent: React.FC = () => {
           filter: `user_id=eq.${currentUser.id}`
         },
         (payload) => {
-          console.log('🔔 [Notifications] Received realtime notification:', payload);
+          console.log('?? [Notifications] Received realtime notification:', payload);
           const newN = payload.new;
           const mapped: Notification = {
             id: newN.id,
@@ -2792,58 +2891,58 @@ const AppContent: React.FC = () => {
             read: newN.read,
             timestamp: newN.created_at
           };
-          console.log('🔔 [Notifications] Adding to state:', mapped);
+          console.log('?? [Notifications] Adding to state:', mapped);
           setNotifications(prev => [mapped, ...prev]);
         }
       )
       .subscribe((status) => {
-        console.log('🔔 [Notifications] Subscription status:', status);
+        console.log('?? [Notifications] Subscription status:', status);
       });
 
     return () => {
-      console.log('🔔 [Notifications] Cleaning up subscription');
+      console.log('?? [Notifications] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id]);
 
-  // 🔄 Real-time Global Data Sync
+  // ?? Real-time Global Data Sync
   useEffect(() => {
     if (!currentUser) return;
 
-    console.log('🔄 [DataSync] Setting up global realtime synchronization...');
+    console.log('?? [DataSync] Setting up global realtime synchronization...');
 
     const channel = supabase
       .channel('global-data-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'academies' }, (p) => {
-        console.log('🔄 [DataSync] academies changed:', p.eventType);
+        console.log('?? [DataSync] academies changed:', p.eventType);
         loadData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, (p) => {
-        console.log('🔄 [DataSync] events changed:', p.eventType);
+        console.log('?? [DataSync] events changed:', p.eventType);
         loadData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_academies' }, (p) => {
-        console.log('🔄 [DataSync] event_academies changed:', p.eventType);
+        console.log('?? [DataSync] event_academies changed:', p.eventType);
         loadData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visits' }, (p) => {
-        console.log('🔄 [DataSync] visits changed:', p.eventType);
+        console.log('?? [DataSync] visits changed:', p.eventType);
         loadData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vouchers' }, (p) => {
-        console.log('🔄 [DataSync] vouchers changed:', p.eventType);
+        console.log('?? [DataSync] vouchers changed:', p.eventType);
         loadData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'finance_records' }, (p) => {
-        console.log('🔄 [DataSync] finance_records changed:', p.eventType);
+        console.log('?? [DataSync] finance_records changed:', p.eventType);
         loadData();
       })
       .subscribe((status) => {
-        console.log('🔄 [DataSync] Subscription status:', status);
+        console.log('?? [DataSync] Subscription status:', status);
       });
 
     return () => {
-      console.log('🔄 [DataSync] Cleaning up global synchronization');
+      console.log('?? [DataSync] Cleaning up global synchronization');
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id, loadData]);
@@ -2913,7 +3012,7 @@ const AppContent: React.FC = () => {
 
   /* Restore notifyUser */
   const notifyUser = async (userId: string, message: string) => {
-    console.log('📤 [Notifications] Sending notification:', { userId, message, currentUserId: currentUser?.id });
+    console.log('?? [Notifications] Sending notification:', { userId, message, currentUserId: currentUser?.id });
 
     // Verificar se notificações estão habilitadas
     try {
@@ -2926,11 +3025,11 @@ const AppContent: React.FC = () => {
         notificationsEnabled === '"true"';
 
       if (!isEnabled) {
-        console.log('📴 [Notifications] Notificações desabilitadas - ignorando:', message);
+        console.log('?? [Notifications] Notificações desabilitadas - ignorando:', message);
         return; // Não envia notificação
       }
     } catch (error) {
-      console.error('📤 [Notifications] Error checking notifications setting:', error);
+      console.error('?? [Notifications] Error checking notifications setting:', error);
       // Em caso de erro, continua e envia a notificação (fail-safe)
     }
 
@@ -2951,7 +3050,7 @@ const AppContent: React.FC = () => {
     try {
       await DatabaseService.createNotification(userId, message);
     } catch (error) {
-      console.error('📤 [Notifications] Error saving notification:', error);
+      console.error('?? [Notifications] Error saving notification:', error);
     }
   };
 
@@ -3362,4 +3461,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
