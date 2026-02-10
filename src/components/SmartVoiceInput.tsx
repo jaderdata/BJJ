@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
+import { DatabaseService } from '../lib/supabase';
 
 interface SmartVoiceInputProps {
     onTranscript: (text: string) => void;
@@ -95,52 +96,33 @@ export const SmartVoiceInput: React.FC<SmartVoiceInputProps> = ({ onTranscript }
     };
 
     const processFinalText = async () => {
-        // Inicia processamento "Inteligente"
+        if (!transcript.trim()) {
+            setIsProcessing(false);
+            return;
+        }
+
         setIsProcessing(true);
 
-        // Simulação de delay de "Thinking" da IA
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        try {
+            // Chamada real para a IA (Gemini via Edge Function)
+            const refined = await DatabaseService.refineVoiceText(transcript);
 
-        setTranscript(prev => {
-            const refined = refineTextSmart(prev);
             if (refined) {
                 onTranscript(refined);
-                toast.success("Texto processado e formatado com sucesso!", {
+                toast.success("Resumo gerado com sucesso!", {
                     icon: <CheckCircle2 className="text-emerald-500" />,
                     style: { background: '#064e3b', color: '#d1fae5', border: '1px solid #065f46' }
                 });
             }
-            return ''; // Limpa buffer
-        });
-
-        setIsProcessing(false);
-    };
-
-    // Lógica Avançada de Tratamento de Texto (Local AI Simulation)
-    const refineTextSmart = (text: string) => {
-        let t = text.trim();
-        if (!t) return "";
-
-        // 1. Limpeza de vícios de linguagem (Filler words)
-        // Remove: "tipo", "tipo assim", "aí", "então", "né" (quando soltos)
-        t = t.replace(/\b(tipo assim|tipo|aí|então|né|hum|ã|tá|bom)\b/gi, '')
-            .replace(/\s+/g, ' '); // normaliza espaços
-
-        // 2. Capitalização de frases
-        // Tenta detectar pontuação existente ou inferir
-        t = t.replace(/(^\w|[.!?]\s+\w)/g, letter => letter.toUpperCase());
-
-        // 3. Pontuação Automática (Heurística)
-        // Se a frase começar com palavras interrogativas, adiciona interrogação se não houver
-        const questionWords = ['qual', 'como', 'onde', 'quando', 'quem', 'por que', 'porque', 'será', 'quanto'];
-        const firstWord = t.split(' ')[0].toLowerCase();
-        if (questionWords.includes(firstWord) && !/[.!?]$/.test(t)) {
-            t += '?';
-        } else if (!/[.!?]$/.test(t)) {
-            t += '.';
+        } catch (error) {
+            console.error("Error processing voice with AI:", error);
+            // Fallback para o texto bruto em caso de erro na IA
+            onTranscript(transcript.trim());
+            toast.error("Erro ao processar com IA. Usando texto bruto.");
+        } finally {
+            setTranscript(''); // Limpa buffer
+            setIsProcessing(false);
         }
-
-        return t;
     };
 
     // Toggle Action
@@ -177,8 +159,7 @@ export const SmartVoiceInput: React.FC<SmartVoiceInputProps> = ({ onTranscript }
                         </>
                     ) : (
                         <>
-                            <RefreshCw size={14} className="text-sky-400 animate-spin" />
-                            <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">IA Analisando...</span>
+                            <RefreshCw size={16} className="text-sky-400 animate-spin" />
                         </>
                     )}
                 </div>

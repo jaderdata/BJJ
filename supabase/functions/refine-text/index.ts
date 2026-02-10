@@ -38,11 +38,19 @@ Deno.serve(async (req: Request) => {
                 body: JSON.stringify({
                     contents: [{
                         parts: [{
-                            text: `Você é um refinador de textos de transcrição de voz. O texto abaixo foi gerado por reconhecimento de voz e pode estar sem pontuação e com erros gramaticais. Sua tarefa é organizar as palavras, corrigir a pontuação, acentuação e gramática, tornando o texto formal e profissional (Alto padrão), sem alterar o sentido original.
+                            text: `Você é um Assistente Executivo de Alto Padrão especializado em transcrição de visitas comerciais.
+Sua tarefa é transformar a transcrição bruta abaixo em um RESUMO PROFISSIONAL, COESO e BEM PONTUADO.
+
+Regras de Ouro:
+1. Remova vícios de linguagem (tipo, aí, então, né, hum, etc).
+2. Organize o texto em um parágrafo profissional ou tópicos se necessário.
+3. Use pontuação e acentuação impecáveis.
+4. Mantenha o tom formal, mas direto.
+5. Se a conversa for longa, foque em extrair os pontos principais (Resumo Executivo).
 
 Texto bruto: "${text}"
 
-Retorne APENAS o texto refinado final, sem comentários adicionais.`
+Retorne APENAS o texto refinado final, pronto para ser lido por um diretor.`
                         }]
                     }]
                 })
