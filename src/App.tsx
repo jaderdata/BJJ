@@ -28,6 +28,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(m => ({ 
 const Reports = lazy(() => import('./pages/Reports').then(m => ({ default: m.Reports })));
 const EventsManager = lazy(() => import('./pages/EventsManager').then(m => ({ default: m.EventsManager })));
 const AcademiesManager = lazy(() => import('./pages/AcademiesManager').then(m => ({ default: m.AcademiesManager })));
+const DebugMudita = lazy(() => import('./pages/DebugMudita').then(m => ({ default: m.DebugMudita })));
 const UsersManager = lazy(() => import('./pages/UsersManager').then(m => ({ default: m.UsersManager })));
 const SalesFinance = lazy(() => import('./pages/SalesFinance').then(m => ({ default: m.SalesFinance })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
@@ -596,11 +597,7 @@ const AppContent: React.FC = () => {
                 }}
                 onFinish={async (visit: Visit) => {
                   try {
-                    // Save Visit
-                    const savedVisit = await DatabaseService.upsertVisit(visit);
-                    setVisits((prev: Visit[]) => [...prev.filter((v: Visit) => !(v.eventId === visit.eventId && v.academyId === visit.academyId)), savedVisit]);
-
-                    // Save Vouchers
+                    // Preparar Vouchers
                     const currentVoucherCodes = new Set(vouchers.map((v: Voucher) => v.code));
                     const newVoucherObjects: Voucher[] = (visit.vouchersGenerated || [])
                       .filter((code: string) => !currentVoucherCodes.has(code))
@@ -608,12 +605,16 @@ const AppContent: React.FC = () => {
                         code,
                         eventId: visit.eventId,
                         academyId: visit.academyId,
-                        visitId: savedVisit.id,
+                        visitId: visit.id!, // Será corrigido dentro da transação se necessário
                         createdAt: new Date().toISOString()
                       }));
 
+                    // Executar Transação Atômica (Visita + Vouchers)
+                    const savedVisit = await DatabaseService.finalizeVisitTransaction(visit, newVoucherObjects);
+
+                    // Atualizar Estado Local
+                    setVisits((prev: Visit[]) => [...prev.filter((v: Visit) => !(v.eventId === visit.eventId && v.academyId === visit.academyId)), savedVisit]);
                     if (newVoucherObjects.length > 0) {
-                      await DatabaseService.createVouchers(newVoucherObjects);
                       setVouchers((prev: Voucher[]) => [...prev, ...newVoucherObjects]);
                     }
 
@@ -677,10 +678,17 @@ const AppContent: React.FC = () => {
                   // Update both state and storage
                   localStorage.setItem('bjj_user', JSON.stringify(updatedUser));
                 }}
-                onLogout={logout}
-                onBack={() => setActiveTab('my_events')}
+                onLogout={() => {
+                  setCurrentUser(null);
+                  localStorage.removeItem('bjj_user');
+                }}
+                onBack={() => setActiveTab('dashboard')}
+                onNavigate={(tab) => setActiveTab(tab)}
               />
             )}
+
+            {/* Rota de Debug de Emergência */}
+            {activeTab === 'debug_mudita' && <DebugMudita />}
           </Suspense>
         </div>
       </main>

@@ -9,9 +9,10 @@ interface ProfileProps {
     onUpdate: (user: User) => void;
     onLogout: () => void;
     onBack: () => void;
+    onNavigate?: (tab: string) => void;
 }
 
-export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBack }) => {
+export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBack, onNavigate }) => {
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState(user.name || '');
     const [phone, setPhone] = useState(user.phone || '');
@@ -250,6 +251,17 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
             <p className="text-center text-[10px] text-white/20 font-medium uppercase tracking-[0.1em]">
                 Para alterar seu e-mail, entre em contato com o administrador.
             </p>
+
+            {onNavigate && (
+                <div className="flex justify-center pt-8 opacity-20 hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={() => onNavigate('debug_mudita')}
+                        className="text-[10px] font-black uppercase text-red-500 tracking-widest border border-red-500/50 px-4 py-2 rounded-lg hover:bg-red-500/10"
+                    >
+                        ⚠️ Diagnóstico Mudita
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

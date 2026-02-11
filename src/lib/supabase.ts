@@ -593,6 +593,37 @@ export const DatabaseService = {
         console.log("✅ [DatabaseService] Visita deletada com sucesso");
     },
 
+    async finalizeVisitTransaction(visit: Partial<Visit>, newVouchers: Partial<Voucher>[]) {
+        console.log("🚦 [DatabaseService] Iniciando transação de finalização...");
+
+        // 1. Salvar Visita (Status: VISITED)
+        const savedVisit = await this.upsertVisit(visit);
+        if (!savedVisit) throw new Error("Falha ao salvar a visita.");
+
+        console.log("✅ [DatabaseService] Visita salva com ID:", savedVisit.id);
+
+        // 2. Tentar salvar Vouchers
+        if (newVouchers.length > 0) {
+            try {
+                // Atribui o ID da visita recém-salva aos vouchers
+                const vouchersWithId = newVouchers.map(v => ({ ...v, visitId: savedVisit.id }));
+                await this.createVouchers(vouchersWithId as Voucher[]);
+                console.log("✅ [DatabaseService] Vouchers criados com sucesso.");
+            } catch (error: any) {
+                console.error("❌ [DatabaseService] ERRO CRÍTICO: Falha ao criar vouchers após salvar visita!", error);
+
+                // Gravar log de erro na visita
+                await supabase.from('visits').update({
+                    summary: `[ERRO DE SISTEMA] Vouchers não foram gerados: ${error.message}. RESUMO ORIGINAL: ${visit.summary || ''}`
+                }).eq('id', savedVisit.id);
+
+                throw new Error(`A visita foi salva, mas Ocorreu um erro ao gerar os vouchers: ${error.message}`);
+            }
+        }
+
+        return savedVisit;
+    }
+
 };
 
 export const AuthService = {
