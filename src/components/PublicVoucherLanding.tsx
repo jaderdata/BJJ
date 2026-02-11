@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, MessageCircle, CheckCircle2, Copy, X } from 'lucide-react';
 import { DatabaseService } from '../lib/supabase';
+import { toast } from 'sonner';
 
 interface PublicVoucherLandingProps {
     academyName: string;
@@ -90,87 +91,130 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
     }
 
     return (
-        <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
-            <div className="max-w-xl w-full bg-neutral-900 border border-neutral-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col items-center">
-                {/* Header */}
-                <div className="pt-12 pb-8 flex flex-col items-center space-y-4 px-6 text-center w-full">
-                    <div className="w-56 h-auto flex items-center justify-center mb-2">
-                        <img
-                            src="/pbjjf_logo_2026.png"
-                            alt="PBJJF"
-                            className="w-2/3 h-auto object-contain mix-blend-screen"
-                        />
+        <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 md:p-8 relative overflow-hidden font-sans selection:bg-emerald-500/30">
+            {/* Background Auras */}
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/5 blur-[120px] rounded-full animate-pulse"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+
+            <div className="max-w-xl w-full relative z-10">
+                {/* Decorative border/glow */}
+                <div className="absolute -inset-[1px] bg-gradient-to-b from-white/10 to-transparent rounded-[3rem] pointer-events-none"></div>
+
+                <div className="bg-neutral-900/80 backdrop-blur-2xl border border-white/5 rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col items-center">
+                    {/* Header Section */}
+                    <div className="pt-14 pb-10 flex flex-col items-center space-y-6 px-8 text-center w-full relative">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
+
+                        <div className="w-64 h-auto flex items-center justify-center filter drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                            <img
+                                src="/pbjjf_logo_white.png"
+                                alt="PBJJF"
+                                className="w-3/4 h-auto object-contain"
+                            />
+                        </div>
+
+                        <div className="space-y-1">
+                            <h1 className="text-3xl font-black text-white tracking-tighter italic uppercase flex items-center justify-center">
+                                <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">Vip Voucher</span>
+                            </h1>
+                            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.5em] mt-2 bg-emerald-500/10 px-4 py-1.5 rounded-full border border-emerald-500/20 inline-block">
+                                {academyName}
+                            </p>
+                        </div>
                     </div>
-                    <h1 className="text-2xl font-black text-white tracking-tight">PBJJF Vouchers</h1>
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] leading-relaxed max-w-xs">{academyName}</p>
-                </div>
 
-                <div className="w-full h-px bg-white/5 mx-auto max-w-xs"></div>
+                    <div className="w-4/5 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
 
-                <div className="p-8 md:p-10 w-full space-y-10">
-                    <div className="space-y-8 text-center">
-                        <h2 className="text-xl font-bold text-white leading-snug px-4">
-                            Thank you for being part of the upcoming PBJJF event!
-                        </h2>
+                    <div className="p-8 md:p-12 w-full space-y-12">
+                        <div className="space-y-10 text-center">
+                            <p className="text-sm font-medium text-white/50 leading-relaxed px-6 italic">
+                                "Congratulations! You've been invited to join the upcoming PBJJF experience."
+                            </p>
 
-                        {/* Voucher Box */}
-                        <div className="bg-white/[0.03] border border-white/5 rounded-[2rem] p-8 space-y-6">
-                            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Your Vouchers</p>
-                            <div className="flex flex-wrap gap-4 justify-center">
-                                {codes.filter(c => c.trim().length > 0).map((c, i) => (
-                                    <div key={i} className="bg-black/40 border border-white/10 text-white px-8 py-4 rounded-2xl font-mono font-black text-xl md:text-2xl shadow-inner uppercase">
-                                        {c.trim()}
+                            {/* Voucher Presentation - Ticket Style */}
+                            <div className="relative group">
+                                <div className="absolute -inset-4 bg-emerald-500/5 blur-2xl rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                                <div className="relative bg-black/40 border border-white/5 rounded-[2.5rem] p-10 space-y-8 overflow-hidden">
+                                    {/* Left Notch */}
+                                    <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#050505] rounded-full border border-white/5"></div>
+                                    {/* Right Notch */}
+                                    <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-[#050505] rounded-full border border-white/5"></div>
+
+                                    <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Access Codes</p>
+
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {codes.filter(c => c.trim().length > 0).map((c, i) => (
+                                            <div key={i} className="relative group/code">
+                                                <div className="bg-neutral-800/50 border border-white/10 text-white px-8 py-5 rounded-2xl font-mono font-black text-2xl md:text-3xl tracking-widest shadow-2xl transition-all group-hover/code:scale-[1.02] group-hover/code:border-emerald-500/30 uppercase cursor-pointer" onClick={() => {
+                                                    navigator.clipboard.writeText(c.trim());
+                                                    toast.success("Code copied!");
+                                                }}>
+                                                    {c.trim()}
+                                                    <Copy size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/10 group-hover/code:text-emerald-500 transition-colors" />
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+
+                                    <button
+                                        onClick={handleCopy}
+                                        className="text-[9px] font-black text-white/40 uppercase tracking-widest hover:text-white transition-colors flex items-center justify-center space-x-2 mx-auto pt-4"
+                                    >
+                                        <Copy size={12} />
+                                        <span>{copied ? 'Copied to Clipboard!' : 'Copy Invitation Link'}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-6 pt-4">
+                            <p className="text-center text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">
+                                Instant Redemption
+                            </p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <button
+                                    onClick={handleWhatsApp}
+                                    className="relative group h-20 bg-emerald-600 rounded-[2rem] font-black flex items-center justify-center gap-3 overflow-hidden transition-all active:scale-95 hover:shadow-[0_20px_40px_-10px_rgba(16,185,129,0.3)]"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <MessageCircle size={28} fill="currentColor" className="text-white/20" />
+                                    <span className="text-xl text-white tracking-tight italic">WhatsApp</span>
+                                </button>
+
+                                <button
+                                    onClick={handleSMS}
+                                    className="relative group h-20 bg-sky-600 rounded-[2rem] font-black flex items-center justify-center gap-3 overflow-hidden transition-all active:scale-95 hover:shadow-[0_20px_40px_-10px_rgba(14,165,233,0.3)]"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <MessageCircle size={28} className="text-white/20" />
+                                    <span className="text-xl text-white tracking-tight italic">Send SMS</span>
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <p className="text-center text-[10px] font-bold text-neutral-500 italic">
-                            Click below to redeem your vouchers instantly:
-                        </p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <button
-                                onClick={handleWhatsApp}
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-[0.98] transition-all"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <MessageCircle size={24} fill="currentColor" className="text-white/20" />
-                                    <span className="text-lg">WhatsApp</span>
-                                </div>
-                            </button>
-                            <button
-                                onClick={handleSMS}
-                                className="bg-sky-600 hover:bg-sky-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-sky-900/20 active:scale-[0.98] transition-all"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <MessageCircle size={24} />
-                                    <span className="text-lg">Send SMS</span>
-                                </div>
-                            </button>
+                    {/* Footer - Keep required elements */}
+                    <div className="w-full bg-black/40 p-10 border-t border-white/5 space-y-8">
+                        <div className="flex flex-col items-center space-y-2">
+                            <div className="flex justify-center items-center space-x-3 text-[9px] text-white/30 font-black uppercase tracking-[0.3em]">
+                                <Clock size={12} className="text-emerald-500" />
+                                <span>Expires in 24 hours</span>
+                            </div>
+                            <div className="text-[8px] text-white/10 font-bold uppercase tracking-[0.1em]">
+                                Secure BJJVisits Token
+                            </div>
                         </div>
+
+                        <button
+                            onClick={() => setIsClosed(true)}
+                            className="w-full flex items-center justify-center space-x-2 text-white/20 hover:text-red-400/60 transition-all text-[9px] font-black uppercase tracking-[0.4em] pt-4"
+                        >
+                            <X size={14} />
+                            <span>Close Screen</span>
+                        </button>
                     </div>
-
-
-                </div>
-
-                {/* Footer */}
-                <div className="w-full bg-black/30 p-8 border-t border-white/5 space-y-6">
-                    <div className="flex justify-center items-center space-x-2 text-[8px] md:text-[10px] text-white/20 font-black uppercase tracking-[0.2em]">
-                        <span>Expires in 24 hours</span>
-                        <span className="text-white/10">•</span>
-                        <span>Secure BJJVisits Token</span>
-                    </div>
-
-                    <button
-                        onClick={() => setIsClosed(true)}
-                        className="w-full flex items-center justify-center space-x-2 text-white/40 hover:text-white transition-colors text-[10px] font-black uppercase tracking-[0.2em]"
-                    >
-                        <X size={14} />
-                        <span>Close Screen</span>
-                    </button>
                 </div>
             </div>
         </div>
