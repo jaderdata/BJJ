@@ -3,17 +3,20 @@
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
 
 -- Allow users to read their own data
+DROP POLICY IF EXISTS "Users can view their own profile" ON app_users;
 CREATE POLICY "Users can view their own profile" 
 ON app_users FOR SELECT 
 USING (auth.uid() = id);
 
 -- Allow users to update their own data
+DROP POLICY IF EXISTS "Users can update their own profile" ON app_users;
 CREATE POLICY "Users can update their own profile" 
 ON app_users FOR UPDATE 
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
 -- Allow Salespersons to be viewed by Admins (optional, for management)
+DROP POLICY IF EXISTS "Admins can view all profiles" ON app_users;
 CREATE POLICY "Admins can view all profiles" 
 ON app_users FOR SELECT 
 USING (
