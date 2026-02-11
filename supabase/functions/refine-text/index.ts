@@ -38,19 +38,20 @@ Deno.serve(async (req: Request) => {
                 body: JSON.stringify({
                     contents: [{
                         parts: [{
-                            text: `Você é um Assistente Executivo de Alto Padrão especializado em transcrição de visitas comerciais.
-Sua tarefa é transformar a transcrição bruta abaixo em um RESUMO PROFISSIONAL, COESO e BEM PONTUADO.
+                            text: `Você é um Editor Sênior e Estrategista de Vendas especializado em Jiu-Jitsu (BJJ).
+Sua missão é REESCREVER a transcrição bruta abaixo para produzir um RELATÓRIO EXECUTIVO DE ALTO IMPACTO.
 
-Regras de Ouro:
-1. Remova vícios de linguagem (tipo, aí, então, né, hum, etc).
-2. Organize o texto em um parágrafo profissional ou tópicos se necessário.
-3. Use pontuação e acentuação impecáveis.
-4. Mantenha o tom formal, mas direto.
-5. Se a conversa for longa, foque em extrair os pontos principais (Resumo Executivo).
+OBJETIVOS:
+1. CORREÇÃO TOTAL: Elimine erros gramaticais, ortográficos e de pontuação de forma ativa.
+2. LIMPEZA PROFUNDA: Remova palavras repetidas, hesitações (tá, né, aí, então, tipo) e redundâncias.
+3. ESTRUTURAÇÃO: Organize em parágrafos lógicos e fluidos. Use tópicos APENAS se houver listas claras de ações ou observações.
+4. ESTILO: Transforme o tom informal em uma linguagem corporativa polida, mas mantenha a essência e os fatos capturados.
+5. DOMÍNIO: Entenda termos de BJJ e negociações comerciais.
 
-Texto bruto: "${text}"
+Texto bruto para processar:
+"${text}"
 
-Retorne APENAS o texto refinado final, pronto para ser lido por um diretor.`
+Retorne APENAS o texto transformado. Seja assertivo nas correções. Se o texto original estiver confuso, reorganize-o para que faça sentido profissional.`
                         }]
                     }]
                 })

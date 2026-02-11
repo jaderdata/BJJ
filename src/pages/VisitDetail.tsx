@@ -588,14 +588,9 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
                     <button
                       onClick={handleRefineSummary}
                       disabled={isRefining}
-                      className="flex items-center space-x-1.5 px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 transition-all active:scale-95 disabled:opacity-50"
+                      className="px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 transition-all active:scale-95 disabled:opacity-50"
                     >
-                      {isRefining ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : (
-                        <RefreshCw size={12} className="opacity-70" />
-                      )}
-                      <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider">{isRefining ? 'Refinando...' : 'Refinar'}</span>
                     </button>
                   )}
                 </div>
@@ -1068,14 +1063,9 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
                     <button
                       onClick={handleRefineEditedSummary}
                       disabled={isRefining}
-                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 transition-all active:scale-95 disabled:opacity-50"
+                      className="px-3 py-1.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 transition-all active:scale-95 disabled:opacity-50"
                     >
-                      {isRefining ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : (
-                        <Sparkles size={12} className="opacity-70" />
-                      )}
-                      <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider">{isRefining ? 'Refinando...' : 'Refinar'}</span>
                     </button>
                   )}
                 </div>
