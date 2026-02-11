@@ -337,29 +337,6 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
     window.location.href = url;
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(getShareMessage());
-    toast.success("Copiado para o WhatsApp!", {
-      icon: <MessageCircle size={16} className="text-emerald-500" />
-    });
-  };
-
-  const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Vouchers - ${academy.name}`,
-          text: getShareMessage(),
-          url: generateShareLink()
-        });
-      } catch (err) {
-        console.log('Error sharing:', err);
-      }
-    } else {
-      handleCopyLink();
-    }
-  };
-
   const steps = [
     { id: 'START', label: 'Início', icon: <Play size={12} /> },
     { id: 'ACTIVE', label: 'Atendimento', icon: <Edit3 size={12} /> },
@@ -799,22 +776,6 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
               >
                 <Smartphone size={14} />
                 <span>SMS Direct</span>
-              </button>
-
-              <button
-                onClick={handleNativeShare}
-                className="bg-white/5 border border-white/10 text-white/60 py-4 rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
-              >
-                <Share2 size={14} />
-                <span>Partilhar</span>
-              </button>
-
-              <button
-                onClick={handleCopyLink}
-                className="bg-white/5 border border-white/10 text-white/60 py-4 rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
-              >
-                <Copy size={14} />
-                <span>Copiar Link</span>
               </button>
 
               <button
