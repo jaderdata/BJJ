@@ -4,7 +4,7 @@ import {
   CalendarDays, X, CheckCircle2, Clock, Plus, Minus, AlertCircle, ChevronRight, ChevronLeft,
   Ticket, Info, Bell, Search, Edit3, Camera, Trash2, RefreshCw, QrCode, Copy, ExternalLink,
   History, TrendingUp, MessageCircle, Phone, Save, Loader2, Play, Image as ImageIcon,
-  Upload, Mic, Send, Lock, Share2, Smartphone, Sparkles, Wand2
+  Upload, Mic, Send, Lock, Share2, Smartphone
 } from 'lucide-react';
 import { ProgressBar } from '../components/ProgressBar';
 import { toast } from 'sonner';
@@ -50,7 +50,6 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
   const [isEditingVisit, setIsEditingVisit] = useState(false);
   const [editedVisit, setEditedVisit] = useState<Partial<Visit>>({});
   const [showTimeInfo, setShowTimeInfo] = useState(false);
-  const [isRefining, setIsRefining] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -287,47 +286,6 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
     }
   };
 
-  const handleRefineSummary = async () => {
-    if (!visit.summary || visit.summary.trim().length < 5) {
-      toast.info("Escreva um pouco mais para que eu possa refinar o texto.");
-      return;
-    }
-
-    setIsRefining(true);
-    try {
-      const refined = await DatabaseService.refineVoiceText(visit.summary);
-      if (refined) {
-        setVisit(p => ({ ...p, summary: refined }));
-        toast.success("Texto refinado!");
-      }
-    } catch (error) {
-      console.error("Error refining text:", error);
-      toast.error("Erro ao refinar o texto.");
-    } finally {
-      setIsRefining(false);
-    }
-  };
-
-  const handleRefineEditedSummary = async () => {
-    if (!editedVisit.summary || editedVisit.summary.trim().length < 5) {
-      toast.info("Escreva um pouco mais para que eu possa refinar o texto.");
-      return;
-    }
-
-    setIsRefining(true);
-    try {
-      const refined = await DatabaseService.refineVoiceText(editedVisit.summary);
-      if (refined) {
-        setEditedVisit(p => ({ ...p, summary: refined }));
-        toast.success("Texto refinado!");
-      }
-    } catch (error) {
-      console.error("Error refining text:", error);
-      toast.error("Erro ao refinar o texto.");
-    } finally {
-      setIsRefining(false);
-    }
-  };
 
   // Validação e ir para tela de vouchers
   const handleGenerateVoucher = () => {
@@ -593,20 +551,9 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
 
               {/* Card Resumo */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between px-1 mb-2">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
-                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Resumo Executivo <span className="text-white/20 text-[9px] font-medium lowercase ml-1">(opcional)</span></label>
-                  </div>
-                  {visit.summary && visit.summary.trim().length > 0 && (
-                    <button
-                      onClick={handleRefineSummary}
-                      disabled={isRefining}
-                      className="px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      <span className="text-[10px] font-black uppercase tracking-wider">{isRefining ? 'Refinando...' : 'Refinar'}</span>
-                    </button>
-                  )}
+                <div className="flex items-center space-x-2 px-1 mb-2">
+                  <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                  <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Resumo Executivo <span className="text-white/20 text-[9px] font-medium lowercase ml-1">(opcional)</span></label>
                 </div>
                 <div className="relative group">
                   <div className="absolute -inset-0.5 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-[2rem] blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
@@ -852,7 +799,14 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
             </div>
 
             <button
-              onClick={() => onFinish(visit)}
+              onClick={() => {
+                const finalVisit = {
+                  ...visit,
+                  status: VisitStatus.VISITED,
+                  finishedAt: new Date().toISOString()
+                };
+                onFinish(finalVisit);
+              }}
               className="w-full h-20 bg-emerald-600 text-white rounded-[2.5rem] font-black text-xl uppercase tracking-widest shadow-2xl shadow-emerald-500/40 active:scale-[0.98] transition-all"
             >
               Concluir Visita
@@ -1073,15 +1027,6 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
                     Resumo da Visita <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
                   </label>
-                  {editedVisit.summary && editedVisit.summary.trim().length > 0 && (
-                    <button
-                      onClick={handleRefineEditedSummary}
-                      disabled={isRefining}
-                      className="px-3 py-1.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      <span className="text-[10px] font-black uppercase tracking-wider">{isRefining ? 'Refinando...' : 'Refinar'}</span>
-                    </button>
-                  )}
                 </div>
                 <div className="relative group">
                   <textarea
@@ -1198,7 +1143,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
 
             {/* Modal de Informação de Horário */}
             {showTimeInfo && (
-              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-6 animate-in fade-in duration-200" onClick={() => setShowTimeInfo(false)}>
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300" onClick={() => setShowTimeInfo(false)}>
                 <div className="bg-neutral-900 border border-amber-500/30 rounded-3xl p-6 max-w-xs w-full shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
                   <div className="flex flex-col items-center text-center space-y-4">
                     <div className="w-12 h-12 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center">
@@ -1224,6 +1169,6 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
         </div>
       )
     }
-  </div>
+  </div >
   );
 };

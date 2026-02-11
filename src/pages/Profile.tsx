@@ -108,7 +108,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                 </button>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
                 {/* Decorative Background */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
 
@@ -239,9 +239,6 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                             ) : (
                                 <>
                                     <span>Salvar Alterações</span>
-                                    <div className="w-6 h-6 bg-black/10 rounded-lg flex items-center justify-center group-hover:bg-black/20 transition-colors">
-                                        <ImageIcon size={14} className="opacity-60" />
-                                    </div>
                                 </>
                             )}
                         </button>

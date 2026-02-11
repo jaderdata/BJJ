@@ -1,12 +1,13 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { JWT } from "npm:google-auth-library@^9.0.0";
+/// <reference path="./deno.d.ts" />
+/// <reference path="./google-auth.d.ts" />
+import { JWT } from "google-auth-library";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
     }
@@ -180,9 +181,10 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
 
-    } catch (error) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('Sync Error:', error);
-        return new Response(JSON.stringify({ error: error.message }), {
+        return new Response(JSON.stringify({ error: errorMessage }), {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });

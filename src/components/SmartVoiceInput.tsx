@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import { DatabaseService } from '../lib/supabase';
@@ -104,16 +104,9 @@ export const SmartVoiceInput: React.FC<SmartVoiceInputProps> = ({ onTranscript }
         setIsProcessing(true);
 
         try {
-            // Chamada real para a IA (Gemini via Edge Function)
-            const refined = await DatabaseService.refineVoiceText(transcript);
-
-            if (refined) {
-                onTranscript(refined);
-                toast.success("Resumo gerado com sucesso!", {
-                    icon: <CheckCircle2 className="text-emerald-500" />,
-                    style: { background: '#064e3b', color: '#d1fae5', border: '1px solid #065f46' }
-                });
-            }
+            // IA Refinement removed as requested. Using raw transcript.
+            onTranscript(transcript.trim());
+            toast.success("Transcrição concluída!");
         } catch (error) {
             console.error("Error processing voice with AI:", error);
             // Fallback para o texto bruto em caso de erro na IA

@@ -100,7 +100,8 @@ export const DatabaseService = {
             date: e.event_date,
             startDate: e.start_date || e.event_date,
             endDate: e.end_date || e.event_date,
-            photoUrl: e.photo_url
+            photoUrl: e.photo_url,
+            isTest: e.is_test
         }));
     },
 
@@ -115,7 +116,8 @@ export const DatabaseService = {
             event_date: event.startDate || event.date,
             start_date: event.startDate,
             end_date: event.endDate,
-            photo_url: event.photoUrl || null
+            photo_url: event.photoUrl,
+            is_test: event.isTest
         }).select().single();
         if (error) throw error;
         return {
@@ -125,12 +127,13 @@ export const DatabaseService = {
             date: data.event_date,
             startDate: data.start_date,
             endDate: data.end_date,
-            photoUrl: data.photo_url
+            photoUrl: data.photo_url,
+            isTest: data.is_test
         };
     },
 
     async updateEvent(id: string, event: Partial<Event>) {
-        const { data, error } = await supabase.from('events').update({
+        const { error } = await supabase.from('events').update({
             name: event.name,
             city: event.city,
             state: event.state,
@@ -140,15 +143,10 @@ export const DatabaseService = {
             event_date: event.startDate || event.date,
             start_date: event.startDate,
             end_date: event.endDate,
-            photo_url: event.photoUrl || null
-        }).eq('id', id).select().single();
+            photo_url: event.photoUrl || null,
+            is_test: event.isTest
+        }).eq('id', id);
         if (error) throw error;
-        return {
-            ...data,
-            salespersonId: data.salesperson_id,
-            date: data.event_date,
-            photoUrl: data.photo_url
-        };
     },
 
     async deleteEvent(id: string) {
@@ -158,24 +156,32 @@ export const DatabaseService = {
 
     // EVENT ACADEMIES (Junction)
     async getEventAcademies(eventId: string) {
-        const { data, error } = await supabase.from('event_academies').select('academy_id').eq('event_id', eventId);
+        const { data, error } = await supabase
+            .from('event_academies')
+            .select('academy_id')
+            .eq('event_id', eventId)
+            .eq('is_active', true);
         if (error) throw error;
         return data.map((row: any) => row.academy_id);
     },
 
     async addEventAcademy(eventId: string, academyId: string) {
-        const { error } = await supabase.from('event_academies').insert({
+        const { error } = await supabase.from('event_academies').upsert({
             event_id: eventId,
-            academy_id: academyId
-        });
+            academy_id: academyId,
+            is_active: true
+        }, { onConflict: 'event_id,academy_id' });
         if (error) throw error;
     },
 
     async removeEventAcademy(eventId: string, academyId: string) {
-        const { error } = await supabase.from('event_academies').delete().match({
-            event_id: eventId,
-            academy_id: academyId
-        });
+        const { error } = await supabase
+            .from('event_academies')
+            .update({ is_active: false })
+            .match({
+                event_id: eventId,
+                academy_id: academyId
+            });
         if (error) throw error;
     },
 
@@ -587,32 +593,6 @@ export const DatabaseService = {
         console.log("✅ [DatabaseService] Visita deletada com sucesso");
     },
 
-    /**
-     * Refina o texto transcrito usando IA via Supabase Edge Function
-     */
-    async refineVoiceText(text: string): Promise<string> {
-        console.log("🤖 [DatabaseService] Refinando texto com IA...");
-        try {
-            const { data, error } = await supabase.functions.invoke('refine-text', {
-                body: { text }
-            });
-
-            if (error) {
-                console.warn("⚠️ [DatabaseService] Erro na Edge Function, usando fallback local:", error);
-                throw error;
-            }
-
-            return data.refinedText || text;
-        } catch (error) {
-            // Fallback robusto: Capitalização básica e limpeza manual rápida
-            let refined = text.trim();
-            if (refined.length > 0) {
-                refined = refined.charAt(0).toUpperCase() + refined.slice(1);
-                if (!/[.!?]$/.test(refined)) refined += '.';
-            }
-            return refined;
-        }
-    }
 };
 
 export const AuthService = {

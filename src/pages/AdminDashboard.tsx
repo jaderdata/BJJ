@@ -137,13 +137,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     // KPIs
     const activeEventsCount = events.filter(e =>
         (e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING) &&
-        !e.name.trim().toUpperCase().endsWith('TESTE')
+        !e.isTest
     ).length;
 
     const filteredVisits = useMemo(() => {
         return visits.filter(v => {
             const event = events.find(e => e.id === v.eventId);
-            if (event?.name.trim().toUpperCase().endsWith('TESTE')) return false;
+            if (event?.isTest) return false;
 
             return v.status === VisitStatus.VISITED &&
                 v.finishedAt &&
@@ -154,7 +154,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const filteredVouchers = useMemo(() => {
         return vouchers.filter(v => {
             const event = events.find(e => e.id === v.eventId);
-            if (event?.name.trim().toUpperCase().endsWith('TESTE')) return false;
+            if (event?.isTest) return false;
             return new Date(v.createdAt).getFullYear().toString() === selectedYear;
         });
     }, [vouchers, selectedYear, events]);
@@ -229,12 +229,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="space-y-6 p-4">
             {/* Header with Gradient */}
             <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
-                {/* Glassmorphism overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-sm"></div>
+                {/* Glassmorphism overlay - Optimized for mobile */}
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent"></div>
 
-                {/* Decorative elements */}
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
+                {/* Decorative elements - Simplified blurs */}
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-2xl -mr-24 -mt-24"></div>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -ml-16 -mb-16"></div>
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>

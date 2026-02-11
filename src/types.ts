@@ -48,6 +48,7 @@ export interface Event {
   startDate: string;
   endDate: string;
   photoUrl?: string;
+  isTest?: boolean;
 }
 
 export enum VisitStatus {

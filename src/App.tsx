@@ -158,25 +158,27 @@ const AppContent: React.FC = () => {
 
   const loadData = React.useCallback(async () => {
     try {
-      const dbAcademies = await DatabaseService.getAcademies();
-      setAcademies(dbAcademies);
+      // Parallel fetch for main data entities
+      const [dbAcademies, dbEvents, dbVisits, dbFinance, dbVouchers] = await Promise.all([
+        DatabaseService.getAcademies(),
+        DatabaseService.getEvents(),
+        DatabaseService.getVisits(),
+        DatabaseService.getFinance(),
+        DatabaseService.getVouchers()
+      ]);
 
-      const dbEvents = await DatabaseService.getEvents();
+      // Batch state updates - React 18+ does this naturally, but fetching first minimizes lifecycle gaps
+      setAcademies(dbAcademies);
+      setVisits(dbVisits);
+      setFinance(dbFinance);
+      setVouchers(dbVouchers);
+
       // Need to fetch academies for each event (junction)
       const eventsWithAcademies = await Promise.all(dbEvents.map(async (e: any) => {
         const ids = await DatabaseService.getEventAcademies(e.id);
         return { ...e, academiesIds: ids };
       }));
       setEvents(eventsWithAcademies);
-
-      const dbVisits = await DatabaseService.getVisits();
-      setVisits(dbVisits);
-
-      const dbFinance = await DatabaseService.getFinance();
-      setFinance(dbFinance);
-
-      const dbVouchers = await DatabaseService.getVouchers();
-      setVouchers(dbVouchers);
 
       if (currentUser) {
         const dbNotifications = await DatabaseService.getNotifications(currentUser.id);
@@ -192,8 +194,6 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    console.log('?? [Notifications] Setting up realtime subscription for user:', currentUser.id);
-
     const channel = supabase
       .channel(`user-notifs-${currentUser.id}`)
       .on(
@@ -205,7 +205,6 @@ const AppContent: React.FC = () => {
           filter: `user_id=eq.${currentUser.id}`
         },
         (payload: { new: any }) => {
-          console.log('?? [Notifications] Received realtime notification:', payload);
           const newN = payload.new;
           const mapped: Notification = {
             id: newN.id,
@@ -214,16 +213,12 @@ const AppContent: React.FC = () => {
             read: newN.read,
             timestamp: newN.created_at
           };
-          console.log('?? [Notifications] Adding to state:', mapped);
           setNotifications((prev: Notification[]) => [mapped, ...prev]);
         }
       )
-      .subscribe((status: string) => {
-        console.log('?? [Notifications] Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('?? [Notifications] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id]);
@@ -393,8 +388,7 @@ const AppContent: React.FC = () => {
         for (const id of added) await DatabaseService.addEventAcademy(updatedEvent.id, id);
         for (const id of removed) {
           await DatabaseService.removeEventAcademy(updatedEvent.id, id);
-          // Limpar histórico de visita para este evento específico ao remover a academia do evento
-          await DatabaseService.deleteVisitByEventAndAcademy(updatedEvent.id, id);
+          // O histórico de visita é preservado mesmo ao remover a academia do evento
         }
       }
 
@@ -567,6 +561,7 @@ const AppContent: React.FC = () => {
                 onBack={() => setActiveTab('events')}
                 onUpdateEvent={handleUpdateEvent}
                 notifyUser={notifyUser}
+                events={events}
               />
             )}
             {activeTab === 'admin_finance' && currentUser.role === UserRole.ADMIN && (

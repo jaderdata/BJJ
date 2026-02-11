@@ -34,9 +34,10 @@ interface EventDetailAdminProps {
     onBack: () => void;
     onUpdateEvent: (event: Event) => Promise<void> | void;
     notifyUser: (uid: string, msg: string) => void;
+    events: Event[];
 }
 
-export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, academies, visits, vendedores, onBack, onUpdateEvent, notifyUser }) => {
+export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, academies, visits, vendedores, onBack, onUpdateEvent, notifyUser, events }) => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [cityFilter, setCityFilter] = useState('');
@@ -53,13 +54,17 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
 
     const finishedVisitIds = visits.filter(v => v.eventId === event.id && v.status === VisitStatus.VISITED).map(v => v.academyId);
     const pendingAcademies = eventAcademies.filter(a => !finishedVisitIds.includes(a.id));
-    const finishedAcademies = eventAcademies.filter(a => finishedVisitIds.includes(a.id));
+
+    // Finished academies are those currently in the event AND finished, 
+    // PLUS those that finished a visit but are no longer in the active list (soft-deleted)
+    const finishedAcademies = academies.filter(a => finishedVisitIds.includes(a.id));
 
     // Available = not in event AND matches search AND matches filters
     const availableAcademies = useMemo(() => {
         return academies.filter(a => {
-            const isLinked = event.academiesIds.includes(a.id);
-            if (isLinked) return false;
+            // Regra de Vínculo Único: Não pode estar no evento atual nem em NENHUM outro
+            const isLinkedAnywhere = events.some(e => e.academiesIds.includes(a.id));
+            if (isLinkedAnywhere) return false;
 
             const matchesSearch = !searchTerm ||
                 (a.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -254,6 +259,24 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     </select>
                                 </div>
 
+                                <div className="md:col-span-2 flex items-center bg-neutral-900 border border-neutral-700 p-4 rounded-xl mt-2">
+                                    <input
+                                        type="checkbox"
+                                        id="isTest"
+                                        checked={editForm.isTest}
+                                        onChange={e => setEditForm({ ...editForm, isTest: e.target.checked })}
+                                        className="w-5 h-5 rounded border-neutral-700 bg-neutral-800 text-blue-600 focus:ring-offset-neutral-900"
+                                    />
+                                    <label htmlFor="isTest" className="ml-3 cursor-pointer">
+                                        <div className="text-sm font-bold text-white flex items-center gap-2">
+                                            🧪 Modo Sandbox
+                                        </div>
+                                        <div className="text-[10px] text-neutral-500">
+                                            Eventos de teste são ignorados nas métricas de tempo e contagem de vouchers.
+                                        </div>
+                                    </label>
+                                </div>
+
                                 {/* Photo Upload Section */}
                                 <div className="md:col-span-2">
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1 mb-2 block">
@@ -333,6 +356,11 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                 <div>
                                     <div className="flex items-center space-x-2">
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 bg-neutral-900/50 px-2 py-1 rounded-full">{event.status}</span>
+                                        {event.isTest && (
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-900/30 border border-amber-900/50 px-2 py-1 rounded-full flex items-center gap-1">
+                                                🧪 Sandbox
+                                            </span>
+                                        )}
                                         <span className="text-[10px] font-bold text-neutral-500 uppercase flex items-center">
                                             {event.startDate === event.endDate
                                                 ? new Date(event.startDate).toLocaleDateString('pt-BR')
@@ -407,14 +435,20 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                             <div className="divide-y divide-neutral-800">
                                                 {finishedAcademies.map(a => {
                                                     const visit = visits.find(v => v.academyId === a.id && v.eventId === event.id);
+                                                    const isLinked = event.academiesIds.includes(a.id);
                                                     return (
                                                         <div
                                                             key={a.id}
                                                             onClick={() => visit && setSelectedVisit(visit)}
-                                                            className="p-4 flex justify-between items-center bg-neutral-800 hover:bg-neutral-700 transition-colors cursor-pointer"
+                                                            className={`p-4 flex justify-between items-center transition-colors cursor-pointer ${isLinked ? 'bg-neutral-800 hover:bg-neutral-700' : 'bg-neutral-900/50 hover:bg-neutral-800 opacity-80'}`}
                                                         >
                                                             <div>
-                                                                <p className="font-bold text-white text-sm">{a.name}</p>
+                                                                <div className="flex items-center space-x-2">
+                                                                    <p className="font-bold text-white text-sm">{a.name}</p>
+                                                                    {!isLinked && (
+                                                                        <span className="text-[8px] font-black bg-neutral-700 text-neutral-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">Inativo</span>
+                                                                    )}
+                                                                </div>
                                                                 <p className="text-[10px] text-neutral-400">{a.city} - Resp: {a.responsible}</p>
                                                             </div>
                                                             <div className="flex items-center space-x-3">
@@ -424,13 +458,15 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                                                         <span className="bg-emerald-900/30 text-emerald-400 p-1 rounded-full px-2 py-1 font-bold text-[10px]">OK</span>
                                                                     </div>
                                                                 )}
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); handleRemoveAcademy(a.id); }}
-                                                                    className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
-                                                                    title="Remover Vinculo"
-                                                                >
-                                                                    <Trash2 size={14} strokeWidth={1.5} />
-                                                                </button>
+                                                                {isLinked && (
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleRemoveAcademy(a.id); }}
+                                                                        className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
+                                                                        title="Remover Vinculo"
+                                                                    >
+                                                                        <Trash2 size={14} strokeWidth={1.5} />
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     );

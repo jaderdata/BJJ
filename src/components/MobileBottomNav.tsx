@@ -18,7 +18,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
 
     return (
         <div className="fixed bottom-0 left-0 right-0 z-[110] px-6 pb-6 pt-2">
-            <div className="mx-auto max-w-md bg-[#121212]/90 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.8)] flex items-center justify-between h-20 px-4 relative overflow-hidden">
+            <div className="mx-auto max-w-md bg-[#121212]/90 backdrop-blur-md border border-white/10 rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.8)] flex items-center justify-between h-20 px-4 relative overflow-hidden">
                 {/* Decorative background pulse */}
                 <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent opacity-30 pointer-events-none"></div>
 
