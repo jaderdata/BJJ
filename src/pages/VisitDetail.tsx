@@ -298,7 +298,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
     const baseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
     const codesStr = visit.vouchersGenerated?.join(',') || '';
     const timestamp = Date.now();
-    return `${baseUrl}/#/public -voucher/${encodeURIComponent(academy.name)}|${encodeURIComponent(codesStr)}|${timestamp}`;
+    return `${baseUrl}/#/public-voucher/${encodeURIComponent(academy.name)}|${encodeURIComponent(codesStr)}|${timestamp}`;
   };
 
   const handleFinishWithQr = () => {
