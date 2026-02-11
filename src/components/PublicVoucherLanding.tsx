@@ -95,7 +95,7 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                 {/* Header */}
                 <div className="pt-12 pb-8 flex flex-col items-center space-y-4 px-6 text-center w-full">
                     <div className="w-48 h-20 flex items-center justify-center mb-2">
-                        <img src="/PBJJF_logo_fundo.png" alt="PBJJF" className="h-full w-auto" />
+                        <img src="/PBJJF_logo_fundo.png" alt="PBJJF" className="h-full w-auto object-contain" />
                     </div>
                     <h1 className="text-2xl font-black text-white tracking-tight">PBJJF Vouchers</h1>
                     <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] leading-relaxed max-w-xs">{academyName}</p>
@@ -113,9 +113,9 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                         <div className="bg-white/[0.03] border border-white/5 rounded-[2rem] p-8 space-y-6">
                             <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Your Vouchers</p>
                             <div className="flex flex-wrap gap-4 justify-center">
-                                {codes.map((c, i) => (
+                                {codes.filter(c => c.trim().length > 0).map((c, i) => (
                                     <div key={i} className="bg-black/40 border border-white/10 text-white px-8 py-4 rounded-2xl font-mono font-black text-xl md:text-2xl shadow-inner uppercase">
-                                        {c}
+                                        {c.trim()}
                                     </div>
                                 ))}
                             </div>

@@ -36,7 +36,6 @@ import { SystemAlerts } from './components/SystemAlerts';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import { MobileBottomNav } from './components/MobileBottomNav';
-import { SmartVoiceInput } from './components/SmartVoiceInput';
 import ElevationPrompt from './components/ElevationPrompt';
 import AdminModeIndicator from './components/AdminModeIndicator';
 import { ElevationProvider, useElevation } from './contexts/ElevationContext';
@@ -433,12 +432,10 @@ const AppContent: React.FC = () => {
 
   // Se o hash contiver public-voucher, renderiza a tela pública
   if (hash.startsWith('#/public-voucher/')) {
-    const rawHash = hash.replace('#/public-voucher/', '');
-    // Tenta dividir por pipe literal, ou pipe encoded (%7C) se o browser/scanner codificou
+    const rawHash = decodeURIComponent(hash.replace('#/public-voucher/', ''));
     let voucherData = rawHash.split('|');
-    if (voucherData.length < 3 && rawHash.includes('%7C')) {
-      voucherData = rawHash.split('%7C');
-    }
+
+    // Decodifica cada parte novamente para garantir limpeza total
     const academyName = decodeURIComponent(voucherData[0] || '');
     const codesStr = decodeURIComponent(voucherData[1] || '');
     const timestamp = parseInt(voucherData[2] || '0');

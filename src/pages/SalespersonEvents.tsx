@@ -22,7 +22,6 @@ import {
 } from '../types';
 import { DatabaseService } from '../lib/supabase';
 import { cn, generateVoucherCode } from '../lib/utils';
-import { SmartVoiceInput } from '../components/SmartVoiceInput';
 import { VisitDetail } from './VisitDetail';
 import { ProgressBar } from '../components/ProgressBar';
 

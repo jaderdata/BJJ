@@ -4,7 +4,7 @@ import {
   CalendarDays, X, CheckCircle2, Clock, Plus, Minus, AlertCircle, ChevronRight, ChevronLeft,
   Ticket, Info, Bell, Search, Edit3, Camera, Trash2, RefreshCw, QrCode, Copy, ExternalLink,
   History, TrendingUp, MessageCircle, Phone, Save, Loader2, Play, Image as ImageIcon,
-  Upload, Mic, Send, Lock, Share2, Smartphone
+  Upload, Mic, Send, Lock, Share2, Smartphone, Sparkles, Wand2
 } from 'lucide-react';
 import { ProgressBar } from '../components/ProgressBar';
 import { toast } from 'sonner';
@@ -25,7 +25,6 @@ import {
 } from '../types';
 import { DatabaseService } from '../lib/supabase';
 import { cn, generateVoucherCode } from '../lib/utils';
-import { SmartVoiceInput } from '../components/SmartVoiceInput';
 
 export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(
@@ -51,6 +50,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
   const [isEditingVisit, setIsEditingVisit] = useState(false);
   const [editedVisit, setEditedVisit] = useState<Partial<Visit>>({});
   const [showTimeInfo, setShowTimeInfo] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -284,6 +284,48 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
     } catch (error) {
       console.error("Error finishing visit:", error);
       toast.error("Erro ao finalizar visita.");
+    }
+  };
+
+  const handleRefineSummary = async () => {
+    if (!visit.summary || visit.summary.trim().length < 5) {
+      toast.info("Escreva um pouco mais para que eu possa refinar o texto.");
+      return;
+    }
+
+    setIsRefining(true);
+    try {
+      const refined = await DatabaseService.refineVoiceText(visit.summary);
+      if (refined) {
+        setVisit(p => ({ ...p, summary: refined }));
+        toast.success("Texto refinado!");
+      }
+    } catch (error) {
+      console.error("Error refining text:", error);
+      toast.error("Erro ao refinar o texto.");
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const handleRefineEditedSummary = async () => {
+    if (!editedVisit.summary || editedVisit.summary.trim().length < 5) {
+      toast.info("Escreva um pouco mais para que eu possa refinar o texto.");
+      return;
+    }
+
+    setIsRefining(true);
+    try {
+      const refined = await DatabaseService.refineVoiceText(editedVisit.summary);
+      if (refined) {
+        setEditedVisit(p => ({ ...p, summary: refined }));
+        toast.success("Texto refinado!");
+      }
+    } catch (error) {
+      console.error("Error refining text:", error);
+      toast.error("Erro ao refinar o texto.");
+    } finally {
+      setIsRefining(false);
     }
   };
 
@@ -542,7 +584,20 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
                     <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
                     <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Resumo Executivo <span className="text-white/20 text-[9px] font-medium lowercase ml-1">(opcional)</span></label>
                   </div>
-                  <SmartVoiceInput onTranscript={(text) => setVisit(p => ({ ...p, summary: (p.summary ? p.summary + ' ' : '') + text }))} />
+                  {visit.summary && visit.summary.trim().length > 0 && (
+                    <button
+                      onClick={handleRefineSummary}
+                      disabled={isRefining}
+                      className="flex items-center space-x-1.5 px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {isRefining ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <RefreshCw size={12} className="opacity-70" />
+                      )}
+                      <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
+                    </button>
+                  )}
                 </div>
                 <div className="relative group">
                   <div className="absolute -inset-0.5 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-[2rem] blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
@@ -860,7 +915,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
                     {visit.leftFlyers && <div className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-3 py-1.5 rounded-full text-[9px] font-black uppercase">Flyers 📄</div>}
                     {visit.photos?.map((p, i) => (
                       <div key={i} className="w-12 h-12 rounded-xl overflow-hidden border border-white/10">
-                        <img src={p} className="w-full h-full object-cover" />
+                        <img src={p} alt={`Visit Photo ${i + 1}`} className="w-full h-full object-cover" />
                       </div>
                     ))}
                   </div>
@@ -1009,8 +1064,20 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
                     Resumo da Visita <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
                   </label>
-                  <SmartVoiceInput
-                    onTranscript={(text) => setEditedVisit(p => ({ ...p, summary: (p.summary ? p.summary + ' ' : '') + text }))} />
+                  {editedVisit.summary && editedVisit.summary.trim().length > 0 && (
+                    <button
+                      onClick={handleRefineEditedSummary}
+                      disabled={isRefining}
+                      className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {isRefining ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={12} className="opacity-70" />
+                      )}
+                      <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
+                    </button>
+                  )}
                 </div>
                 <div className="relative group">
                   <textarea
