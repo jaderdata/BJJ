@@ -96,9 +96,9 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                 <div className="pt-12 pb-8 flex flex-col items-center space-y-4 px-6 text-center w-full">
                     <div className="w-56 h-auto flex items-center justify-center mb-2">
                         <img
-                            src="/pbjjf_logo_white.png"
+                            src="/pbjjf_logo_2026.png"
                             alt="PBJJF"
-                            className="w-2/3 h-auto object-contain"
+                            className="w-2/3 h-auto object-contain mix-blend-screen"
                         />
                     </div>
                     <h1 className="text-2xl font-black text-white tracking-tight">PBJJF Vouchers</h1>
