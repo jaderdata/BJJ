@@ -4,7 +4,7 @@ import {
   CalendarDays, X, CheckCircle2, Clock, Plus, Minus, AlertCircle, ChevronRight, ChevronLeft,
   Ticket, Info, Bell, Search, Edit3, Camera, Trash2, RefreshCw, QrCode, Copy, ExternalLink,
   History, TrendingUp, MessageCircle, Phone, Save, Loader2, Play, Image as ImageIcon,
-  Upload, Mic, Send, Lock
+  Upload, Mic, Send, Lock, Share2, Smartphone
 } from 'lucide-react';
 import { ProgressBar } from '../components/ProgressBar';
 import { toast } from 'sonner';
@@ -303,6 +303,49 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
 
   const handleFinishWithQr = () => {
     setStep('QR_CODE');
+  };
+
+  const getShareMessage = () => {
+    return `Obrigado por fazer parte BJJVisits! 🔥\n\nSua academia (${academy.name}) recebeu ${visit.vouchersGenerated?.length} vouchers: \n${visit.vouchersGenerated?.join(', ')}\n\nLink para resgate: \n${generateShareLink()}`;
+  };
+
+  const cleanPhone = (phone: string) => phone.replace(/\D/g, '');
+
+  const handleShareWhatsApp = () => {
+    const text = encodeURIComponent(getShareMessage());
+    const phone = academy.phone ? cleanPhone(academy.phone) : '';
+    const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(url, '_blank');
+  };
+
+  const handleShareSMS = () => {
+    const text = encodeURIComponent(getShareMessage());
+    const phone = academy.phone ? cleanPhone(academy.phone) : '';
+    const url = `sms:${phone}?body=${text}`;
+    window.location.href = url;
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(getShareMessage());
+    toast.success("Copiado para o WhatsApp!", {
+      icon: <MessageCircle size={16} className="text-emerald-500" />
+    });
+  };
+
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Vouchers - ${academy.name}`,
+          text: getShareMessage(),
+          url: generateShareLink()
+        });
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      handleCopyLink();
+    }
   };
 
   const steps = [
@@ -729,26 +772,45 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+            <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
               <button
-                onClick={() => {
-                  const landingText = `Obrigado por fazer parte BJJVisits! ??\n\nSua academia (${academy.name}) recebeu ${visit.vouchersGenerated?.length} vouchers: \n${visit.vouchersGenerated?.join(', ')}\n\nLink para resgate: \n${generateShareLink()}`;
-                  navigator.clipboard.writeText(landingText);
-                  toast.success("Copiado para o WhatsApp!", {
-                    icon: <MessageCircle size={16} className="text-emerald-500" />
-                  });
-                }}
-                className="bg-white/5 border border-white/10 text-white/60 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
+                onClick={handleShareWhatsApp}
+                className="bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 py-4 rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-emerald-600/20"
               >
-                <MessageCircle size={16} />
+                <MessageCircle size={14} />
                 <span>WhatsApp</span>
               </button>
+
+              <button
+                onClick={handleShareSMS}
+                className="bg-sky-600/10 border border-sky-500/20 text-sky-400 py-4 rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-sky-600/20"
+              >
+                <Smartphone size={14} />
+                <span>SMS Direct</span>
+              </button>
+
+              <button
+                onClick={handleNativeShare}
+                className="bg-white/5 border border-white/10 text-white/60 py-4 rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
+              >
+                <Share2 size={14} />
+                <span>Partilhar</span>
+              </button>
+
+              <button
+                onClick={handleCopyLink}
+                className="bg-white/5 border border-white/10 text-white/60 py-4 rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
+              >
+                <Copy size={14} />
+                <span>Copiar Link</span>
+              </button>
+
               <button
                 onClick={() => window.open(generateShareLink(), '_blank')}
-                className="bg-white/5 border border-white/10 text-white/60 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
+                className="col-span-2 bg-white/5 border border-white/10 text-white/40 mb-2 py-3 rounded-xl font-black text-[8px] uppercase tracking-[0.2em] flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
               >
-                <ExternalLink size={16} />
-                <span>Ver Landing</span>
+                <ExternalLink size={12} />
+                <span>Acessar Landing Page</span>
               </button>
             </div>
 
