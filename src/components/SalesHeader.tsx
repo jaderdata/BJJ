@@ -11,7 +11,7 @@ export const SalesHeader: React.FC<SalesHeaderProps> = ({ user }) => {
         <header className="sticky top-0 z-40 bg-black/40 backdrop-blur-xl border-b border-white/5 px-6 py-3 flex items-center justify-between shrink-0">
             <div className="flex items-center space-x-3 transition-transform active:scale-95 cursor-default">
                 <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
-                    <img src="/oss_logo.jpg" alt="Logo" className="w-full h-full object-contain mix-blend-screen filter invert hue-rotate-180 brightness-150 contrast-125" />
+                    <img src="/oss_logo1.png" alt="Logo" className="w-full h-full object-contain mix-blend-screen" />
                 </div>
                 <div>
                     <h1 className="text-base font-black text-white tracking-tight leading-none italic">BJJVisits</h1>

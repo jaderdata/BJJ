@@ -127,12 +127,9 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
             <div className="max-w-md w-full">
                 <div className="text-center mb-8 animate-in slide-in-from-top-4 flex flex-col items-center">
                     <img
-                        src="/oss_logo.jpg"
+                        src="/oss_logo1.png"
                         alt="OSS Logo"
                         className="w-48 h-auto mb-4 object-contain mix-blend-screen pointer-events-none select-none"
-                        style={{
-                            filter: 'invert(1) hue-rotate(180deg) contrast(1.5)',
-                        }}
                     />
                     <h1 className="text-3xl font-black text-white tracking-tight">BJJVisits</h1>
                 </div>

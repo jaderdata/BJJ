@@ -60,7 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex flex-col h-full p-4">
         <div className="flex items-center justify-between mb-8 px-2">
           <div className="flex items-center space-x-3">
-            <img src="/oss_logo.jpg" alt="Logo" className="w-10 h-10 object-contain mix-blend-screen filter invert hue-rotate-180 brightness-110 contrast-125 saturate-150" />
+            <img src="/oss_logo1.png" alt="Logo" className="w-10 h-10 object-contain mix-blend-screen" />
             <span className="text-lg font-semibold tracking-tight">BJJVisits</span>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden"><X size={20} strokeWidth={1.5} /></button>
