@@ -637,7 +637,17 @@ const AppContent: React.FC = () => {
                     alert("Erro ao salvar visita.");
                   }
                 }}
-                onCancel={() => setActiveTab('my_events')}
+                onCancel={async () => {
+                  if (selectedEventId && selectedAcademyId) {
+                    try {
+                      await DatabaseService.deleteVisitByEventAndAcademy(selectedEventId, selectedAcademyId);
+                      setVisits(prev => prev.filter(v => !(v.eventId === selectedEventId && v.academyId === selectedAcademyId)));
+                    } catch (error) {
+                      console.error("Error cancelling visit:", error);
+                    }
+                  }
+                  setActiveTab('my_events');
+                }}
               />
             )}
             {activeTab === 'sales_finance' && (

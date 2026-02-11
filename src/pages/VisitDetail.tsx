@@ -365,10 +365,24 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
 
   const cleanPhone = (phone: string) => phone.replace(/\D/g, '');
 
-  const handleShareWhatsApp = () => {
-    const text = encodeURIComponent(getShareMessage());
-    const phone = academy.phone ? cleanPhone(academy.phone) : '';
-    const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+  const handleShareWhatsApp = async () => {
+    const text = getShareMessage();
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Voucher - BJJVisits',
+          text: text
+        });
+        return;
+      } catch (error) {
+        console.error("Error sharing:", error);
+      }
+    }
+
+    // Generic fallback if navigator.share is unavailable or fails
+    const encodedText = encodeURIComponent(text);
+    const url = `https://wa.me/?text=${encodedText}`;
     window.open(url, '_blank');
   };
 
