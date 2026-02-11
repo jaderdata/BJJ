@@ -30,6 +30,7 @@ const EventsManager = lazy(() => import('./pages/EventsManager').then(m => ({ de
 const AcademiesManager = lazy(() => import('./pages/AcademiesManager').then(m => ({ default: m.AcademiesManager })));
 const UsersManager = lazy(() => import('./pages/UsersManager').then(m => ({ default: m.UsersManager })));
 const SalesFinance = lazy(() => import('./pages/SalesFinance').then(m => ({ default: m.SalesFinance })));
+const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 import { SalesHeader } from './components/SalesHeader';
 import { GlobalToast } from './components/GlobalToast';
 import { SystemAlerts } from './components/SystemAlerts';
@@ -673,6 +674,18 @@ const AppContent: React.FC = () => {
                 }}
               />
             )}
+            {activeTab === 'profile' && currentUser && (
+              <Profile
+                user={currentUser}
+                onUpdate={(updatedUser) => {
+                  setCurrentUser(updatedUser);
+                  // Update both state and storage
+                  localStorage.setItem('bjj_user', JSON.stringify(updatedUser));
+                }}
+                onLogout={logout}
+                onBack={() => setActiveTab('my_events')}
+              />
+            )}
           </Suspense>
         </div>
       </main>
@@ -683,7 +696,6 @@ const AppContent: React.FC = () => {
           <MobileBottomNav
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            logout={logout}
           />
         )
       }

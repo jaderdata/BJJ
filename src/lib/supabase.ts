@@ -60,18 +60,30 @@ export const DatabaseService = {
         const { data, error } = await supabase.rpc('get_profile', { p_user_id: userId });
         if (error) throw error;
         // RPC returns an array of records
-        return data && data.length > 0 ? data[0] : null;
+        if (data && data.length > 0) {
+            const u = data[0];
+            return {
+                ...u,
+                photoUrl: u.photo_url
+            };
+        }
+        return null;
     },
 
     async getSalespersons() {
-        const { data, error } = await supabase.rpc('list_salespersons');
+        const { data, error } = await supabase
+            .from('app_users')
+            .select('id, name, email')
+            .eq('role', 'SALES');
         if (error) throw error;
-        // Returns {id, name} only
         return data.map((u: any) => ({ ...u, role: 'SALES', status: 'ACTIVE' }));
     },
 
     async getAdmins() {
-        const { data, error } = await supabase.rpc('list_admins');
+        const { data, error } = await supabase
+            .from('app_users')
+            .select('id, name, email')
+            .eq('role', 'ADMIN');
         if (error) throw error;
         return data.map((u: any) => ({ ...u, role: 'ADMIN', status: 'ACTIVE' }));
     },
@@ -469,6 +481,43 @@ export const DatabaseService = {
             .remove([filePath]);
 
         if (error) console.error('Error deleting photo:', error);
+    },
+
+    async uploadUserProfilePhoto(file: File): Promise<string> {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `profiles/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (uploadError) {
+            // Fallback to visit-photos if avatars bucket doesn't exist
+            const { error: fallbackError } = await supabase.storage
+                .from('visit-photos')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (fallbackError) throw fallbackError;
+
+            const { data } = supabase.storage
+                .from('visit-photos')
+                .getPublicUrl(filePath);
+
+            return data.publicUrl;
+        }
+
+        const { data } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+
+        return data.publicUrl;
     },
 
     async uploadVisitPhoto(file: File): Promise<string> {

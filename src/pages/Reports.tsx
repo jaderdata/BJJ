@@ -244,14 +244,16 @@ export const Reports: React.FC<ReportsProps> = ({
         const visitsWithDuration = filteredVisits.filter(v => v.startedAt && v.finishedAt);
         if (visitsWithDuration.length === 0) return { avgDuration: 0, conversionRate: 0 };
 
-        const totalDuration = visitsWithDuration.reduce((acc, v) => {
+        const durations = visitsWithDuration.map(v => {
             const start = new Date(v.startedAt!).getTime();
             const end = new Date(v.finishedAt!).getTime();
-            return acc + (end - start);
-        }, 0);
+            return (end - start) / (1000 * 60); // minutes
+        }).filter(d => d > 0 && d < 240); // Ignore negatives and visits > 4 hours
 
-        const avgDurationMs = totalDuration / visitsWithDuration.length;
-        const avgMinutes = Math.round(avgDurationMs / (1000 * 60));
+        if (durations.length === 0) return { avgDuration: 0, conversionRate: 0 };
+
+        const totalDuration = durations.reduce((acc, d) => acc + d, 0);
+        const avgMinutes = Math.round(totalDuration / durations.length);
 
         const conversionRate = filteredVisits.length > 0
             ? Math.round((filteredVouchers.length / filteredVisits.length) * 100)
@@ -381,20 +383,29 @@ export const Reports: React.FC<ReportsProps> = ({
                 const event = events.find(e => e.id === v.eventId);
                 const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId));
 
+                let durationStr = '---';
+                if (visit?.startedAt && visit?.finishedAt) {
+                    const start = new Date(visit.startedAt).getTime();
+                    const end = new Date(visit.finishedAt).getTime();
+                    const diffMin = Math.round((end - start) / (1000 * 60));
+                    durationStr = `${diffMin} min`;
+                }
+
                 return [
                     v.code,
                     new Date(v.createdAt).toLocaleDateString('pt-BR'),
                     academy?.name || '---',
                     `${academy?.city || ''} - ${academy?.state || ''}`,
                     event?.name || '---',
-                    seller?.name || 'Sistêmico'
+                    seller?.name || 'Sistêmico',
+                    durationStr
                 ];
             });
 
             // Generate table
             autoTable(doc, {
                 startY: yPos,
-                head: [['Código', 'Data', 'Academia', 'Localização', 'Evento', 'Vendedor']],
+                head: [['Código', 'Data', 'Academia', 'Localização', 'Evento', 'Vendedor', 'Duração']],
                 body: tableData,
                 theme: 'striped',
                 headStyles: {
@@ -413,10 +424,11 @@ export const Reports: React.FC<ReportsProps> = ({
                 columnStyles: {
                     0: { cellWidth: 25, fontStyle: 'bold' }, // Código
                     1: { cellWidth: 22 }, // Data
-                    2: { cellWidth: 45 }, // Academia
-                    3: { cellWidth: 35 }, // Localização
-                    4: { cellWidth: 35 }, // Evento
-                    5: { cellWidth: 30 } // Vendedor
+                    2: { cellWidth: 35 }, // Academia
+                    3: { cellWidth: 30 }, // Localização
+                    4: { cellWidth: 30 }, // Evento
+                    5: { cellWidth: 25 }, // Vendedor
+                    6: { cellWidth: 20 }  // Duração
                 },
                 margin: { left: 14, right: 14 },
                 didDrawPage: function (data) {
@@ -457,19 +469,27 @@ export const Reports: React.FC<ReportsProps> = ({
     // Export CSV function
     const exportCSV = () => {
         try {
-            const headers = ['Código', 'Data', 'Academia', 'Evento', 'Vendedor'];
+            const headers = ['Código', 'Data', 'Academia', 'Evento', 'Vendedor', 'Duração (min)'];
             const rows = sortedVouchers.map(v => {
                 const visit = visits.find(vis => vis.id === v.visitId);
                 const academy = academies.find(a => a.id === v.academyId);
                 const event = events.find(e => e.id === v.eventId);
                 const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId));
 
+                let duration = 0;
+                if (visit?.startedAt && visit?.finishedAt) {
+                    const start = new Date(visit.startedAt).getTime();
+                    const end = new Date(visit.finishedAt).getTime();
+                    duration = Math.round((end - start) / (1000 * 60));
+                }
+
                 return [
                     v.code,
                     new Date(v.createdAt).toLocaleDateString('pt-BR'),
                     academy?.name || '---',
                     event?.name || '---',
-                    seller?.name || 'Sistêmico'
+                    seller?.name || 'Sistêmico',
+                    duration
                 ];
             });
 

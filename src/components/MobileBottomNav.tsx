@@ -1,17 +1,17 @@
 import React from 'react';
-import { CalendarDays, Wallet, LogOut } from 'lucide-react';
+import { CalendarDays, Wallet, User as UserIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface MobileBottomNavProps {
     activeTab: string;
     setActiveTab: (tab: string) => void;
-    logout: () => void;
 }
 
-export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, setActiveTab, logout }) => {
+export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, setActiveTab }) => {
     const tabs = [
         { id: 'my_events', label: 'Eventos', icon: CalendarDays, activeIds: ['my_events', 'visit_detail'] },
         { id: 'sales_finance', label: 'Finanças', icon: Wallet, activeIds: ['sales_finance'] },
+        { id: 'profile', label: 'Perfil', icon: UserIcon, activeIds: ['profile'] },
     ];
 
     const activeIndex = tabs.findIndex(tab => tab.activeIds.includes(activeTab));
@@ -62,18 +62,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
                         </button>
                     );
                 })}
-
-                <button
-                    onClick={() => {
-                        if (confirm('Deseja realmente sair?')) {
-                            logout();
-                        }
-                    }}
-                    className="flex flex-col items-center justify-center flex-1 h-16 rounded-2xl transition-all duration-300 text-red-500/40 hover:text-red-500 group relative z-10"
-                >
-                    <LogOut size={22} strokeWidth={1.5} className="transition-transform group-active:scale-90" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.15em] mt-1.5 opacity-40">Sair</span>
-                </button>
             </div>
         </div>
     );

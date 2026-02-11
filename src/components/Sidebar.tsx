@@ -8,7 +8,8 @@ import {
   FileBarChart,
   Shield,
   LogOut,
-  X
+  X,
+  User as UserIcon
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 import pkg from '../../package.json';
@@ -79,6 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <>
               <SidebarItem id="my_events" icon={CalendarDays} label="Meus Eventos" />
               <SidebarItem id="sales_finance" icon={Wallet} label="Meu Financeiro" />
+              <SidebarItem id="profile" icon={UserIcon} label="Perfil" />
             </>
           )}
         </nav>
@@ -89,10 +91,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="text-[10px] text-neutral-400 font-bold">{currentUser.role}</p>
             <p className="text-[10px] text-neutral-500 font-mono mt-1" title={`Version ${version}`}>v{version}</p>
           </div>
-          <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors">
-            <LogOut size={16} strokeWidth={1.5} />
-            <span className="text-sm font-medium">Sair</span>
-          </button>
+          {currentUser.role === UserRole.ADMIN && (
+            <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors">
+              <LogOut size={16} strokeWidth={1.5} />
+              <span className="text-sm font-medium">Sair</span>
+            </button>
+          )}
         </div>
       </div>
     </aside>
