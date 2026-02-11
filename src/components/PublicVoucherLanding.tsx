@@ -94,8 +94,8 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
             <div className="max-w-xl w-full bg-neutral-900 border border-neutral-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col items-center">
                 {/* Header */}
                 <div className="pt-12 pb-8 flex flex-col items-center space-y-4 px-6 text-center w-full">
-                    <div className="w-48 h-20 flex items-center justify-center mb-2">
-                        <img src="/PBJJF_logo_fundo.png" alt="PBJJF" className="h-full w-auto object-contain" />
+                    <div className="w-56 h-auto flex items-center justify-center mb-2">
+                        <img src="/pbjjf_logo_2026.png" alt="PBJJF" className="w-2/3 h-auto object-contain" />
                     </div>
                     <h1 className="text-2xl font-black text-white tracking-tight">PBJJF Vouchers</h1>
                     <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] leading-relaxed max-w-xs">{academyName}</p>
