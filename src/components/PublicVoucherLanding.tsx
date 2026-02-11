@@ -95,7 +95,7 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                 {/* Header */}
                 <div className="pt-12 pb-8 flex flex-col items-center space-y-4 px-6 text-center w-full">
                     <div className="w-48 h-20 flex items-center justify-center mb-2">
-                        <img src="/PBJJF_logo.jpeg" alt="PBJJF" className="h-full w-auto filter invert hue-rotate-180 brightness-150 contrast-125 mix-blend-screen" />
+                        <img src="/PBJJF_logo_fundo.png" alt="PBJJF" className="h-full w-auto" />
                     </div>
                     <h1 className="text-2xl font-black text-white tracking-tight">PBJJF Vouchers</h1>
                     <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] leading-relaxed max-w-xs">{academyName}</p>
@@ -106,7 +106,7 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                 <div className="p-8 md:p-10 w-full space-y-10">
                     <div className="space-y-8 text-center">
                         <h2 className="text-xl font-bold text-white leading-snug px-4">
-                            Thank you for being part of the upcoming PBJJF event! ??
+                            Thank you for being part of the upcoming PBJJF event!
                         </h2>
 
                         {/* Voucher Box */}
@@ -149,19 +149,7 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                         </div>
                     </div>
 
-                    <div className="pt-8 border-t border-white/5 space-y-4">
-                        <p className="text-center text-[10px] font-bold text-neutral-600 uppercase tracking-widest">
-                            Manual Options
-                        </p>
-                        <button
-                            onClick={handleCopy}
-                            className={`w-full flex items-center justify-center space-x-2 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl ${copied ? 'bg-emerald-600 text-white' : 'bg-white text-neutral-900 hover:bg-neutral-200'
-                                }`}
-                        >
-                            {copied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
-                            <span>{copied ? 'Link Copied!' : 'Copy Instructions & Codes'}</span>
-                        </button>
-                    </div>
+
                 </div>
 
                 {/* Footer */}

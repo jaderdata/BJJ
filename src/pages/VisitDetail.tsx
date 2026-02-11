@@ -306,7 +306,19 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
   };
 
   const getShareMessage = () => {
-    return `Obrigado por fazer parte BJJVisits! 🔥\n\nSua academia (${academy.name}) recebeu ${visit.vouchersGenerated?.length} vouchers: \n${visit.vouchersGenerated?.join(', ')}\n\nLink para resgate: \n${generateShareLink()}`;
+    const count = visit.vouchersGenerated?.length || 0;
+    const codes = visit.vouchersGenerated?.join(', ') || '';
+    const shareLink = generateShareLink();
+
+    return `Thank you for being part of BJJVisits!\n\n` +
+      `Your academy (${academy.name}) has received ${count} voucher${count > 1 ? 's' : ''}:\n` +
+      `${codes}\n\n` +
+      `Follow these steps to redeem:\n` +
+      `Step 1: Click on the link below\n` +
+      `Step 2: Choose your preferred contact method (WhatsApp or SMS)\n` +
+      `Step 3: Send the generated message\n` +
+      `Step 4: Wait for our team's response\n\n` +
+      `Redemption link:\n${shareLink}`;
   };
 
   const cleanPhone = (phone: string) => phone.replace(/\D/g, '');
