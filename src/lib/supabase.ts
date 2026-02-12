@@ -239,39 +239,84 @@ export const DatabaseService = {
             vouchers_generated: visit.vouchersGenerated,
             photos: visit.photos || [],
             left_banner: visit.leftBanner,
-            left_flyers: visit.leftFlyers,
-            updated_at: new Date().toISOString()
+            left_flyers: visit.leftFlyers
         };
-
-        console.log("📦 [DatabaseService] Payload gerado:", payload);
 
         // Check if ID is a valid UUID. If not (e.g. legacy mock ID), treat as new insert.
         const isValidUUID = (id?: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '');
 
-        if (!payload.id || !isValidUUID(payload.id)) {
-            console.log("🚀 [DatabaseService] ID inválido ou ausente, tentando INSERT...");
-            delete payload.id; // Let DB generate it or use insert
-            const { data, error } = await supabase.from('visits').insert(payload).select().single();
+        try {
+            if (!payload.id || !isValidUUID(payload.id)) {
+                console.log("🚀 [DatabaseService] ID inválido ou ausente, tentando INSERT...");
+                delete payload.id; // Let DB generate it or use insert
 
+                // Try insert. If unique constraint exists, this might fail with 409 Conflict.
+                const { data, error } = await supabase.from('visits').insert(payload).select().single();
+
+                if (error) {
+                    console.error("❌ [DatabaseService] Erro no INSERT:", error);
+                    // CONFLICT HANDLER: If unique constraint violaton (code 23505)
+                    if (error.code === '23505') {
+                        console.warn("⚠️ [DatabaseService] Conflito de duplicidade detectado. Tentando recuperar visita existente...");
+
+                        // Fetch the existing visit for this Event+Academy
+                        const { data: existing, error: fetchError } = await supabase
+                            .from('visits')
+                            .select()
+                            .eq('event_id', payload.event_id)
+                            .eq('academy_id', payload.academy_id)
+                            .single();
+
+                        if (fetchError || !existing) {
+                            throw new Error(`Erro ao recuperar visita existente após conflito: ${fetchError?.message}`);
+                        }
+
+                        // Retry as UPDATE with the found ID
+                        console.log("🔄 [DatabaseService] Visita existente encontrada. Atualizando ID:", existing.id);
+                        return await this.upsertVisit({ ...visit, id: existing.id });
+                    }
+                    throw error;
+                }
+                // Map back to camelCase and return
+                return {
+                    ...data,
+                    eventId: data.event_id,
+                    academyId: data.academy_id,
+                    salespersonId: data.salesperson_id,
+                    startedAt: data.started_at,
+                    finishedAt: data.finished_at,
+                    contactPerson: data.contact_person,
+                    vouchersGenerated: data.vouchers_generated,
+                    leftBanner: data.left_banner,
+                    leftFlyers: data.left_flyers
+                } as Visit;
+            }
+
+            console.log("🚀 [DatabaseService] Tentando UPSERT...");
+            const { data, error } = await supabase.from('visits').upsert(payload).select().single();
             if (error) {
-                console.error("❌ [DatabaseService] Erro no INSERT:", error);
+                console.error("❌ [DatabaseService] Erro no UPSERT:", error);
                 throw error;
             }
-            console.log("✅ [DatabaseService] Sucesso no INSERT:", data);
 
-            return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, summary: data.summary, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos, leftBanner: data.left_banner, leftFlyers: data.left_flyers };
-        }
+            // Map back to camelCase and return
+            return {
+                ...data,
+                eventId: data.event_id,
+                academyId: data.academy_id,
+                salespersonId: data.salesperson_id,
+                startedAt: data.started_at,
+                finishedAt: data.finished_at,
+                contactPerson: data.contact_person,
+                vouchersGenerated: data.vouchers_generated,
+                leftBanner: data.left_banner,
+                leftFlyers: data.left_flyers
+            } as Visit;
 
-        console.log("🚀 [DatabaseService] Tentando UPSERT...");
-        const { data, error } = await supabase.from('visits').upsert(payload).select().single();
-
-        if (error) {
-            console.error("❌ [DatabaseService] Erro no UPSERT:", error);
+        } catch (error: any) {
+            console.error("❌ [DatabaseService] Erro em upsertVisit:", error);
             throw error;
         }
-        console.log("✅ [DatabaseService] Sucesso no UPSERT:", data);
-
-        return { ...data, eventId: data.event_id, academyId: data.academy_id, salespersonId: data.salesperson_id, status: data.status, startedAt: data.started_at, finishedAt: data.finished_at, summary: data.summary, contactPerson: data.contact_person, vouchersGenerated: data.vouchers_generated, photos: data.photos, leftBanner: data.left_banner, leftFlyers: data.left_flyers };
     },
 
     // VOUCHERS

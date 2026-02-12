@@ -591,8 +591,10 @@ const AppContent: React.FC = () => {
                       const filtered = prev.filter((v: Visit) => !(v.eventId === visit.eventId && v.academyId === visit.academyId));
                       return [...filtered, saved];
                     });
+                    return saved;
                   } catch (e) {
-                    console.error("Error starting visit:", e);
+                    console.error("Error start visit:", e);
+                    throw e;
                   }
                 }}
                 onFinish={async (visit: Visit) => {

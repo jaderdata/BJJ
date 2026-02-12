@@ -25,8 +25,9 @@ import {
 } from '../types';
 import { DatabaseService } from '../lib/supabase';
 import { cn, generateVoucherCode } from '../lib/utils';
+import { toast } from 'sonner';
 
-export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: any, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
+export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: (v: Partial<Visit>) => Promise<Visit | void>, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(
     existingVisit
       ? (existingVisit.status === VisitStatus.VISITED ? 'SUMMARY' : 'ACTIVE')
@@ -48,6 +49,45 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
   const [isUploading, setIsUploading] = useState(false);
   const [marketingVerified, setMarketingVerified] = useState(existingVisit ? true : false);
   const [isEditingVisit, setIsEditingVisit] = useState(false);
+
+  // -- ROBUSTNESS: Local Storage Backup --
+  const STORAGE_KEY = `visit_backup_${eventId}_${academy.id}`;
+
+  useEffect(() => {
+    // 1. Restore from backup if exists and we are starting fresh (no existing ID or PENDING)
+    const backup = localStorage.getItem(STORAGE_KEY);
+    if (backup && !existingVisit) {
+      try {
+        const parsed = JSON.parse(backup);
+        // Only restore if it's recent (less than 24h)
+        const backupDate = new Date(parsed._timestamp || 0);
+        if (Date.now() - backupDate.getTime() < 86400000) {
+          console.log("♻️ Restoring visit from local backup");
+          setVisit(prev => ({ ...prev, ...parsed }));
+          toast.info("Dados da visita anterior restaurados.");
+          if (parsed.startedAt) setStep('ACTIVE');
+        }
+      } catch (e) {
+        console.error("Failed to restore backup", e);
+      }
+    }
+  }, [eventId, academy.id, existingVisit]);
+
+  useEffect(() => {
+    // 2. Save to backup on every change
+    if (visit && (visit.startedAt || visit.notes || visit.photos?.length)) {
+      const payload = { ...visit, _timestamp: Date.now() };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }
+  }, [visit, STORAGE_KEY]);
+
+  useEffect(() => {
+    // 3. Clear backup on successful finish (status VISITED)
+    if (visit.status === VisitStatus.VISITED) {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [visit.status, STORAGE_KEY]);
+  // -------------------------------------
   const [editedVisit, setEditedVisit] = useState<Partial<Visit>>({});
   const [showTimeInfo, setShowTimeInfo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -361,7 +401,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
 
   const currentStepIndex = steps.findIndex(s => s.id === step);
 
-  const handleStepClick = (newStep: string) => {
+  const handleStepClick = async (newStep: string) => {
     // If navigating away from START, ensure the visit has legally started
     if (step === 'START' && newStep !== 'START' && !visit.startedAt) {
       const startDetails = {
@@ -369,11 +409,28 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
         startedAt: new Date().toISOString(),
         status: VisitStatus.PENDING
       };
-      setVisit(startDetails);
-      onStart(startDetails);
+
+      try {
+        // Await the save to get the ID back
+        const savedVisit = await onStart(startDetails);
+
+        // Update local state with the saved visit (which has the ID)
+        if (savedVisit) {
+          setVisit(savedVisit);
+        } else {
+          setVisit(startDetails);
+        }
+
+        // Only verify step change
+        setStep(newStep as any);
+      } catch (error) {
+        console.error("Error starting visit:", error);
+        toast.error("Erro ao iniciar visita. Tente novamente.");
+        return; // Don't change step if failed
+      }
+    } else {
+      setStep(newStep as any);
     }
-    setIsEditingVisit(false);
-    setStep(newStep as any);
   };
 
   return (<div className="relative z-[100]">
@@ -461,15 +518,24 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
               </div>
 
               <button
-                onClick={() => {
+                onClick={async () => {
                   const startDetails = {
                     ...visit,
                     startedAt: new Date().toISOString(),
                     status: VisitStatus.PENDING
                   };
-                  setVisit(startDetails);
-                  setStep('ACTIVE');
-                  onStart(startDetails);
+                  try {
+                    const savedVisit = await onStart(startDetails);
+                    if (savedVisit) {
+                      setVisit(savedVisit);
+                    } else {
+                      setVisit(startDetails);
+                    }
+                    setStep('ACTIVE');
+                  } catch (error) {
+                    console.error("Error starting visit:", error);
+                    toast.error("Erro ao iniciar visita.");
+                  }
                 }}
                 className="group relative w-full h-20 bg-emerald-600 rounded-[2.5rem] p-1 flex items-center shadow-2xl shadow-emerald-500/20 active:scale-[0.98] transition-all overflow-hidden"
               >
