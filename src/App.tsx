@@ -271,12 +271,23 @@ const AppContent: React.FC = () => {
       const data = await DatabaseService.getProfile(userId);
 
       if (data) {
-        setCurrentUser({
+        // Construct the full user object from DB data
+        const updatedUser: User = {
           id: data.id,
           name: data.name,
           email: data.email,
-          role: data.role as UserRole
-        });
+          role: data.role as UserRole,
+          phone: data.phone,
+          city: data.city,
+          uf: data.uf,
+          photoUrl: data.photoUrl // DatabaseService already maps photo_url to photoUrl
+        };
+
+        setCurrentUser(updatedUser);
+
+        // Sync with local storage to keep it fresh
+        localStorage.setItem('bjj_user', JSON.stringify(updatedUser));
+
         // Respect existing local state for tab if not forced
         if (data.role === UserRole.ADMIN && activeTab === 'my_events') {
           setActiveTab('dashboard');
@@ -288,6 +299,13 @@ const AppContent: React.FC = () => {
       console.error('Error fetching profile:', err);
     }
   };
+
+  // Refresh profile on load/login to ensure data consistency (Syncs LocalStorage with DB)
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchProfile(currentUser.id);
+    }
+  }, [currentUser?.id]);
 
   const logout = async () => {
     localStorage.removeItem('bjj_user');

@@ -89,7 +89,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         try {
             const groupedData: Record<string, any[]> = {};
 
-            filteredVouchers.forEach(v => {
+            // Include test events in sync so they appear in the spreadsheet
+            const vouchersToSync = vouchers.filter(v =>
+                new Date(v.createdAt).getFullYear().toString() === selectedYear
+            );
+
+            vouchersToSync.forEach(v => {
                 const visit = visits.find(vis => vis.id === v.visitId);
                 const event = events.find(e => e.id === v.eventId);
                 const eventName = event?.name || 'Sem Evento';

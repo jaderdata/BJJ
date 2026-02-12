@@ -14,6 +14,7 @@ interface ProfileProps {
 
 export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBack, onNavigate }) => {
     const [loading, setLoading] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [name, setName] = useState(user.name || '');
     const [phone, setPhone] = useState(user.phone || '');
     const [city, setCity] = useState(user.city || '');
@@ -42,7 +43,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
         const file = e.target.files?.[0];
         if (!file) return;
 
-        setLoading(true);
+        setIsUploading(true);
         try {
             const uploadedUrl = await DatabaseService.uploadUserProfilePhoto(file);
             setPhotoUrl(uploadedUrl);
@@ -51,7 +52,10 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
             console.error('Error uploading photo:', error);
             toast.error('Erro ao carregar foto.');
         } finally {
-            setLoading(false);
+            setIsUploading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
@@ -93,7 +97,23 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
     };
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative">
+            {/* Upload Overlay */}
+            {isUploading && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
+                    <div className="bg-neutral-900 border border-white/10 rounded-3xl p-8 flex flex-col items-center space-y-4 shadow-2xl">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full animate-pulse"></div>
+                            <Loader2 className="w-12 h-12 text-emerald-500 animate-spin relative z-10" />
+                        </div>
+                        <div className="text-center">
+                            <h3 className="text-white font-bold text-lg">Atualizando Foto</h3>
+                            <p className="text-white/40 text-sm">Aguarde um momento...</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header Section */}
             <div className="flex items-center justify-between">
                 <div>
@@ -109,13 +129,13 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                 </button>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
+            <div className={`bg-white/5 backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group transition-all duration-300 ${isUploading ? 'opacity-50 pointer-events-none scale-[0.98] blur-[2px]' : ''}`}>
                 {/* Decorative Background */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
 
                 <div className="relative z-10 flex flex-col items-center">
                     {/* Avatar Upload Container */}
-                    <div className="relative group cursor-pointer" onClick={handlePhotoClick}>
+                    <div className="relative group cursor-pointer" onClick={!isUploading ? handlePhotoClick : undefined}>
                         <div className="w-32 h-32 rounded-[2rem] bg-neutral-900 border-2 border-white/10 overflow-hidden relative shadow-2xl transition-transform duration-500 group-hover:scale-105">
                             {photoUrl ? (
                                 <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
@@ -215,7 +235,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                                     value={uf}
                                     maxLength={2}
                                     onChange={(e) => setUf(e.target.value.toUpperCase())}
-                                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 px-4 text-white placeholder-white/10 focus:outline-none focus:border-emerald-500/5 transition-all text-center text-sm"
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 px-4 text-white placeholder-white/10 focus:outline-none focus:border-emerald-500/50 transition-all text-center text-sm"
                                     placeholder="FL"
                                 />
                             </div>
@@ -223,23 +243,24 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="w-full flex items-center space-x-4 mt-12 pt-8 border-t border-white/5">
+                    <div className="w-full grid grid-cols-2 gap-4 mt-12 pt-8 border-t border-white/5">
                         <button
                             onClick={onBack}
-                            className="flex-1 px-6 py-4 rounded-2xl border border-white/10 text-white/40 text-xs font-black uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all active:scale-95"
+                            disabled={loading || isUploading}
+                            className="w-full px-6 py-4 rounded-2xl border border-white/10 text-white/40 text-xs font-black uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={loading}
-                            className="flex-[2] px-6 py-4 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-neutral-900 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95 group"
+                            disabled={loading || isUploading}
+                            className="w-full px-6 py-4 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-neutral-900 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95 group disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <Loader2 size={18} className="animate-spin" />
                             ) : (
                                 <>
-                                    <span>Salvar Alterações</span>
+                                    <span>Salvar</span>
                                 </>
                             )}
                         </button>
