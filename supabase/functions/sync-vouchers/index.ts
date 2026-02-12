@@ -1,5 +1,6 @@
 /// <reference path="./deno.d.ts" />
 /// <reference path="./google-auth.d.ts" />
+// @ts-ignore
 import { JWT } from "google-auth-library";
 
 const corsHeaders = {
@@ -8,23 +9,42 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req: Request) => {
+    // 0. Handle CORS Preflight
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
     }
 
     try {
-        const { events } = await req.json();
+        // 1. Verify Environment & Imports
+        const envCreds = Deno.env.get('GOOGLE_SERVICE_ACCOUNT');
+        if (!envCreds) {
+            console.error('Missing GOOGLE_SERVICE_ACCOUNT');
+            throw new Error('Configuração faltante: O segredo GOOGLE_SERVICE_ACCOUNT não foi encontrado (Verifique Secrets).');
+        }
+
+        let serviceAccount;
+        try {
+            serviceAccount = JSON.parse(envCreds);
+        } catch (e) {
+            console.error('Invalid JSON in GOOGLE_SERVICE_ACCOUNT');
+            throw new Error('Configuração inválida: O segredo GOOGLE_SERVICE_ACCOUNT não é um JSON válido.');
+        }
+
+        // 2. Parse Body
+        let events;
+        try {
+            const body = await req.json();
+            events = body.events;
+        } catch (e) {
+            throw new Error('Invalid JSON body in request.');
+        }
 
         if (!events || typeof events !== 'object') {
             throw new Error('Invalid data: events object is required');
         }
 
-        const envCreds = Deno.env.get('GOOGLE_SERVICE_ACCOUNT');
-        if (!envCreds) {
-            throw new Error('Configuração faltante: O segredo GOOGLE_SERVICE_ACCOUNT não foi encontrado no Supabase.');
-        }
-
-        const serviceAccount = JSON.parse(envCreds);
+        // 3. Authenticate Google
+        // Using JWT from esm.sh import
         const auth = new JWT({
             email: serviceAccount.client_email,
             key: serviceAccount.private_key,
@@ -69,6 +89,60 @@ Deno.serve(async (req: Request) => {
             sheets = refreshedMeta.sheets;
         }
 
+        // 2.5 PRESERVE EXISTING STATUS (YES/NO) & CLEAR DATA
+        // We must clear the sheets before writing to ensure old rows don't persist
+        // but we read them first to preserve manual "RETIRADO" changes.
+        const existingStatusMap: Record<string, string> = {};
+
+        const clearRequests = eventNames.map(name => {
+            const sheet = sheets.find((s: any) => s.properties.title === name);
+            if (!sheet) return null;
+            return {
+                updateCells: {
+                    range: { sheetId: sheet.properties.sheetId },
+                    fields: "userEnteredValue,userEnteredFormat,dataValidation"
+                }
+            };
+        }).filter(Boolean);
+
+        if (clearRequests.length > 0) {
+            // STEP A: Read existing values
+            try {
+                const ranges = eventNames
+                    .filter(name => sheets.some((s: any) => s.properties.title === name))
+                    .map(name => encodeURIComponent(`${name}!A2:E`));
+
+                if (ranges.length > 0) {
+                    const getResp = await fetch(`${baseUrl}/values:batchGet?ranges=${ranges.join('&ranges=')}`, {
+                        headers: { 'Authorization': `Bearer ${accessToken}` }
+                    });
+                    if (getResp.ok) {
+                        const getData = await getResp.json();
+                        (getData.valueRanges || []).forEach((vr: any) => {
+                            if (vr.values) {
+                                vr.values.forEach((row: any[]) => {
+                                    const code = row[0];
+                                    const status = row[4]; // Column E
+                                    if (code && (status === 'YES' || status === 'NO' || status === 'SIM' || status === 'NÃO')) {
+                                        existingStatusMap[code] = (status === 'SIM' || status === 'YES') ? 'YES' : 'NO';
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Erro ao ler dados para preservação:', err);
+            }
+
+            // STEP B: Perform the clear
+            await fetch(`${baseUrl}:batchUpdate`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ requests: clearRequests })
+            });
+        }
+
         // 3. Prepare Batch Data & Formatting Requests
         const formattingRequests: any[] = [];
         const valueData: any[] = [];
@@ -76,11 +150,16 @@ Deno.serve(async (req: Request) => {
         for (const eventName of eventNames) {
             const vouchers = events[eventName];
             const sheet = sheets.find((s: any) => s.properties.title === eventName);
+            if (!sheet) continue;
             const sheetId = sheet.properties.sheetId;
 
             const values = [
                 ['Código', 'Data', 'Academia', 'Vendedor', 'RETIRADO'],
-                ...vouchers.map((v: any) => [v.codigo, v.data, v.academia, v.vendedor, v.retirado])
+                ...vouchers.map((v: any) => {
+                    // Check if we have a preserved status from the read step
+                    const preservedStatus = existingStatusMap[v.codigo] || v.retirado || 'NO';
+                    return [v.codigo, v.data, v.academia, v.vendedor, preservedStatus];
+                })
             ];
 
             valueData.push({
@@ -165,13 +244,6 @@ Deno.serve(async (req: Request) => {
             headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 requests: [
-                    // Clear rules first for each sheet
-                    ...eventNames.map(name => ({
-                        updateCells: {
-                            range: { sheetId: sheets.find((s: any) => s.properties.title === name).properties.sheetId, startRowIndex: 1 },
-                            fields: "userEnteredFormat.backgroundColor"
-                        }
-                    })),
                     ...formattingRequests
                 ]
             })

@@ -128,3 +128,14 @@ export interface Notification {
   read: boolean;
   timestamp: string;
 }
+
+export interface VendorDetails {
+  userId: string;
+  admissionDate?: string;
+  pixKey?: string;
+  bankName?: string;
+  bankAgency?: string;
+  bankAccount?: string;
+  notes?: string;
+  updatedAt?: string;
+}

@@ -30,6 +30,8 @@ const EventsManager = lazy(() => import('./pages/EventsManager').then(m => ({ de
 const AcademiesManager = lazy(() => import('./pages/AcademiesManager').then(m => ({ default: m.AcademiesManager })));
 
 const UsersManager = lazy(() => import('./pages/UsersManager').then(m => ({ default: m.UsersManager })));
+const VendorList = lazy(() => import('./pages/VendorList').then(m => ({ default: m.VendorList })));
+const VendorDetail = lazy(() => import('./pages/VendorDetail').then(m => ({ default: m.VendorDetail })));
 const SalesFinance = lazy(() => import('./pages/SalesFinance').then(m => ({ default: m.SalesFinance })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 import { SalesHeader } from './components/SalesHeader';
@@ -91,6 +93,7 @@ const AppContent: React.FC = () => {
 
   const [selectedAcademyId, setSelectedAcademyId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [globalToast, setGlobalToast] = useState<{ message: string, type: 'success' | 'info' | 'error' } | null>(null);
 
   // Auto-hide toast
@@ -111,17 +114,19 @@ const AppContent: React.FC = () => {
 
   // Limpar campos de seleção ao mudar para abas principais (não detalhes)
   useEffect(() => {
-    const detailTabs = ['visit_detail', 'event_detail_admin'];
+    const detailTabs = ['visit_detail', 'event_detail_admin', 'vendor_detail'];
 
     // Só limpamos se não estivermos indo para uma tela de detalhes
     if (!detailTabs.includes(activeTab)) {
       setSelectedEventId(null);
+      setSelectedEventId(null);
       setSelectedAcademyId(null);
+      setSelectedVendorId(null);
     }
 
     // Verificação de Segurança de Perfil (Role Protection)
     if (currentUser) {
-      const adminTabs = ['dashboard', 'access_control', 'academies', 'events', 'admin_finance', 'reports', 'event_detail_admin'];
+      const adminTabs = ['dashboard', 'access_control', 'academies', 'events', 'admin_finance', 'reports', 'event_detail_admin', 'vendors', 'vendor_detail'];
       if (currentUser.role !== UserRole.ADMIN && adminTabs.includes(activeTab)) {
         setActiveTab('my_events');
       }
@@ -599,6 +604,26 @@ const AppContent: React.FC = () => {
               />
             )}
             {activeTab === 'reports' && currentUser.role === UserRole.ADMIN && <Reports visits={visits} academies={academies} events={events} vouchers={vouchers} vendedores={sellers} finance={finance} />}
+
+            {activeTab === 'vendors' && currentUser.role === UserRole.ADMIN && (
+              <VendorList
+                vendors={sellers}
+                onSelect={(id) => {
+                  setSelectedVendorId(id);
+                  setActiveTab('vendor_detail');
+                }}
+              />
+            )}
+
+            {activeTab === 'vendor_detail' && selectedVendorId && currentUser.role === UserRole.ADMIN && (
+              <VendorDetail
+                vendor={sellers.find(s => s.id === selectedVendorId)!}
+                visits={visits}
+                events={events}
+                finance={finance}
+                onBack={() => setActiveTab('vendors')}
+              />
+            )}
 
             {activeTab === 'my_events' && <SalespersonEvents events={events.filter((e: Event) => e.salespersonId === currentUser.id)} academies={academies} visits={visits} notifications={notifications.filter((n: Notification) => n.userId === currentUser.id && !n.read)} onDismissNotif={(id: string) => setNotifications((prev: Notification[]) => prev.map((n: Notification) => n.id === id ? { ...n, read: true } : n))} onSelectAcademy={(eventId: string, academyId: string) => { setSelectedEventId(eventId); setSelectedAcademyId(academyId); setActiveTab('visit_detail'); }} currentUserId={currentUser.id} />}
             {activeTab === 'visit_detail' && selectedEventId && selectedAcademyId && (

@@ -1,4 +1,4 @@
-import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus } from '../types';
+import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus, VendorDetails } from '../types';
 import { supabase } from './supabase-client';
 
 export { supabase };
@@ -73,10 +73,15 @@ export const DatabaseService = {
     async getSalespersons() {
         const { data, error } = await supabase
             .from('app_users')
-            .select('id, name, email')
+            .select('id, name, email, photo_url')
             .eq('role', 'SALES');
         if (error) throw error;
-        return data.map((u: any) => ({ ...u, role: 'SALES', status: 'ACTIVE' }));
+        return data.map((u: any) => ({
+            ...u,
+            role: 'SALES',
+            status: 'ACTIVE',
+            photoUrl: u.photo_url
+        }));
     },
 
     async getAdmins() {
@@ -471,6 +476,53 @@ export const DatabaseService = {
         if (error) throw error;
     },
 
+    // VENDOR DETAILS
+    async getVendorDetails(userId: string) {
+        const { data, error } = await supabase
+            .from('vendor_details')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null; // Not found
+            throw error;
+        }
+
+        return {
+            userId: data.user_id,
+            admissionDate: data.admission_date,
+            pixKey: data.pix_key,
+            bankName: data.bank_name,
+            bankAgency: data.bank_agency,
+            bankAccount: data.bank_account,
+            notes: data.notes,
+            updatedAt: data.updated_at
+        } as VendorDetails;
+    },
+
+    async updateVendorDetails(userId: string, details: Partial<VendorDetails>) {
+        const payload = {
+            user_id: userId,
+            admission_date: details.admissionDate,
+            pix_key: details.pixKey,
+            bank_name: details.bankName,
+            bank_agency: details.bankAgency,
+            bank_account: details.bankAccount,
+            notes: details.notes,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('vendor_details')
+            .upsert(payload)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
     // SETTINGS
     async getSetting(key: string) {
         const { data, error } = await supabase.from('system_settings').select('value').eq('key', key).single();
@@ -625,21 +677,34 @@ export const DatabaseService = {
     },
 
     async deleteVisitByEventAndAcademy(eventId: string, academyId: string) {
-        console.log(`🗑️ [DatabaseService] Deletando visita para evento ${eventId} e academia ${academyId}`);
-        const { error } = await supabase
+        console.log(`🗑️ [DatabaseService] Deletando visita e vouchers para evento ${eventId} e academia ${academyId}`);
+
+        // 1. Deletar Vouchers primeiro (boa prática de integridade)
+        const { error: errorVouchers } = await supabase
+            .from('vouchers')
+            .delete()
+            .match({ event_id: eventId, academy_id: academyId });
+
+        if (errorVouchers) {
+            console.error("❌ [DatabaseService] Erro ao deletar vouchers:", errorVouchers);
+            // Seguimos tentando deletar a visita mesmo assim
+        }
+
+        // 2. Deletar Visita
+        const { error: errorVisit } = await supabase
             .from('visits')
             .delete()
             .match({ event_id: eventId, academy_id: academyId });
 
-        if (error) {
-            console.error("❌ [DatabaseService] Erro ao deletar visita:", error);
-            throw error;
+        if (errorVisit) {
+            console.error("❌ [DatabaseService] Erro ao deletar visita:", errorVisit);
+            throw errorVisit;
         }
-        console.log("✅ [DatabaseService] Visita deletada com sucesso");
+        console.log("✅ [DatabaseService] Visita e vouchers deletados com sucesso");
     },
 
     async finalizeVisitTransaction(visit: Partial<Visit>, newVouchers: Partial<Voucher>[]) {
-        console.log("🚦 [DatabaseService] Iniciando transação de finalização...");
+        console.log("🚦 [DatabaseService] Iniciando transação de finalização (Sincronização de Vouchers)...");
 
         // 1. Salvar Visita (Status: VISITED)
         const savedVisit = await this.upsertVisit(visit);
@@ -647,23 +712,35 @@ export const DatabaseService = {
 
         console.log("✅ [DatabaseService] Visita salva com ID:", savedVisit.id);
 
-        // 2. Tentar salvar Vouchers
-        if (newVouchers.length > 0) {
-            try {
+        // 2. Sincronizar Vouchers (Garantir que o banco tenha exatamente o que está na visita)
+        try {
+            const currentCodes = visit.vouchersGenerated || [];
+
+            // A. Remover vouchers que NÃO estão mais na lista (caso o usuário tenha diminuído a contagem)
+            const { error: deleteError } = await supabase
+                .from('vouchers')
+                .delete()
+                .match({ event_id: visit.eventId, academy_id: visit.academyId })
+                .not('code', 'in', `(${currentCodes.length > 0 ? currentCodes.join(',') : 'NONE'})`);
+
+            if (deleteError) console.error("⚠️ [DatabaseService] Erro ao limpar vouchers órfãos:", deleteError);
+
+            // B. Inserir novos vouchers (se houver)
+            if (newVouchers.length > 0) {
                 // Atribui o ID da visita recém-salva aos vouchers
                 const vouchersWithId = newVouchers.map(v => ({ ...v, visitId: savedVisit.id }));
                 await this.createVouchers(vouchersWithId as Voucher[]);
-                console.log("✅ [DatabaseService] Vouchers criados com sucesso.");
-            } catch (error: any) {
-                console.error("❌ [DatabaseService] ERRO CRÍTICO: Falha ao criar vouchers após salvar visita!", error);
-
-                // Gravar log de erro na visita
-                await supabase.from('visits').update({
-                    summary: `[ERRO DE SISTEMA] Vouchers não foram gerados: ${error.message}. RESUMO ORIGINAL: ${visit.summary || ''}`
-                }).eq('id', savedVisit.id);
-
-                throw new Error(`A visita foi salva, mas Ocorreu um erro ao gerar os vouchers: ${error.message}`);
+                console.log("✅ [DatabaseService] Novos vouchers criados.");
             }
+        } catch (error: any) {
+            console.error("❌ [DatabaseService] ERRO CRÍTICO na sincronização de vouchers:", error);
+
+            // Gravar log de erro na visita para auditoria
+            await supabase.from('visits').update({
+                summary: `[ERRO DE SINCRONIZAÇÃO VOUCHER] ${error.message}. RESUMO ORIGINAL: ${visit.summary || ''}`
+            }).eq('id', savedVisit.id);
+
+            throw new Error(`A visita foi salva, mas Ocorreu um erro ao sincronizar os vouchers: ${error.message}`);
         }
 
         return savedVisit;

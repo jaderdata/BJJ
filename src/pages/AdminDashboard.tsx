@@ -90,9 +90,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const groupedData: Record<string, any[]> = {};
 
             // Include test events in sync so they appear in the spreadsheet
-            const vouchersToSync = vouchers.filter(v =>
-                new Date(v.createdAt).getFullYear().toString() === selectedYear
-            );
+            // Robust Filtering: Only sync vouchers that are actually present in the 'vouchersGenerated' array 
+            // of their respective visit. This prevents ghost vouchers from appearing in the sheet.
+            const vouchersToSync = vouchers.filter(v => {
+                const isCorrectYear = new Date(v.createdAt).getFullYear().toString() === selectedYear;
+                if (!isCorrectYear) return false;
+
+                const visit = visits.find(vis => vis.id === v.visitId);
+                if (!visit) return false; // Orphaned voucher, skip it
+
+                return visit.vouchersGenerated?.includes(v.code);
+            });
 
             vouchersToSync.forEach(v => {
                 const visit = visits.find(vis => vis.id === v.visitId);
