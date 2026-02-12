@@ -28,7 +28,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(m => ({ 
 const Reports = lazy(() => import('./pages/Reports').then(m => ({ default: m.Reports })));
 const EventsManager = lazy(() => import('./pages/EventsManager').then(m => ({ default: m.EventsManager })));
 const AcademiesManager = lazy(() => import('./pages/AcademiesManager').then(m => ({ default: m.AcademiesManager })));
-const DebugMudita = lazy(() => import('./pages/DebugMudita').then(m => ({ default: m.DebugMudita })));
+
 const UsersManager = lazy(() => import('./pages/UsersManager').then(m => ({ default: m.UsersManager })));
 const SalesFinance = lazy(() => import('./pages/SalesFinance').then(m => ({ default: m.SalesFinance })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
@@ -687,8 +687,7 @@ const AppContent: React.FC = () => {
               />
             )}
 
-            {/* Rota de Debug de Emergência */}
-            {activeTab === 'debug_mudita' && <DebugMudita />}
+
           </Suspense>
         </div>
       </main>
