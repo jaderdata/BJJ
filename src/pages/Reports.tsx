@@ -247,8 +247,14 @@ export const Reports: React.FC<ReportsProps> = ({
         const durations = visitsWithDuration.map(v => {
             const start = new Date(v.startedAt!).getTime();
             const end = new Date(v.finishedAt!).getTime();
-            return (end - start) / (1000 * 60); // minutes
-        }).filter(d => d > 0 && d < 240); // Ignore negatives and visits > 4 hours
+            let minutes = Math.round((end - start) / (1000 * 60));
+
+            // Rule: 0 min -> 30 min, Max -> 60 min
+            if (minutes <= 0) minutes = 30;
+            if (minutes > 60) minutes = 60;
+
+            return minutes;
+        }).filter(d => d > 0);
 
         if (durations.length === 0) return { avgDuration: 0, conversionRate: 0 };
 
@@ -376,8 +382,19 @@ export const Reports: React.FC<ReportsProps> = ({
 
             yPos += 10;
 
+            // Group vouchers by visit session to avoid redundancy
+            const groups: Map<string, { codes: string[], data: Voucher }> = new Map();
+
+            sortedVouchers.forEach(v => {
+                const key = v.visitId || `orphan-${v.academyId}-${v.eventId}-${new Date(v.createdAt).toLocaleDateString()}`;
+                if (!groups.has(key)) {
+                    groups.set(key, { codes: [], data: v });
+                }
+                groups.get(key)!.codes.push(v.code);
+            });
+
             // Table data
-            const tableData = sortedVouchers.map(v => {
+            const tableData = Array.from(groups.values()).map(({ codes, data: v }) => {
                 const visit = visits.find(vis => vis.id === v.visitId);
                 const academy = academies.find(a => a.id === v.academyId);
                 const event = events.find(e => e.id === v.eventId);
@@ -387,12 +404,17 @@ export const Reports: React.FC<ReportsProps> = ({
                 if (visit?.startedAt && visit?.finishedAt) {
                     const start = new Date(visit.startedAt).getTime();
                     const end = new Date(visit.finishedAt).getTime();
-                    const diffMin = Math.round((end - start) / (1000 * 60));
+                    let diffMin = Math.round((end - start) / (1000 * 60));
+
+                    // Rules: 0 -> 30, Max -> 60
+                    if (diffMin <= 0) diffMin = 30;
+                    if (diffMin > 60) diffMin = 60;
+
                     durationStr = `${diffMin} min`;
                 }
 
                 return [
-                    v.code,
+                    codes.join(', '),
                     new Date(v.createdAt).toLocaleDateString('pt-BR'),
                     academy?.name || '---',
                     `${academy?.city || ''} - ${academy?.state || ''}`,
@@ -470,7 +492,17 @@ export const Reports: React.FC<ReportsProps> = ({
     const exportCSV = () => {
         try {
             const headers = ['Código', 'Data', 'Academia', 'Evento', 'Vendedor', 'Duração (min)'];
-            const rows = sortedVouchers.map(v => {
+            // Group vouchers by visit session for a more intelligent CSV
+            const groups: Map<string, { codes: string[], data: Voucher }> = new Map();
+            sortedVouchers.forEach(v => {
+                const key = v.visitId || `orphan-${v.academyId}-${v.eventId}-${new Date(v.createdAt).toLocaleDateString()}`;
+                if (!groups.has(key)) {
+                    groups.set(key, { codes: [], data: v });
+                }
+                groups.get(key)!.codes.push(v.code);
+            });
+
+            const rows = Array.from(groups.values()).map(({ codes, data: v }) => {
                 const visit = visits.find(vis => vis.id === v.visitId);
                 const academy = academies.find(a => a.id === v.academyId);
                 const event = events.find(e => e.id === v.eventId);
@@ -481,10 +513,14 @@ export const Reports: React.FC<ReportsProps> = ({
                     const start = new Date(visit.startedAt).getTime();
                     const end = new Date(visit.finishedAt).getTime();
                     duration = Math.round((end - start) / (1000 * 60));
+
+                    // Rules: 0 -> 30, Max -> 60
+                    if (duration <= 0) duration = 30;
+                    if (duration > 60) duration = 60;
                 }
 
                 return [
-                    v.code,
+                    `"${codes.join(', ')}"`, // Quote the codes in case they contain commas (though they don't usually)
                     new Date(v.createdAt).toLocaleDateString('pt-BR'),
                     academy?.name || '---',
                     event?.name || '---',
@@ -908,6 +944,9 @@ export const Reports: React.FC<ReportsProps> = ({
                                         )}
                                     </div>
                                 </th>
+                                <th className="px-4 py-3 text-xs font-black text-white/60 uppercase tracking-wider">
+                                    Duração
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -943,6 +982,19 @@ export const Reports: React.FC<ReportsProps> = ({
                                                         </div>
                                                         <span className="font-semibold text-sm text-white/80">{seller?.name || 'Sistêmico'}</span>
                                                     </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-white/60 font-medium">
+                                                    {(() => {
+                                                        if (visit?.startedAt && visit?.finishedAt) {
+                                                            const start = new Date(visit.startedAt).getTime();
+                                                            const end = new Date(visit.finishedAt).getTime();
+                                                            let diff = Math.round((end - start) / (1000 * 60));
+                                                            if (diff <= 0) diff = 30;
+                                                            if (diff > 60) diff = 60;
+                                                            return `${diff} min`;
+                                                        }
+                                                        return '---';
+                                                    })()}
                                                 </td>
                                             </tr>
                                         );
