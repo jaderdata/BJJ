@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Academy, User, Event } from '../types';
 import { DatabaseService } from '../lib/supabase';
+import { useLoading } from '../contexts/LoadingContext';
 
 interface AcademiesManagerProps {
     academies: Academy[];
@@ -23,6 +24,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
     notifyUser,
     events
 }) => {
+    const { withLoading } = useLoading();
     const [showModal, setShowModal] = useState(false);
     const [editingAcademy, setEditingAcademy] = useState<Academy | null>(null);
     const [formData, setFormData] = useState<Partial<Academy>>({});
@@ -34,41 +36,45 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
             return;
         }
 
-        try {
-            if (editingAcademy) {
-                const updated = await DatabaseService.updateAcademy(editingAcademy.id, formData);
-                setAcademies(prev => prev.map(a => a.id === updated.id ? updated : a));
+        await withLoading(async () => {
+            try {
+                if (editingAcademy) {
+                    const updated = await DatabaseService.updateAcademy(editingAcademy.id, formData);
+                    setAcademies(prev => prev.map(a => a.id === updated.id ? updated : a));
 
-                // Notify salespeople of events where this academy is present
-                const relatedEvents = events.filter(e => e.academiesIds.includes(updated.id));
-                const salespeopleToNotify = new Set(relatedEvents.map(e => e.salespersonId).filter(Boolean) as string[]);
+                    // Notify salespeople of events where this academy is present
+                    const relatedEvents = events.filter(e => e.academiesIds.includes(updated.id));
+                    const salespeopleToNotify = new Set(relatedEvents.map(e => e.salespersonId).filter(Boolean) as string[]);
 
-                salespeopleToNotify.forEach(sid => {
-                    notifyUser(sid, `Os dados da academia "${updated.name}" foram atualizados pelo administrador.`);
-                });
-            } else {
-                const created = await DatabaseService.createAcademy(formData);
-                setAcademies(prev => [created, ...prev]);
+                    salespeopleToNotify.forEach(sid => {
+                        notifyUser(sid, `Os dados da academia "${updated.name}" foram atualizados pelo administrador.`);
+                    });
+                } else {
+                    const created = await DatabaseService.createAcademy(formData);
+                    setAcademies(prev => [created, ...prev]);
+                }
+
+                setShowModal(false);
+                setEditingAcademy(null);
+                setFormData({});
+            } catch (error: any) {
+                console.error("Error saving academy:", error);
+                alert(`Erro ao salvar academia: ${error.message}`);
             }
-
-            setShowModal(false);
-            setEditingAcademy(null);
-            setFormData({});
-        } catch (error: any) {
-            console.error("Error saving academy:", error);
-            alert(`Erro ao salvar academia: ${error.message}`);
-        }
+        });
     };
 
     const handleDelete = async (id: string, name: string) => {
         if (window.confirm(`Deseja realmente excluir a academia "${name}"?`)) {
-            try {
-                await DatabaseService.deleteAcademy(id);
-                setAcademies(prev => prev.filter(a => a.id !== id));
-            } catch (error) {
-                console.error("Error deleting academy:", error);
-                alert("Erro ao excluir academia");
-            }
+            await withLoading(async () => {
+                try {
+                    await DatabaseService.deleteAcademy(id);
+                    setAcademies(prev => prev.filter(a => a.id !== id));
+                } catch (error) {
+                    console.error("Error deleting academy:", error);
+                    alert("Erro ao excluir academia");
+                }
+            });
         }
     };
 

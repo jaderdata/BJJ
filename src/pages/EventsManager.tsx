@@ -16,6 +16,7 @@ import {
 } from '../types';
 import { DatabaseService } from '../lib/supabase';
 import { toast } from 'sonner';
+import { useLoading } from '../contexts/LoadingContext';
 
 interface EventsManagerProps {
     events: Event[];
@@ -36,6 +37,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
     onSelectEvent,
     notifyUser
 }) => {
+    const { withLoading } = useLoading();
     const [showModal, setShowModal] = useState(false);
     const [newEvent, setNewEvent] = useState<Partial<Event>>({
         status: EventStatus.UPCOMING,
@@ -87,63 +89,67 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
             return;
         }
 
-        try {
-            setIsUploading(true);
-            const loadingToast = toast.loading('Criando evento...');
+        await withLoading(async () => {
+            try {
+                setIsUploading(true);
+                const loadingToast = toast.loading('Criando evento...');
 
-            // Upload photo first
-            let photoUrl: string | undefined;
-            if (selectedPhoto) {
-                photoUrl = await DatabaseService.uploadEventPhoto(selectedPhoto);
+                // Upload photo first
+                let photoUrl: string | undefined;
+                if (selectedPhoto) {
+                    photoUrl = await DatabaseService.uploadEventPhoto(selectedPhoto);
+                }
+
+                // Create event with photo URL
+                const created = await DatabaseService.createEvent({
+                    ...newEvent,
+                    photoUrl
+                });
+                setEvents((prev: Event[]) => [created, ...prev]);
+
+                if (created.salespersonId) {
+                    notifyUser(created.salespersonId, `Você foi atribuído ao novo evento "${created.name}".`);
+                }
+
+                toast.success('Evento criado com sucesso!', { id: loadingToast });
+                setShowModal(false);
+                setNewEvent({
+                    status: EventStatus.UPCOMING,
+                    academiesIds: [],
+                    startDate: new Date().toISOString().split('T')[0],
+                    endDate: new Date().toISOString().split('T')[0]
+                });
+                setSelectedPhoto(null);
+                setPhotoPreview(null);
+            } catch (error: any) {
+                console.error("Error creating event:", error);
+                toast.error(`Erro ao criar evento: ${error.message}`);
+            } finally {
+                setIsUploading(false);
             }
-
-            // Create event with photo URL
-            const created = await DatabaseService.createEvent({
-                ...newEvent,
-                photoUrl
-            });
-            setEvents((prev: Event[]) => [created, ...prev]);
-
-            if (created.salespersonId) {
-                notifyUser(created.salespersonId, `Você foi atribuído ao novo evento "${created.name}".`);
-            }
-
-            toast.success('Evento criado com sucesso!', { id: loadingToast });
-            setShowModal(false);
-            setNewEvent({
-                status: EventStatus.UPCOMING,
-                academiesIds: [],
-                startDate: new Date().toISOString().split('T')[0],
-                endDate: new Date().toISOString().split('T')[0]
-            });
-            setSelectedPhoto(null);
-            setPhotoPreview(null);
-        } catch (error: any) {
-            console.error("Error creating event:", error);
-            toast.error(`Erro ao criar evento: ${error.message}`);
-        } finally {
-            setIsUploading(false);
-        }
+        });
     };
 
     const handleDeleteEvent = async (e: React.MouseEvent, eventId: string, eventName: string) => {
         e.stopPropagation();
         if (window.confirm(`Deseja realmente excluir o evento "${eventName}"?`)) {
-            try {
-                const loadingToast = toast.loading('Excluindo evento...');
-                const eventToDelete = events.find(ev => ev.id === eventId);
-                await DatabaseService.deleteEvent(eventId);
-                setEvents((prev: Event[]) => prev.filter(ev => ev.id !== eventId));
+            await withLoading(async () => {
+                try {
+                    const loadingToast = toast.loading('Excluindo evento...');
+                    const eventToDelete = events.find(ev => ev.id === eventId);
+                    await DatabaseService.deleteEvent(eventId);
+                    setEvents((prev: Event[]) => prev.filter(ev => ev.id !== eventId));
 
-                if (eventToDelete?.salespersonId) {
-                    notifyUser(eventToDelete.salespersonId, `O evento "${eventName}" foi removido pelo administrador.`);
+                    if (eventToDelete?.salespersonId) {
+                        notifyUser(eventToDelete.salespersonId, `O evento "${eventName}" foi removido pelo administrador.`);
+                    }
+
+                    toast.success(`Evento "${eventName}" excluído com sucesso!`, { id: loadingToast });
+                } catch (error) {
+                    console.error("Error deleting event:", error);
+                    toast.error("Erro ao excluir evento");
                 }
-
-                toast.success(`Evento "${eventName}" excluído com sucesso!`, { id: loadingToast });
-            } catch (error) {
-                console.error("Error deleting event:", error);
-                toast.error("Erro ao excluir evento");
-            }
+            });
         }
     };
 

@@ -43,6 +43,7 @@ import {
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useLoading } from '../contexts/LoadingContext';
 
 interface ReportsProps {
     events: Event[];
@@ -61,6 +62,7 @@ export const Reports: React.FC<ReportsProps> = ({
     vendedores,
     finance = []
 }) => {
+    const { withLoading } = useLoading();
     // Filter states
     const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -322,230 +324,232 @@ export const Reports: React.FC<ReportsProps> = ({
     })).size;
 
     // Export PDF function
-    const exportPDF = () => {
-        try {
-            const doc = new jsPDF();
+    const exportPDF = async () => {
+        await withLoading(async () => {
+            try {
+                const doc = new jsPDF();
 
-            // Header
-            doc.setFontSize(20);
-            doc.setTextColor(16, 185, 129); // Emerald color
-            doc.text('Relatório de Vouchers', 14, 20);
+                // Header
+                doc.setFontSize(20);
+                doc.setTextColor(16, 185, 129); // Emerald color
+                doc.text('Relatório de Vouchers', 14, 20);
 
-            doc.setFontSize(10);
-            doc.setTextColor(100, 100, 100);
-            doc.text('BJJ Visits - Sistema de Gerenciamento', 14, 27);
+                doc.setFontSize(10);
+                doc.setTextColor(100, 100, 100);
+                doc.text('BJJ Visits - Sistema de Gerenciamento', 14, 27);
 
-            // Filters info
-            let yPos = 35;
-            doc.setFontSize(11);
-            doc.setTextColor(0, 0, 0);
-            doc.text('Filtros Aplicados:', 14, yPos);
+                // Filters info
+                let yPos = 35;
+                doc.setFontSize(11);
+                doc.setTextColor(0, 0, 0);
+                doc.text('Filtros Aplicados:', 14, yPos);
 
-            yPos += 7;
-            doc.setFontSize(9);
-            doc.setTextColor(80, 80, 80);
+                yPos += 7;
+                doc.setFontSize(9);
+                doc.setTextColor(80, 80, 80);
 
-            if (searchTerm) {
-                doc.text(`• Busca: ${searchTerm}`, 14, yPos);
-                yPos += 5;
-            }
-            if (yearFilter) {
-                doc.text(`• Ano: ${yearFilter}`, 14, yPos);
-                yPos += 5;
-            }
-            if (eventFilter) {
-                const eventName = events.find(e => e.id === eventFilter)?.name || 'N/A';
-                doc.text(`• Evento: ${eventName}`, 14, yPos);
-                yPos += 5;
-            }
-            if (salesFilter) {
-                const sellerName = vendedores.find(v => v.id === salesFilter)?.name || 'N/A';
-                doc.text(`• Vendedor: ${sellerName}`, 14, yPos);
-                yPos += 5;
-            }
-
-            if (!searchTerm && !yearFilter && !eventFilter && !salesFilter) {
-                doc.text('• Nenhum filtro aplicado (todos os registros)', 14, yPos);
-                yPos += 5;
-            }
-
-            yPos += 5;
-
-            // KPIs Summary - Operational Row
-            doc.setFontSize(10); // Reset font size for the operational row if needed, or keep previous logic flow
-            doc.setTextColor(0, 0, 0); // Reset color
-
-            doc.text(`Total de Vouchers: ${filteredVouchers.length}`, 14, yPos);
-            doc.text(`Academias: ${uniqueAcademies}`, 60, yPos);
-            doc.text(`Eventos: ${uniqueEvents}`, 110, yPos);
-            doc.text(`Vendedores: ${uniqueSellers}`, 160, yPos);
-
-            yPos += 10;
-
-            // Group vouchers by visit session to avoid redundancy
-            const groups: Map<string, { codes: string[], data: Voucher }> = new Map();
-
-            sortedVouchers.forEach(v => {
-                const key = v.visitId || `orphan-${v.academyId}-${v.eventId}-${new Date(v.createdAt).toLocaleDateString()}`;
-                if (!groups.has(key)) {
-                    groups.set(key, { codes: [], data: v });
+                if (searchTerm) {
+                    doc.text(`• Busca: ${searchTerm}`, 14, yPos);
+                    yPos += 5;
                 }
-                groups.get(key)!.codes.push(v.code);
-            });
-
-            // Table data
-            const tableData = Array.from(groups.values()).map(({ codes, data: v }) => {
-                const visit = visits.find(vis => vis.id === v.visitId);
-                const academy = academies.find(a => a.id === v.academyId);
-                const event = events.find(e => e.id === v.eventId);
-                const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId));
-
-                let durationStr = '---';
-                if (visit?.startedAt && visit?.finishedAt) {
-                    const start = new Date(visit.startedAt).getTime();
-                    const end = new Date(visit.finishedAt).getTime();
-                    let diffMin = Math.round((end - start) / (1000 * 60));
-
-                    // Rules: 0 -> 30, Max -> 60
-                    if (diffMin <= 0) diffMin = 30;
-                    if (diffMin > 60) diffMin = 60;
-
-                    durationStr = `${diffMin} min`;
+                if (yearFilter) {
+                    doc.text(`• Ano: ${yearFilter}`, 14, yPos);
+                    yPos += 5;
+                }
+                if (eventFilter) {
+                    const eventName = events.find(e => e.id === eventFilter)?.name || 'N/A';
+                    doc.text(`• Evento: ${eventName}`, 14, yPos);
+                    yPos += 5;
+                }
+                if (salesFilter) {
+                    const sellerName = vendedores.find(v => v.id === salesFilter)?.name || 'N/A';
+                    doc.text(`• Vendedor: ${sellerName}`, 14, yPos);
+                    yPos += 5;
                 }
 
-                return [
-                    codes.join(', '),
-                    new Date(v.createdAt).toLocaleDateString('pt-BR'),
-                    academy?.name || '---',
-                    `${academy?.city || ''} - ${academy?.state || ''}`,
-                    event?.name || '---',
-                    seller?.name || 'Sistêmico',
-                    durationStr
-                ];
-            });
+                if (!searchTerm && !yearFilter && !eventFilter && !salesFilter) {
+                    doc.text('• Nenhum filtro aplicado (todos os registros)', 14, yPos);
+                    yPos += 5;
+                }
 
-            // Generate table
-            autoTable(doc, {
-                startY: yPos,
-                head: [['Código', 'Data', 'Academia', 'Localização', 'Evento', 'Vendedor', 'Duração']],
-                body: tableData,
-                theme: 'striped',
-                headStyles: {
-                    fillColor: [16, 185, 129], // Emerald
-                    textColor: 255,
-                    fontStyle: 'bold',
-                    fontSize: 9
-                },
-                bodyStyles: {
-                    fontSize: 8,
-                    textColor: 50
-                },
-                alternateRowStyles: {
-                    fillColor: [245, 245, 250]
-                },
-                columnStyles: {
-                    0: { cellWidth: 25, fontStyle: 'bold' }, // Código
-                    1: { cellWidth: 22 }, // Data
-                    2: { cellWidth: 35 }, // Academia
-                    3: { cellWidth: 30 }, // Localização
-                    4: { cellWidth: 30 }, // Evento
-                    5: { cellWidth: 25 }, // Vendedor
-                    6: { cellWidth: 20 }  // Duração
-                },
-                margin: { left: 14, right: 14 },
-                didDrawPage: function (data) {
-                    // Footer
-                    const pageCount = doc.getNumberOfPages();
-                    doc.setFontSize(8);
-                    doc.setTextColor(150, 150, 150);
+                yPos += 5;
 
-                    for (let i = 1; i <= pageCount; i++) {
-                        doc.setPage(i);
-                        const pageHeight = doc.internal.pageSize.height;
-                        doc.text(
-                            `Gerado em: ${new Date().toLocaleString('pt-BR')}`,
-                            14,
-                            pageHeight - 10
-                        );
-                        doc.text(
-                            `Página ${i} de ${pageCount}`,
-                            doc.internal.pageSize.width - 40,
-                            pageHeight - 10
-                        );
+                // KPIs Summary - Operational Row
+                doc.setFontSize(10); // Reset font size for the operational row if needed, or keep previous logic flow
+                doc.setTextColor(0, 0, 0); // Reset color
+
+                doc.text(`Total de Vouchers: ${filteredVouchers.length}`, 14, yPos);
+                doc.text(`Academias: ${uniqueAcademies}`, 60, yPos);
+                doc.text(`Eventos: ${uniqueEvents}`, 110, yPos);
+                doc.text(`Vendedores: ${uniqueSellers}`, 160, yPos);
+
+                yPos += 10;
+
+                // Group vouchers by visit session to avoid redundancy
+                const groups: Map<string, { codes: string[], data: Voucher }> = new Map();
+
+                sortedVouchers.forEach(v => {
+                    const key = v.visitId || `orphan-${v.academyId}-${v.eventId}-${new Date(v.createdAt).toLocaleDateString()}`;
+                    if (!groups.has(key)) {
+                        groups.set(key, { codes: [], data: v });
                     }
-                }
-            });
+                    groups.get(key)!.codes.push(v.code);
+                });
 
-            // Save PDF
-            const fileName = `relatorio-vouchers-${new Date().toISOString().split('T')[0]}.pdf`;
-            doc.save(fileName);
+                // Table data
+                const tableData = Array.from(groups.values()).map(({ codes, data: v }) => {
+                    const visit = visits.find(vis => vis.id === v.visitId);
+                    const academy = academies.find(a => a.id === v.academyId);
+                    const event = events.find(e => e.id === v.eventId);
+                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId));
 
-            // Show success toast
-            setToast({ message: 'PDF gerado com sucesso!', type: 'success' });
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            setToast({ message: 'Erro ao gerar PDF', type: 'error' });
-        }
+                    let durationStr = '---';
+                    if (visit?.startedAt && visit?.finishedAt) {
+                        const start = new Date(visit.startedAt).getTime();
+                        const end = new Date(visit.finishedAt).getTime();
+                        let diffMin = Math.round((end - start) / (1000 * 60));
+
+                        // Rules: 0 -> 30, Max -> 60
+                        if (diffMin <= 0) diffMin = 30;
+                        if (diffMin > 60) diffMin = 60;
+
+                        durationStr = `${diffMin} min`;
+                    }
+
+                    return [
+                        codes.join(', '),
+                        new Date(v.createdAt).toLocaleDateString('pt-BR'),
+                        academy?.name || '---',
+                        `${academy?.city || ''} - ${academy?.state || ''}`,
+                        event?.name || '---',
+                        seller?.name || 'Sistêmico',
+                        durationStr
+                    ];
+                });
+
+                // Generate table
+                autoTable(doc, {
+                    startY: yPos,
+                    head: [['Código', 'Data', 'Academia', 'Localização', 'Evento', 'Vendedor', 'Duração']],
+                    body: tableData,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [16, 185, 129], // Emerald
+                        textColor: 255,
+                        fontStyle: 'bold',
+                        fontSize: 9
+                    },
+                    bodyStyles: {
+                        fontSize: 8,
+                        textColor: 50
+                    },
+                    alternateRowStyles: {
+                        fillColor: [245, 245, 250]
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 25, fontStyle: 'bold' }, // Código
+                        1: { cellWidth: 22 }, // Data
+                        2: { cellWidth: 35 }, // Academia
+                        3: { cellWidth: 30 }, // Localização
+                        4: { cellWidth: 30 }, // Evento
+                        5: { cellWidth: 25 }, // Vendedor
+                        6: { cellWidth: 20 }  // Duração
+                    },
+                    margin: { left: 14, right: 14 },
+                    didDrawPage: function (data) {
+                        // Footer
+                        const pageCount = doc.getNumberOfPages();
+                        doc.setFontSize(8);
+                        doc.setTextColor(150, 150, 150);
+
+                        for (let i = 1; i <= pageCount; i++) {
+                            doc.setPage(i);
+                            const pageHeight = doc.internal.pageSize.height;
+                            doc.text(
+                                `Gerado em: ${new Date().toLocaleString('pt-BR')}`,
+                                14,
+                                pageHeight - 10
+                            );
+                            doc.text(
+                                `Página ${i} de ${pageCount}`,
+                                doc.internal.pageSize.width - 40,
+                                pageHeight - 10
+                            );
+                        }
+                    }
+                });
+
+                // Save PDF
+                const fileName = `relatorio-vouchers-${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(fileName);
+
+                setToast({ message: 'PDF gerado com sucesso!', type: 'success' });
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                setToast({ message: 'Erro ao gerar PDF', type: 'error' });
+            }
+        });
     };
 
     // Export CSV function
-    const exportCSV = () => {
-        try {
-            const headers = ['Código', 'Data', 'Academia', 'Evento', 'Vendedor', 'Duração (min)'];
-            // Group vouchers by visit session for a more intelligent CSV
-            const groups: Map<string, { codes: string[], data: Voucher }> = new Map();
-            sortedVouchers.forEach(v => {
-                const key = v.visitId || `orphan-${v.academyId}-${v.eventId}-${new Date(v.createdAt).toLocaleDateString()}`;
-                if (!groups.has(key)) {
-                    groups.set(key, { codes: [], data: v });
-                }
-                groups.get(key)!.codes.push(v.code);
-            });
+    const exportCSV = async () => {
+        await withLoading(async () => {
+            try {
+                const headers = ['Código', 'Data', 'Academia', 'Evento', 'Vendedor', 'Duração (min)'];
+                // Group vouchers by visit session for a more intelligent CSV
+                const groups: Map<string, { codes: string[], data: Voucher }> = new Map();
+                sortedVouchers.forEach(v => {
+                    const key = v.visitId || `orphan-${v.academyId}-${v.eventId}-${new Date(v.createdAt).toLocaleDateString()}`;
+                    if (!groups.has(key)) {
+                        groups.set(key, { codes: [], data: v });
+                    }
+                    groups.get(key)!.codes.push(v.code);
+                });
 
-            const rows = Array.from(groups.values()).map(({ codes, data: v }) => {
-                const visit = visits.find(vis => vis.id === v.visitId);
-                const academy = academies.find(a => a.id === v.academyId);
-                const event = events.find(e => e.id === v.eventId);
-                const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId));
+                const rows = Array.from(groups.values()).map(({ codes, data: v }) => {
+                    const visit = visits.find(vis => vis.id === v.visitId);
+                    const academy = academies.find(a => a.id === v.academyId);
+                    const event = events.find(e => e.id === v.eventId);
+                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId));
 
-                let duration = 0;
-                if (visit?.startedAt && visit?.finishedAt) {
-                    const start = new Date(visit.startedAt).getTime();
-                    const end = new Date(visit.finishedAt).getTime();
-                    duration = Math.round((end - start) / (1000 * 60));
+                    let duration = 0;
+                    if (visit?.startedAt && visit?.finishedAt) {
+                        const start = new Date(visit.startedAt).getTime();
+                        const end = new Date(visit.finishedAt).getTime();
+                        duration = Math.round((end - start) / (1000 * 60));
 
-                    // Rules: 0 -> 30, Max -> 60
-                    if (duration <= 0) duration = 30;
-                    if (duration > 60) duration = 60;
-                }
+                        // Rules: 0 -> 30, Max -> 60
+                        if (duration <= 0) duration = 30;
+                        if (duration > 60) duration = 60;
+                    }
 
-                return [
-                    `"${codes.join(', ')}"`, // Quote the codes in case they contain commas (though they don't usually)
-                    new Date(v.createdAt).toLocaleDateString('pt-BR'),
-                    academy?.name || '---',
-                    event?.name || '---',
-                    seller?.name || 'Sistêmico',
-                    duration
-                ];
-            });
+                    return [
+                        `"${codes.join(', ')}"`, // Quote the codes in case they contain commas (though they don't usually)
+                        new Date(v.createdAt).toLocaleDateString('pt-BR'),
+                        academy?.name || '---',
+                        event?.name || '---',
+                        seller?.name || 'Sistêmico',
+                        duration
+                    ];
+                });
 
-            const csvContent = [
-                headers.join(','),
-                ...rows.map(row => row.join(','))
-            ].join('\n');
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row => row.join(','))
+                ].join('\n');
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `relatorio-vouchers-${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `relatorio-vouchers-${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
 
-            // Show success toast
-            setToast({ message: 'CSV gerado com sucesso!', type: 'success' });
-        } catch (error) {
-            console.error('Error generating CSV:', error);
-            setToast({ message: 'Erro ao gerar CSV', type: 'error' });
-        }
+                setToast({ message: 'CSV gerado com sucesso!', type: 'success' });
+            } catch (error) {
+                console.error('Error generating CSV:', error);
+                setToast({ message: 'Erro ao gerar CSV', type: 'error' });
+            }
+        });
     };
 
     return (

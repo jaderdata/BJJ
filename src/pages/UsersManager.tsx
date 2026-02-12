@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 import { DatabaseService, AuthService, supabase } from '../lib/supabase';
+import { useLoading } from '../contexts/LoadingContext';
 
 interface UsersManagerProps {
     users: User[];
@@ -28,6 +29,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
     currentUser,
     notifyUser
 }) => {
+    const { withLoading } = useLoading();
     const [showModal, setShowModal] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [formData, setFormData] = useState<Partial<User>>({ role: UserRole.SALES });
@@ -79,25 +81,24 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
             return;
         }
 
-        setLoading(true);
-        try {
-            if (editingUser) {
-                const updated = await DatabaseService.updateUser(editingUser.id, formData);
-                setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
-                notifyUser(updated.id, `Seu perfil foi atualizado pelo administrador ${currentUser.name}.`);
-                alert("Usuário atualizado com sucesso!");
-            } else {
-                alert("Dica: Use o sistema de convites para novos usuários definirem suas próprias senhas.");
+        await withLoading(async () => {
+            try {
+                if (editingUser) {
+                    const updated = await DatabaseService.updateUser(editingUser.id, formData);
+                    setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+                    notifyUser(updated.id, `Seu perfil foi atualizado pelo administrador ${currentUser.name}.`);
+                    alert("Usuário atualizado com sucesso!");
+                } else {
+                    alert("Dica: Use o sistema de convites para novos usuários definirem suas próprias senhas.");
+                }
+                setShowModal(false);
+                setEditingUser(null);
+                setFormData({ role: UserRole.SALES });
+            } catch (error: any) {
+                console.error("Error saving user:", error);
+                alert(`Erro ao salvar usuário: ${error.message}`);
             }
-            setShowModal(false);
-            setEditingUser(null);
-            setFormData({ role: UserRole.SALES });
-        } catch (error: any) {
-            console.error("Error saving user:", error);
-            alert(`Erro ao salvar usuário: ${error.message}`);
-        } finally {
-            setLoading(false);
-        }
+        });
     };
 
     const handleDelete = async (id: string, name: string) => {
@@ -110,55 +111,52 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
         if (!userToDelete) return;
 
         if (window.confirm(`Deseja realmente excluir o usuário "${name}"?`)) {
-            try {
-                setLoading(true);
-                // 1. Delete from app_users
-                await DatabaseService.deleteUser(id);
+            await withLoading(async () => {
+                try {
+                    // 1. Delete from app_users
+                    await DatabaseService.deleteUser(id);
 
-                // 2. Delete from allowlist so they can be invited/request access again
-                await DatabaseService.deleteFromAllowlist(userToDelete.email);
+                    // 2. Delete from allowlist so they can be invited/request access again
+                    await DatabaseService.deleteFromAllowlist(userToDelete.email);
 
-                setUsers(prev => prev.filter(u => u.id !== id));
-                alert("Usuário excluído com sucesso.");
-            } catch (error: any) {
-                console.error("Error deleting user:", error);
-                alert(`Erro ao excluir usuário: ${error.message}`);
-            } finally {
-                setLoading(false);
-            }
+                    setUsers(prev => prev.filter(u => u.id !== id));
+                    alert("Usuário excluído com sucesso.");
+                } catch (error: any) {
+                    console.error("Error deleting user:", error);
+                    alert(`Erro ao excluir usuário: ${error.message}`);
+                }
+            });
         }
     };
 
     const handleGenerateInvite = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-        try {
-            const result = await AuthService.generateInvite(inviteEmail, inviteRole);
-            if (result.success && result.token) {
-                const baseUrl = window.location.origin + window.location.pathname;
-                const link = `${baseUrl}?token=${result.token}&type=activation`;
-                setGeneratedLink(link);
-                loadPendingInvites();
+        await withLoading(async () => {
+            try {
+                const result = await AuthService.generateInvite(inviteEmail, inviteRole);
+                if (result.success && result.token) {
+                    const baseUrl = window.location.origin + window.location.pathname;
+                    const link = `${baseUrl}?token=${result.token}&type=activation`;
+                    setGeneratedLink(link);
+                    loadPendingInvites();
+                }
+            } catch (error: any) {
+                alert(`Erro ao gerar convite: ${error.message}`);
             }
-        } catch (error: any) {
-            alert(`Erro ao gerar convite: ${error.message}`);
-        } finally {
-            setLoading(false);
-        }
+        });
     };
 
     const handleRevokeInvite = async (email: string) => {
         if (window.confirm(`Deseja revogar o convite para ${email}?`)) {
-            try {
-                setLoading(true);
-                await AuthService.revokeInvite(email);
-                await DatabaseService.deleteFromAllowlist(email);
-                loadPendingInvites();
-            } catch (error) {
-                console.error("Error revoking invite:", error);
-            } finally {
-                setLoading(false);
-            }
+            await withLoading(async () => {
+                try {
+                    await AuthService.revokeInvite(email);
+                    await DatabaseService.deleteFromAllowlist(email);
+                    loadPendingInvites();
+                } catch (error) {
+                    console.error("Error revoking invite:", error);
+                }
+            });
         }
     };
 
@@ -169,17 +167,16 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
     };
 
     const handleSavePhone = async () => {
-        setSavingPhone(true);
-        try {
-            const clean = redemptionPhone.replace(/\D/g, '');
-            await DatabaseService.updateSetting('voucher_redemption_phone', JSON.stringify(clean));
-            alert('Número de resgate atualizado com sucesso!');
-        } catch (e) {
-            console.error('Error saving phone:', e);
-            alert(`Erro ao salvar número: ${e.message || JSON.stringify(e)}`);
-        } finally {
-            setSavingPhone(false);
-        }
+        await withLoading(async () => {
+            try {
+                const clean = redemptionPhone.replace(/\D/g, '');
+                await DatabaseService.updateSetting('voucher_redemption_phone', JSON.stringify(clean));
+                alert('Número de resgate atualizado com sucesso!');
+            } catch (e: any) {
+                console.error('Error saving phone:', e);
+                alert(`Erro ao salvar número: ${e.message || JSON.stringify(e)}`);
+            }
+        });
     };
 
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {

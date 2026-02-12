@@ -44,6 +44,8 @@ import { ElevationProvider, useElevation } from './contexts/ElevationContext';
 import { supabase, DatabaseService, AuthService } from './lib/supabase';
 import { cn, generateVoucherCode } from './lib/utils';
 import { toast, Toaster } from 'sonner';
+import { LoadingProvider, useLoading } from './contexts/LoadingContext';
+import { LoadingOverlay } from './components/LoadingOverlay';
 
 
 
@@ -129,6 +131,8 @@ const AppContent: React.FC = () => {
     }
   }, [activeTab, currentUser?.role]);
 
+  const { withLoading } = useLoading();
+
   useEffect(() => {
     // Check local session
     const storedUser = localStorage.getItem('bjj_user');
@@ -158,38 +162,40 @@ const AppContent: React.FC = () => {
   }, [currentUser?.id]); // Use ID to be safe
 
   const loadData = React.useCallback(async () => {
-    try {
-      // Parallel fetch for main data entities
-      const [dbAcademies, dbEvents, dbVisits, dbFinance, dbVouchers] = await Promise.all([
-        DatabaseService.getAcademies(),
-        DatabaseService.getEvents(),
-        DatabaseService.getVisits(),
-        DatabaseService.getFinance(),
-        DatabaseService.getVouchers()
-      ]);
+    return withLoading(async () => {
+      try {
+        // Parallel fetch for main data entities
+        const [dbAcademies, dbEvents, dbVisits, dbFinance, dbVouchers] = await Promise.all([
+          DatabaseService.getAcademies(),
+          DatabaseService.getEvents(),
+          DatabaseService.getVisits(),
+          DatabaseService.getFinance(),
+          DatabaseService.getVouchers()
+        ]);
 
-      // Batch state updates - React 18+ does this naturally, but fetching first minimizes lifecycle gaps
-      setAcademies(dbAcademies);
-      setVisits(dbVisits);
-      setFinance(dbFinance);
-      setVouchers(dbVouchers);
+        // Batch state updates - React 18+ does this naturally, but fetching first minimizes lifecycle gaps
+        setAcademies(dbAcademies);
+        setVisits(dbVisits);
+        setFinance(dbFinance);
+        setVouchers(dbVouchers);
 
-      // Need to fetch academies for each event (junction)
-      const eventsWithAcademies = await Promise.all(dbEvents.map(async (e: any) => {
-        const ids = await DatabaseService.getEventAcademies(e.id);
-        return { ...e, academiesIds: ids };
-      }));
-      setEvents(eventsWithAcademies);
+        // Need to fetch academies for each event (junction)
+        const eventsWithAcademies = await Promise.all(dbEvents.map(async (e: any) => {
+          const ids = await DatabaseService.getEventAcademies(e.id);
+          return { ...e, academiesIds: ids };
+        }));
+        setEvents(eventsWithAcademies);
 
-      if (currentUser) {
-        const dbNotifications = await DatabaseService.getNotifications(currentUser.id);
-        setNotifications(dbNotifications);
+        if (currentUser) {
+          const dbNotifications = await DatabaseService.getNotifications(currentUser.id);
+          setNotifications(dbNotifications);
+        }
+
+      } catch (error) {
+        console.error("Error loading data:", error);
       }
-
-    } catch (error) {
-      console.error("Error loading data:", error);
-    }
-  }, [currentUser?.id]);
+    });
+  }, [currentUser?.id, withLoading]);
 
   // Real-time Notifications Subscription
   useEffect(() => {
@@ -616,43 +622,45 @@ const AppContent: React.FC = () => {
                   }
                 }}
                 onFinish={async (visit: Visit) => {
-                  try {
-                    // Preparar Vouchers
-                    const currentVoucherCodes = new Set(vouchers.map((v: Voucher) => v.code));
-                    const newVoucherObjects: Voucher[] = (visit.vouchersGenerated || [])
-                      .filter((code: string) => !currentVoucherCodes.has(code))
-                      .map((code: string) => ({
-                        code,
-                        eventId: visit.eventId,
-                        academyId: visit.academyId,
-                        visitId: visit.id!, // Será corrigido dentro da transação se necessário
-                        createdAt: new Date().toISOString()
-                      }));
+                  await withLoading(async () => {
+                    try {
+                      // Preparar Vouchers
+                      const currentVoucherCodes = new Set(vouchers.map((v: Voucher) => v.code));
+                      const newVoucherObjects: Voucher[] = (visit.vouchersGenerated || [])
+                        .filter((code: string) => !currentVoucherCodes.has(code))
+                        .map((code: string) => ({
+                          code,
+                          eventId: visit.eventId,
+                          academyId: visit.academyId,
+                          visitId: visit.id!, // Será corrigido dentro da transação se necessário
+                          createdAt: new Date().toISOString()
+                        }));
 
-                    // Executar Transação Atômica (Visita + Vouchers)
-                    const savedVisit = await DatabaseService.finalizeVisitTransaction(visit, newVoucherObjects);
+                      // Executar Transação Atômica (Visita + Vouchers)
+                      const savedVisit = await DatabaseService.finalizeVisitTransaction(visit, newVoucherObjects);
 
-                    // Atualizar Estado Local
-                    setVisits((prev: Visit[]) => [...prev.filter((v: Visit) => !(v.eventId === visit.eventId && v.academyId === visit.academyId)), savedVisit]);
-                    if (newVoucherObjects.length > 0) {
-                      setVouchers((prev: Voucher[]) => [...prev, ...newVoucherObjects]);
+                      // Atualizar Estado Local
+                      setVisits((prev: Visit[]) => [...prev.filter((v: Visit) => !(v.eventId === visit.eventId && v.academyId === visit.academyId)), savedVisit]);
+                      if (newVoucherObjects.length > 0) {
+                        setVouchers((prev: Voucher[]) => [...prev, ...newVoucherObjects]);
+                      }
+
+                      // Notify Admins (Only if transitioning to VISITED for the first time)
+                      const previousVisitState = visits.find((v: Visit) => v.eventId === visit.eventId && v.academyId === visit.academyId);
+                      const isTransitioningToVisited = visit.status === VisitStatus.VISITED && (!previousVisitState || previousVisitState.status !== VisitStatus.VISITED);
+
+                      if (isTransitioningToVisited) {
+                        admins.forEach((admin: User) => {
+                          notifyUser(admin.id, `O vendedor ${currentUser.name} concluiu uma visita na academia "${academies.find((a: Academy) => a.id === selectedAcademyId)?.name}".`);
+                        });
+                      }
+
+                      setActiveTab('my_events');
+                    } catch (error) {
+                      console.error("Error saving visit:", error);
+                      alert("Erro ao salvar visita.");
                     }
-
-                    // Notify Admins (Only if transitioning to VISITED for the first time)
-                    const previousVisitState = visits.find((v: Visit) => v.eventId === visit.eventId && v.academyId === visit.academyId);
-                    const isTransitioningToVisited = visit.status === VisitStatus.VISITED && (!previousVisitState || previousVisitState.status !== VisitStatus.VISITED);
-
-                    if (isTransitioningToVisited) {
-                      admins.forEach((admin: User) => {
-                        notifyUser(admin.id, `O vendedor ${currentUser.name} concluiu uma visita na academia "${academies.find((a: Academy) => a.id === selectedAcademyId)?.name}".`);
-                      });
-                    }
-
-                    setActiveTab('my_events');
-                  } catch (error) {
-                    console.error("Error saving visit:", error);
-                    alert("Erro ao salvar visita.");
-                  }
+                  });
                 }}
                 onCancel={async () => {
                   if (selectedEventId && selectedAcademyId) {
@@ -731,6 +739,9 @@ const AppContent: React.FC = () => {
         )
       }
 
+      {/* Global Loading Overlay */}
+      <LoadingOverlay />
+
       {/* Toast Notifications */}
       <Toaster
         position="top-right"
@@ -766,9 +777,11 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <ElevationProvider userId={currentUser?.id || null}>
-      <AppContent />
-    </ElevationProvider>
+    <LoadingProvider>
+      <ElevationProvider userId={currentUser?.id || null}>
+        <AppContent />
+      </ElevationProvider>
+    </LoadingProvider>
   );
 };
 

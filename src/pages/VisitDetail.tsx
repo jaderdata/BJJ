@@ -25,9 +25,11 @@ import {
 } from '../types';
 import { DatabaseService } from '../lib/supabase';
 import { cn, generateVoucherCode } from '../lib/utils';
+import { useLoading } from '../contexts/LoadingContext';
 
 
 export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: (v: Partial<Visit>) => Promise<Visit | void>, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
+  const { withLoading } = useLoading();
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(
     existingVisit
       ? (existingVisit.status === VisitStatus.VISITED ? 'SUMMARY' : 'ACTIVE')
@@ -104,28 +106,30 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
       return;
     }
 
-    try {
-      setIsUploading(true);
-      const photoUrl = await DatabaseService.uploadVisitPhoto(file);
+    await withLoading(async () => {
+      try {
+        setIsUploading(true);
+        const photoUrl = await DatabaseService.uploadVisitPhoto(file);
 
-      if (isEditingVisit) {
-        setEditedVisit(p => ({
-          ...p,
-          photos: [...(p.photos || []), photoUrl]
-        }));
-      } else {
-        setVisit(p => ({
-          ...p,
-          photos: [...(p.photos || []), photoUrl]
-        }));
+        if (isEditingVisit) {
+          setEditedVisit(p => ({
+            ...p,
+            photos: [...(p.photos || []), photoUrl]
+          }));
+        } else {
+          setVisit(p => ({
+            ...p,
+            photos: [...(p.photos || []), photoUrl]
+          }));
+        }
+      } catch (error) {
+        console.error("Error uploading photo:", error);
+        alert("Erro ao fazer upload da foto.");
+      } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
-    } catch (error) {
-      console.error("Error uploading photo:", error);
-      alert("Erro ao fazer upload da foto.");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+    });
   };
 
   useEffect(() => {
@@ -190,12 +194,14 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
       finishedAt: new Date().toISOString() // SEMPRE captura horário atual
     };
 
-    try {
-      await onFinish(visitToSave);
-    } catch (error) {
-      console.error("Error finishing visit:", error);
-      alert("Erro ao finalizar visita. Por favor, tente novamente.");
-    }
+    await withLoading(async () => {
+      try {
+        await onFinish(visitToSave);
+      } catch (error) {
+        console.error("Error finishing visit:", error);
+        alert("Erro ao finalizar visita. Por favor, tente novamente.");
+      }
+    });
   };
 
   // Funções de edição
@@ -221,48 +227,50 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
       return;
     }
 
-    try {
-      console.log("?? Salvando visita - Dados atuais:", visit);
-      console.log("?? Alterações:", editedVisit);
+    await withLoading(async () => {
+      try {
+        console.log("?? Salvando visita - Dados atuais:", visit);
+        console.log("?? Alterações:", editedVisit);
 
-      // Garantir que todos os campos obrigatórios estejam presentes
-      const updatedVisit: Visit = {
-        id: visit.id!,
-        eventId: visit.eventId!,
-        academyId: visit.academyId!,
-        salespersonId: visit.salespersonId!,
-        status: visit.status!,
-        vouchersGenerated: visit.vouchersGenerated || [],
-        // Campos editáveis
-        contactPerson: editedVisit.contactPerson,
-        temperature: editedVisit.temperature,
-        summary: editedVisit.summary,
-        leftBanner: editedVisit.leftBanner,
-        leftFlyers: editedVisit.leftFlyers,
-        // Campos opcionais preservados
-        startedAt: visit.startedAt,
-        finishedAt: visit.finishedAt,
-        photos: editedVisit.photos || visit.photos,
-        updatedAt: new Date().toISOString()
-      };
+        // Garantir que todos os campos obrigatórios estejam presentes
+        const updatedVisit: Visit = {
+          id: visit.id!,
+          eventId: visit.eventId!,
+          academyId: visit.academyId!,
+          salespersonId: visit.salespersonId!,
+          status: visit.status!,
+          vouchersGenerated: visit.vouchersGenerated || [],
+          // Campos editáveis
+          contactPerson: editedVisit.contactPerson,
+          temperature: editedVisit.temperature,
+          summary: editedVisit.summary,
+          leftBanner: editedVisit.leftBanner,
+          leftFlyers: editedVisit.leftFlyers,
+          // Campos opcionais preservados
+          startedAt: visit.startedAt,
+          finishedAt: visit.finishedAt,
+          photos: editedVisit.photos || visit.photos,
+          updatedAt: new Date().toISOString()
+        };
 
-      console.log("?? Dados a serem salvos:", updatedVisit);
+        console.log("?? Dados a serem salvos:", updatedVisit);
 
-      const result = await DatabaseService.upsertVisit(updatedVisit);
-      console.log("? Resultado do salvamento:", result);
+        const result = await DatabaseService.upsertVisit(updatedVisit);
+        console.log("? Resultado do salvamento:", result);
 
-      setVisit(result);
-      setIsEditingVisit(false);
+        setVisit(result);
+        setIsEditingVisit(false);
 
-      // Propagar mudanças para o componente pai
-      await onFinish(result);
+        // Propagar mudanças para o componente pai
+        await onFinish(result);
 
-      toast.success("Visita atualizada com sucesso!");
-    } catch (error: any) {
-      console.error("? [App] Error updating visit FULL OBJECT:", error);
-      const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
-      toast.error(`Erro ao atualizar: ${errorMessage}`);
-    }
+        toast.success("Visita atualizada com sucesso!");
+      } catch (error: any) {
+        console.error("? [App] Error updating visit FULL OBJECT:", error);
+        const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+        toast.error(`Erro ao atualizar: ${errorMessage}`);
+      }
+    });
   };
 
   const handleCancelEdit = () => {
@@ -303,27 +311,29 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
       return;
     }
 
-    try {
-      // Salvar alterações pendentes + finalizar
-      const visitToFinalize = {
-        ...visit,
-        ...editedVisit,
-        status: VisitStatus.VISITED,
-        finishedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+    await withLoading(async () => {
+      try {
+        // Salvar alterações pendentes + finalizar
+        const visitToFinalize = {
+          ...visit,
+          ...editedVisit,
+          status: VisitStatus.VISITED,
+          finishedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
 
-      await DatabaseService.upsertVisit(visitToFinalize as Visit);
-      setVisit(visitToFinalize);
-      setIsEditingVisit(false);
-      toast.success("Visita finalizada com sucesso!");
+        await DatabaseService.upsertVisit(visitToFinalize as Visit);
+        setVisit(visitToFinalize);
+        setIsEditingVisit(false);
+        toast.success("Visita finalizada com sucesso!");
 
-      // Chamar callback de finalização
-      await onFinish(visitToFinalize);
-    } catch (error) {
-      console.error("Error finishing visit:", error);
-      toast.error("Erro ao finalizar visita.");
-    }
+        // Chamar callback de finalização
+        await onFinish(visitToFinalize);
+      } catch (error) {
+        console.error("Error finishing visit:", error);
+        toast.error("Erro ao finalizar visita.");
+      }
+    });
   };
 
 
@@ -410,24 +420,26 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
         status: VisitStatus.PENDING
       };
 
-      try {
-        // Await the save to get the ID back
-        const savedVisit = await onStart(startDetails);
+      await withLoading(async () => {
+        try {
+          // Await the save to get the ID back
+          const savedVisit = await onStart(startDetails);
 
-        // Update local state with the saved visit (which has the ID)
-        if (savedVisit) {
-          setVisit(savedVisit);
-        } else {
-          setVisit(startDetails);
+          // Update local state with the saved visit (which has the ID)
+          if (savedVisit) {
+            setVisit(savedVisit);
+          } else {
+            setVisit(startDetails);
+          }
+
+          // Only verify step change
+          setStep(newStep as any);
+        } catch (error) {
+          console.error("Error starting visit:", error);
+          toast.error("Erro ao iniciar visita. Tente novamente.");
+          return; // Don't change step if failed
         }
-
-        // Only verify step change
-        setStep(newStep as any);
-      } catch (error) {
-        console.error("Error starting visit:", error);
-        toast.error("Erro ao iniciar visita. Tente novamente.");
-        return; // Don't change step if failed
-      }
+      });
     } else {
       setStep(newStep as any);
     }
@@ -526,23 +538,25 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
 
               <button
                 onClick={async () => {
-                  const startDetails = {
-                    ...visit,
-                    startedAt: new Date().toISOString(),
-                    status: VisitStatus.PENDING
-                  };
-                  try {
-                    const savedVisit = await onStart(startDetails);
-                    if (savedVisit) {
-                      setVisit(savedVisit);
-                    } else {
-                      setVisit(startDetails);
+                  await withLoading(async () => {
+                    const startDetails = {
+                      ...visit,
+                      startedAt: new Date().toISOString(),
+                      status: VisitStatus.PENDING
+                    };
+                    try {
+                      const savedVisit = await onStart(startDetails);
+                      if (savedVisit) {
+                        setVisit(savedVisit);
+                      } else {
+                        setVisit(startDetails);
+                      }
+                      setStep('ACTIVE');
+                    } catch (error) {
+                      console.error("Error starting visit:", error);
+                      toast.error("Erro ao iniciar visita.");
                     }
-                    setStep('ACTIVE');
-                  } catch (error) {
-                    console.error("Error starting visit:", error);
-                    toast.error("Erro ao iniciar visita.");
-                  }
+                  });
                 }}
                 className="group relative w-full h-20 bg-emerald-600 rounded-[2.5rem] p-1 flex items-center shadow-2xl shadow-emerald-500/20 active:scale-[0.98] transition-all overflow-hidden"
               >

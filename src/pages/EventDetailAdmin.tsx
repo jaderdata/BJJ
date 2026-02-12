@@ -14,6 +14,7 @@ import {
     ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useLoading } from '../contexts/LoadingContext';
 
 import {
     Event,
@@ -38,6 +39,7 @@ interface EventDetailAdminProps {
 }
 
 export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, academies, visits, vendedores, onBack, onUpdateEvent, notifyUser, events }) => {
+    const { withLoading } = useLoading();
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [cityFilter, setCityFilter] = useState('');
@@ -159,26 +161,30 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
         setIsUploading(true);
         const loadingToast = toast.loading('Salvando alterações...');
 
-        try {
-            let photoUrl = editForm.photoUrl;
+        await withLoading(async () => {
+            try {
+                let photoUrl = editForm.photoUrl;
 
-            // Upload new photo if selected
-            if (selectedPhoto) {
-                photoUrl = await DatabaseService.uploadEventPhoto(selectedPhoto);
-                // Delete old photo if exists and is different
-                if (event.photoUrl && event.photoUrl !== photoUrl) {
-                    await DatabaseService.deleteEventPhoto(event.photoUrl);
+                // Upload new photo if selected
+                if (selectedPhoto) {
+                    photoUrl = await DatabaseService.uploadEventPhoto(selectedPhoto);
+                    // Delete old photo if exists and is different
+                    if (event.photoUrl && event.photoUrl !== photoUrl) {
+                        await DatabaseService.deleteEventPhoto(event.photoUrl);
+                    }
                 }
-            }
 
-            await onUpdateEvent({ ...editForm, photoUrl } as Event);
-            toast.success('Evento atualizado com sucesso!', { id: loadingToast });
-            setIsEditing(false);
-            setSelectedPhoto(null);
-        } catch (error: any) {
-            console.error('Error updating event:', error);
-            toast.error(`Erro ao atualizar evento: ${error.message}`, { id: loadingToast });
-        }
+                await onUpdateEvent({ ...editForm, photoUrl } as Event);
+                toast.success('Evento atualizado com sucesso!', { id: loadingToast });
+                setIsEditing(false);
+                setSelectedPhoto(null);
+            } catch (error: any) {
+                console.error('Error updating event:', error);
+                toast.error(`Erro ao atualizar evento: ${error.message}`, { id: loadingToast });
+            } finally {
+                setIsUploading(false);
+            }
+        });
     };
 
     const handleFinishVisitFromAdmin = async (visit: Visit) => {
@@ -187,23 +193,25 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
             return;
         }
 
-        try {
-            const updatedVisit = {
-                ...visit,
-                status: VisitStatus.VISITED,
-                finishedAt: new Date().toISOString() // Sempre captura horário atual
-            };
+        await withLoading(async () => {
+            try {
+                const updatedVisit = {
+                    ...visit,
+                    status: VisitStatus.VISITED,
+                    finishedAt: new Date().toISOString() // Sempre captura horário atual
+                };
 
-            await DatabaseService.upsertVisit(updatedVisit);
-            toast.success('Visita finalizada com sucesso!');
+                await DatabaseService.upsertVisit(updatedVisit);
+                toast.success('Visita finalizada com sucesso!');
 
-            // Atualizar a lista de visitas localmente
-            onUpdateEvent({ ...event }); // Trigger reload
-            setSelectedVisit(null);
-        } catch (error: any) {
-            console.error('Error finishing visit:', error);
-            toast.error(`Erro ao finalizar visita: ${error.message}`);
-        }
+                // Atualizar a lista de visitas localmente
+                onUpdateEvent({ ...event }); // Trigger reload
+                setSelectedVisit(null);
+            } catch (error: any) {
+                console.error('Error finishing visit:', error);
+                toast.error(`Erro ao finalizar visita: ${error.message}`);
+            }
+        });
     };
 
     return (
