@@ -656,11 +656,20 @@ const AppContent: React.FC = () => {
                 }}
                 onCancel={async () => {
                   if (selectedEventId && selectedAcademyId) {
-                    try {
-                      await DatabaseService.deleteVisitByEventAndAcademy(selectedEventId, selectedAcademyId);
-                      setVisits(prev => prev.filter(v => !(v.eventId === selectedEventId && v.academyId === selectedAcademyId)));
-                    } catch (error) {
-                      console.error("Error cancelling visit:", error);
+                    // Proteção Frontend: Só deletamos se a visita NÃO estiver concluída
+                    const currentVisit = visits.find((v: Visit) => v.eventId === selectedEventId && v.academyId === selectedAcademyId);
+
+                    if (currentVisit && currentVisit.status === VisitStatus.VISITED) {
+                      console.log("🔒 [App] Visita concluída. Fechando modal sem deletar.");
+                      // Apenas fecha o modal
+                    } else {
+                      console.log("🗑️ [App] Visita pendente ou inexistente. Limpando rascunho...");
+                      try {
+                        await DatabaseService.deleteVisitByEventAndAcademy(selectedEventId, selectedAcademyId);
+                        setVisits(prev => prev.filter(v => !(v.eventId === selectedEventId && v.academyId === selectedAcademyId)));
+                      } catch (error) {
+                        console.error("Error cancelling visit:", error);
+                      }
                     }
                   }
                   setActiveTab('my_events');

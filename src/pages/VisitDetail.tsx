@@ -25,7 +25,7 @@ import {
 } from '../types';
 import { DatabaseService } from '../lib/supabase';
 import { cn, generateVoucherCode } from '../lib/utils';
-import { toast } from 'sonner';
+
 
 export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: (v: Partial<Visit>) => Promise<Visit | void>, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(
@@ -451,6 +451,13 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
           </div>
           <button
             onClick={() => {
+              // Se já estiver visitada (SUMMARY ou QR_CODE), fecha direto sem perguntar
+              if (visit.status === VisitStatus.VISITED || step === 'SUMMARY' || step === 'QR_CODE') {
+                onCancel();
+                return;
+              }
+
+              // Se estiver ativa/pendente, pede confirmação pois perderá dados
               if (step === 'ACTIVE' && !confirm('Deseja realmente cancelar a visita? O progresso será perdido.')) return;
               onCancel();
             }}
