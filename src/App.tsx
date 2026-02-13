@@ -620,6 +620,8 @@ const AppContent: React.FC = () => {
                 vendor={sellers.find(s => s.id === selectedVendorId)!}
                 visits={visits}
                 events={events}
+                academies={academies}
+                vouchers={vouchers}
                 finance={finance}
                 onBack={() => setActiveTab('vendors')}
               />

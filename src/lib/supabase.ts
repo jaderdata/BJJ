@@ -202,7 +202,7 @@ export const DatabaseService = {
             status: v.status,
             startedAt: v.started_at,
             finishedAt: v.finished_at,
-            summary: v.summary,
+            summary: v.summary || v.notes,
             contactPerson: v.contact_person,
             vouchersGenerated: v.vouchers_generated,
             photos: v.photos || [],
@@ -276,9 +276,18 @@ export const DatabaseService = {
                             throw new Error(`Erro ao recuperar visita existente após conflito: ${fetchError?.message}`);
                         }
 
-                        // Retry as UPDATE with the found ID
-                        console.log("🔄 [DatabaseService] Visita existente encontrada. Atualizando ID:", existing.id);
-                        return await this.upsertVisit({ ...visit, id: existing.id });
+                        // Preservar dados se os novos estiverem vazios (Data Loss Prevention)
+                        const mergedVisit: Partial<Visit> = {
+                            ...visit,
+                            id: existing.id,
+                            summary: visit.summary || existing.summary, // Não sobrescrever resumo por vazio
+                            temperature: visit.temperature || existing.temperature,
+                            contactPerson: visit.contactPerson || existing.contact_person
+                        };
+
+                        // Retry as UPDATE with the found ID and merged data
+                        console.log("🔄 [DatabaseService] Visita existente encontrada. Mesclando dados:", existing.id);
+                        return await this.upsertVisit(mergedVisit);
                     }
                     throw error;
                 }

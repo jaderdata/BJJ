@@ -1,6 +1,5 @@
 import React from 'react';
 import { User } from '../types';
-import { User as UserIcon, Calendar, Briefcase } from 'lucide-react';
 
 interface VendorListProps {
     vendors: User[];

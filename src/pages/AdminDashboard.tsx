@@ -168,18 +168,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return vouchers.filter(v => {
             const event = events.find(e => e.id === v.eventId);
             if (event?.isTest) return false;
-            return new Date(v.createdAt).getFullYear().toString() === selectedYear;
+
+            const isCorrectYear = new Date(v.createdAt).getFullYear().toString() === selectedYear;
+            if (!isCorrectYear) return false;
+
+            // Robust Filtering: Verify the voucher is actually listed in the visit
+            const visit = visits.find(vis => vis.id === v.visitId);
+            if (!visit) return false;
+
+            return visit.vouchersGenerated?.includes(v.code);
         });
-    }, [vouchers, selectedYear, events]);
+    }, [vouchers, selectedYear, events, visits]);
+
+    const yearEvents = useMemo(() =>
+        events.filter(e =>
+            !e.isTest &&
+            e.startDate &&
+            new Date(e.startDate).getFullYear().toString() === selectedYear
+        ), [events, selectedYear]);
 
     const activeEvents = useMemo(() =>
-        events.filter(e =>
-            (e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING) &&
-            !e.name.trim().toUpperCase().endsWith('TESTE')
-        ), [events]);
+        yearEvents.filter(e =>
+            e.status === EventStatus.IN_PROGRESS || e.status === EventStatus.UPCOMING
+        ), [yearEvents]);
 
     const pendingVisitsCount = useMemo(() => {
         let count = 0;
+        // Only consider pendencies for events that are actually still open
         activeEvents.forEach(e => {
             const visitedInEvent = (e.academiesIds || []).filter(aid =>
                 visits.some(v => v.eventId === e.id && v.academyId === aid && v.status === VisitStatus.VISITED)
@@ -189,40 +204,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return count;
     }, [activeEvents, visits]);
 
-    const activePerformance = useMemo(() => {
-        const activeEventIds = new Set(activeEvents.map(e => e.id));
-
+    const performanceData = useMemo(() => {
         let totalAssignments = 0;
-        activeEvents.forEach(e => {
+        yearEvents.forEach(e => {
             totalAssignments += (e.academiesIds?.length || 0);
         });
 
-        let visitedCount = 0;
-        activeEvents.forEach(e => {
-            visitedCount += (e.academiesIds || []).filter(aid =>
-                visits.some(v => v.eventId === e.id && v.academyId === aid && v.status === VisitStatus.VISITED)
-            ).length;
-        });
-
-        const activeVs = visits.filter(v => activeEventIds.has(v.eventId));
+        const completedCount = filteredVisits.length;
 
         const counts = { [AcademyTemperature.HOT]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.COLD]: 0 };
-        activeVs.filter(v => v.status === VisitStatus.VISITED).forEach(v => {
+        filteredVisits.forEach(v => {
             if (v.temperature && v.temperature in counts) {
                 counts[v.temperature]++;
             }
         });
 
-        const percent = totalAssignments > 0 ? Math.round((visitedCount / totalAssignments) * 100) : 0;
+        const percent = totalAssignments > 0 ? Math.round((completedCount / totalAssignments) * 100) : 0;
 
         return {
-            completed: visitedCount,
-            pending: Math.max(0, totalAssignments - visitedCount),
+            completed: completedCount,
+            pending: pendingVisitsCount,
             total: totalAssignments,
             percent,
             temperatureData: Object.entries(counts).map(([name, value]) => ({ name, value }))
         };
-    }, [activeEvents, visits]);
+    }, [yearEvents, filteredVisits, pendingVisitsCount]);
 
     // Seller Leaderboard
     const sellerLeaderboard = useMemo(() => {
@@ -230,8 +236,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         vendedores.forEach(v => stats[v.id] = { name: v.name, visits: 0 });
 
         filteredVisits.forEach(v => {
-            if (v.salespersonId && stats[v.salespersonId]) {
-                stats[v.salespersonId].visits += 1;
+            // Check visit salesperson first, then fallback to the event's salesperson
+            let sellerId = v.salespersonId;
+            if (!sellerId) {
+                const event = events.find(e => e.id === v.eventId);
+                sellerId = event?.salespersonId;
+            }
+
+            if (sellerId && stats[sellerId]) {
+                stats[sellerId].visits += 1;
             }
         });
 
@@ -395,8 +408,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
 
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl font-black text-white">{activePerformance.completed}</span>
-                                    <span className="text-xl font-black text-emerald-400">{activePerformance.percent}%</span>
+                                    <span className="text-4xl font-black text-white">{performanceData.completed}</span>
+                                    <span className="text-xl font-black text-emerald-400">{performanceData.percent}%</span>
                                 </div>
 
                                 <p className="text-xs text-white/50 font-medium mt-2">
@@ -415,8 +428,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
 
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl font-black text-white">{activePerformance.pending}</span>
-                                    <span className="text-xl font-black text-amber-400">{100 - activePerformance.percent}%</span>
+                                    <span className="text-4xl font-black text-white">{performanceData.pending}</span>
+                                    <span className="text-xl font-black text-amber-400">{100 - performanceData.percent}%</span>
                                 </div>
 
                                 <p className="text-xs text-white/50 font-medium mt-2">
@@ -430,12 +443,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div className="mb-8">
                         <div className="flex justify-between items-center mb-3">
                             <span className="text-xs font-black text-white/60 uppercase tracking-widest">Progresso Total</span>
-                            <span className="text-lg font-black text-white">{activePerformance.percent}%</span>
+                            <span className="text-lg font-black text-white">{performanceData.percent}%</span>
                         </div>
                         <div className="h-4 bg-white/5 rounded-full overflow-hidden border border-white/10 p-0.5">
                             <div
                                 className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full transition-all duration-1000 shadow-lg shadow-emerald-500/50"
-                                style={{ width: `${activePerformance.percent}%` }}
+                                style={{ width: `${performanceData.percent}%` }}
                             ></div>
                         </div>
                     </div>
@@ -446,31 +459,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {(() => {
-                                // Calculate total of all temperatures
-                                const totalTemperatures = activePerformance.temperatureData.reduce((sum, t) => sum + t.value, 0);
+                                const totalCompleted = performanceData.completed;
+                                const classifiedCount = performanceData.temperatureData.reduce((sum, t) => sum + t.value, 0);
+                                const unclassifiedCount = Math.max(0, totalCompleted - classifiedCount);
 
-                                return [
-                                    { label: 'Quente', key: AcademyTemperature.HOT, color: 'from-red-500 to-orange-500', textColor: 'text-red-400' },
-                                    { label: 'Morno', key: AcademyTemperature.WARM, color: 'from-blue-500 to-cyan-500', textColor: 'text-blue-400' },
-                                    { label: 'Frio', key: AcademyTemperature.COLD, color: 'from-gray-500 to-gray-600', textColor: 'text-gray-400' }
-                                ].map((temp) => {
-                                    const count = activePerformance.temperatureData.find(t => t.name === temp.key)?.value || 0;
-                                    // Calculate percentage based on total temperatures, not total completed visits
-                                    const percent = totalTemperatures > 0 ? Math.round((count / totalTemperatures) * 100) : 0;
+                                const items = [
+                                    { label: 'Quente', key: AcademyTemperature.HOT, count: performanceData.temperatureData.find(t => t.name === AcademyTemperature.HOT)?.value || 0, color: 'from-red-500 to-orange-500', textColor: 'text-red-400' },
+                                    {
+                                        label: 'Morno',
+                                        key: AcademyTemperature.WARM,
+                                        count: (performanceData.temperatureData.find(t => t.name === AcademyTemperature.WARM)?.value || 0) + unclassifiedCount,
+                                        color: 'from-blue-500 to-cyan-500',
+                                        textColor: 'text-blue-400'
+                                    },
+                                    { label: 'Frio', key: AcademyTemperature.COLD, count: performanceData.temperatureData.find(t => t.name === AcademyTemperature.COLD)?.value || 0, color: 'from-gray-500 to-gray-600', textColor: 'text-gray-400' },
+                                ];
+
+                                return items.map((item) => {
+                                    const percent = totalCompleted > 0 ? Math.round((item.count / totalCompleted) * 100) : 0;
 
                                     return (
-                                        <div key={temp.key} className="space-y-3">
+                                        <div key={item.label} className="space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-xs font-black text-white/60 uppercase tracking-widest">{temp.label}</span>
-                                                <span className={`text-xl font-black ${temp.textColor}`}>{count}</span>
+                                                <span className="text-xs font-black text-white/60 uppercase tracking-widest">{item.label}</span>
+                                                <span className={`text-xl font-black ${item.textColor}`}>{item.count}</span>
                                             </div>
                                             <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                                                 <div
-                                                    className={`h-full bg-gradient-to-r ${temp.color} rounded-full transition-all duration-1000 shadow-lg`}
+                                                    className={`h-full bg-gradient-to-r ${item.color} rounded-full transition-all duration-1000 shadow-lg`}
                                                     style={{ width: `${percent}%` }}
                                                 ></div>
                                             </div>
-                                            <p className={`text-sm font-black ${temp.textColor}`}>{percent}%</p>
+                                            <p className={`text-sm font-black ${item.textColor}`}>{percent}%</p>
                                         </div>
                                     );
                                 });

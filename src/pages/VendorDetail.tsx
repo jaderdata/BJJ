@@ -1,27 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { User, Visit, Event, FinanceRecord, VisitStatus, AcademyTemperature, ContactPerson } from '../types';
-import {
-    ArrowLeft,
-    Download,
-    MapPin,
-    Calendar,
-    Briefcase,
-    Building2,
-    CheckCircle2,
-    TrendingUp,
-    Clock,
-    Ticket,
-    Flag,
-    FileText,
-    UserCheck,
-    AlertCircle
-} from 'lucide-react';
+import { User, Visit, Event, FinanceRecord, Academy, Voucher, VisitStatus, AcademyTemperature, ContactPerson } from '../types';
 import { mkConfig, generateCsv, download } from 'export-to-csv';
 
 interface VendorDetailProps {
     vendor: User;
     visits: Visit[];
     events: Event[];
+    academies: Academy[];
+    vouchers: Voucher[];
     finance: FinanceRecord[];
     onBack: () => void;
 }
@@ -30,31 +16,60 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
     vendor,
     visits,
     events,
+    academies,
+    vouchers,
     finance,
     onBack
 }) => {
     // --- Data Processing ---
 
     // Base Sets
-    const vendorVisits = useMemo(() => visits.filter(v => v.salespersonId === vendor.id), [visits, vendor.id]);
+    // Base Sets - Unified logic matching Dashboard
+    const vendorVisits = useMemo(() => {
+        return visits.filter(v => {
+            const event = events.find(e => e.id === v.eventId);
+            if (event?.isTest) return false;
+
+            // Check visit salesperson first, then fallback to event salesperson
+            const sellerId = v.salespersonId || event?.salespersonId;
+            return sellerId === vendor.id;
+        });
+    }, [visits, events, vendor.id]);
+
     const completedVisits = useMemo(() => vendorVisits.filter(v => v.status === VisitStatus.VISITED), [vendorVisits]);
-    const vendorEvents = useMemo(() => events.filter(e => e.salespersonId === vendor.id), [events, vendor.id]);
+    const vendorEvents = useMemo(() => events.filter(e => !e.isTest && e.salespersonId === vendor.id), [events, vendor.id]);
     const vendorFinance = useMemo(() => finance.filter(f => f.salespersonId === vendor.id), [finance, vendor.id]);
 
     // Aggregates
     const uniqueAcademies = useMemo(() => new Set(vendorVisits.map(v => v.academyId)).size, [vendorVisits]);
     const totalReceived = vendorFinance.reduce((sum, f) => sum + f.amount, 0);
-    const totalVouchers = useMemo(() => completedVisits.reduce((sum, v) => sum + (v.vouchersGenerated?.length || 0), 0), [completedVisits]);
+    const totalVouchersCount = useMemo(() => {
+        return vouchers.filter(v => {
+            const event = events.find(e => e.id === v.eventId);
+            if (event?.isTest) return false;
+
+            // Check if this voucher belongs to this vendor
+            const visit = visits.find(vis => vis.id === v.visitId);
+            if (!visit) return false;
+
+            const sellerId = visit.salespersonId || event?.salespersonId;
+            if (sellerId !== vendor.id) return false;
+
+            // Robust Filtering: Must be in the visit's list
+            return visit.vouchersGenerated?.includes(v.code);
+        }).length;
+    }, [vouchers, events, visits, vendor.id]);
 
     // Materials
     const bannersLeft = useMemo(() => completedVisits.filter(v => v.leftBanner).length, [completedVisits]);
-    const flyersLeft = useMemo(() => completedVisits.filter(v => v.leftFlyers).length, [completedVisits]);
 
     // Breakdown: Temperature
     const tempStats = useMemo(() => {
         const counts = { [AcademyTemperature.HOT]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.COLD]: 0 };
         completedVisits.forEach(v => {
-            if (v.temperature && counts[v.temperature] !== undefined) counts[v.temperature]++;
+            // Robust fallback: unclassified to WARM
+            const temp = v.temperature || AcademyTemperature.WARM;
+            if (counts[temp] !== undefined) counts[temp]++;
         });
         return counts;
     }, [completedVisits]);
@@ -63,15 +78,24 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
     const contactStats = useMemo(() => {
         const counts = { [ContactPerson.OWNER]: 0, [ContactPerson.TEACHER]: 0, [ContactPerson.STAFF]: 0, [ContactPerson.NOBODY]: 0 };
         completedVisits.forEach(v => {
-            if (v.contactPerson && counts[v.contactPerson] !== undefined) counts[v.contactPerson]++;
+            // Robust fallback: unclassified to NOBODY
+            const contact = v.contactPerson || ContactPerson.NOBODY;
+            if (counts[contact] !== undefined) counts[contact]++;
         });
         return counts;
     }, [completedVisits]);
 
     // Avg Time Calculation
     const avgVisitMinutes = useMemo(() => {
-        const timedVisits = completedVisits.filter(v => v.startedAt && v.finishedAt);
-        if (completedVisits.length === 0) return 0; // Prevent div/0
+        const timedVisits = completedVisits.filter(v => {
+            if (!v.startedAt || !v.finishedAt) return false;
+            const start = new Date(v.startedAt).getTime();
+            const end = new Date(v.finishedAt).getTime();
+            const diff = (end - start) / 1000 / 60;
+            return diff > 0 && diff < 480; // Filter out negative or > 8h outliers
+        });
+
+        if (timedVisits.length === 0) return 0;
 
         const totalMinutes = timedVisits.reduce((sum, v) => {
             const start = new Date(v.startedAt!).getTime();
@@ -79,7 +103,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
             return sum + ((end - start) / 1000 / 60);
         }, 0);
 
-        return Math.round(totalMinutes / completedVisits.length); // Divide by total completed visits
+        return Math.round(totalMinutes / timedVisits.length);
     }, [completedVisits]);
 
     // Recent Activity Feed (Top 50)
@@ -99,13 +123,13 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
             return {
                 Vendedor: vendor.name,
                 Evento: event?.name || 'N/A',
+                Academia: academies.find(a => a.id === v.academyId)?.name || 'N/A',
                 Data: v.finishedAt ? new Date(v.finishedAt).toLocaleDateString() : 'N/A',
                 Status: v.status,
                 'Tempo (min)': v.startedAt && v.finishedAt ? Math.round((new Date(v.finishedAt).getTime() - new Date(v.startedAt).getTime()) / 60000) : '',
                 Temperatura: v.temperature || '',
                 Contato: v.contactPerson || '',
                 'Banner Deixado': v.leftBanner ? 'Sim' : 'Não',
-                'Flyers Deixados': v.leftFlyers ? 'Sim' : 'Não',
                 Vouchers: v.vouchersGenerated?.length || 0,
                 Notas: v.notes || ''
             };
@@ -130,9 +154,9 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onBack}
-                        className="p-2 -ml-2 hover:bg-white/10 rounded-xl transition-colors text-white"
+                        className="p-2 -ml-2 hover:bg-white/10 rounded-xl transition-colors text-white text-xs font-bold uppercase tracking-widest"
                     >
-                        <ArrowLeft size={20} />
+                        Voltar
                     </button>
                     <div>
                         <h1 className="text-xl font-bold text-white flex items-center gap-2">
@@ -148,8 +172,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                         onClick={handleExport}
                         className="flex items-center space-x-2 bg-white text-neutral-900 hover:bg-neutral-200 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg"
                     >
-                        <Download size={14} />
-                        <span className="hidden md:inline">Exportar Relatório</span>
+                        <span>Exportar Relatório</span>
                     </button>
                 </div>
             </div>
@@ -157,36 +180,24 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
             {/* Top Metrics Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <CheckCircle2 size={64} />
-                    </div>
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Visitas Realizadas</p>
                     <p className="text-3xl font-black text-white">{completedVisits.length}</p>
                     <p className="text-xs text-neutral-500 mt-2">de {vendorVisits.length} planejadas</p>
                 </div>
 
                 <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Ticket size={64} />
-                    </div>
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Vouchers Gerados</p>
-                    <p className="text-3xl font-black text-white">{totalVouchers}</p>
+                    <p className="text-3xl font-black text-white">{totalVouchersCount}</p>
                     <p className="text-xs text-neutral-500 mt-2">em {uniqueAcademies} academias distintas</p>
                 </div>
 
                 <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Clock size={64} />
-                    </div>
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Tempo Médio/Visita</p>
                     <p className="text-3xl font-black text-white">{formatTime(avgVisitMinutes)}</p>
                     <p className="text-xs text-neutral-500 mt-2">dedicação por parceiro</p>
                 </div>
 
                 <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <TrendingUp size={64} />
-                    </div>
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Financeiro</p>
                     <p className="text-3xl font-black text-emerald-400">$ {totalReceived.toFixed(0)}</p>
                     <p className="text-xs text-neutral-500 mt-2">total recebido/lançado</p>
@@ -201,7 +212,6 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                         {/* Termometer */}
                         <div className="bg-neutral-900 border border-white/5 p-6 rounded-2xl">
                             <div className="flex items-center gap-2 mb-6">
-                                <MapPin className="text-amber-500" size={20} />
                                 <h3 className="text-sm font-black text-white uppercase tracking-wider">Temperatura das Visitas</h3>
                             </div>
                             <div className="space-y-4">
@@ -226,7 +236,6 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                         {/* Contact Person */}
                         <div className="bg-neutral-900 border border-white/5 p-6 rounded-2xl">
                             <div className="flex items-center gap-2 mb-6">
-                                <UserCheck className="text-blue-500" size={20} />
                                 <h3 className="text-sm font-black text-white uppercase tracking-wider">Interlocutores</h3>
                             </div>
                             <div className="space-y-3">
@@ -249,7 +258,6 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                     <div className="bg-neutral-900 border border-white/5 rounded-2xl overflow-hidden">
                         <div className="p-6 border-b border-white/5 flex justify-between items-center">
                             <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                                <FileText size={16} />
                                 Histórico de Atividades
                             </h3>
                             <span className="text-xs text-neutral-500 font-bold">Últimas 50 visitas</span>
@@ -265,7 +273,9 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                                     <div key={visit.id} className="p-4 hover:bg-white/[0.02] transition-colors group">
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
-                                                <p className="text-white font-bold text-sm">Visita em Academia</p>
+                                                <p className="text-white font-bold text-sm">
+                                                    {academies.find(a => a.id === visit.academyId)?.name || 'Academia Desconhecida'}
+                                                </p>
                                                 <p className="text-xs text-neutral-400">{event?.name || 'Evento Desconhecido'}</p>
                                             </div>
                                             <div className="text-right">
@@ -287,15 +297,14 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                                         <div className="flex flex-wrap gap-2">
                                             {visit.temperature && (
                                                 <span className={`text-[10px] px-2 py-1 rounded-md font-bold uppercase ${visit.temperature === AcademyTemperature.HOT ? 'bg-red-500/10 text-red-500' :
-                                                        visit.temperature === AcademyTemperature.WARM ? 'bg-amber-500/10 text-amber-500' :
-                                                            'bg-blue-500/10 text-blue-500'
+                                                    visit.temperature === AcademyTemperature.WARM ? 'bg-amber-500/10 text-amber-500' :
+                                                        'bg-blue-500/10 text-blue-500'
                                                     }`}>
                                                     {visit.temperature}
                                                 </span>
                                             )}
                                             {visit.vouchersGenerated && visit.vouchersGenerated.length > 0 && (
                                                 <span className="text-[10px] px-2 py-1 rounded-md font-bold uppercase bg-emerald-500/10 text-emerald-500 flex items-center gap-1">
-                                                    <Ticket size={10} />
                                                     {visit.vouchersGenerated.length} Vouchers
                                                 </span>
                                             )}
@@ -312,25 +321,17 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                     {/* Materials Card */}
                     <div className="bg-neutral-900 border border-white/5 p-6 rounded-2xl">
                         <div className="flex items-center gap-2 mb-6">
-                            <Flag className="text-purple-500" size={20} />
                             <h3 className="text-sm font-black text-white uppercase tracking-wider">Materiais Entregues</h3>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-black/20 p-4 rounded-xl border border-white/5 text-center">
-                                <p className="text-3xl font-black text-white mb-1">{bannersLeft}</p>
-                                <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">Banners</p>
-                            </div>
-                            <div className="bg-black/20 p-4 rounded-xl border border-white/5 text-center">
-                                <p className="text-3xl font-black text-white mb-1">{flyersLeft}</p>
-                                <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">Flyers</p>
-                            </div>
+                        <div className="bg-black/20 p-6 rounded-xl border border-white/5 text-center">
+                            <p className="text-4xl font-black text-white mb-1">{bannersLeft}</p>
+                            <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">Banners</p>
                         </div>
                     </div>
 
                     {/* Active Events List */}
                     <div className="bg-neutral-900 border border-white/5 p-6 rounded-2xl">
                         <div className="flex items-center gap-2 mb-6">
-                            <Briefcase className="text-teal-500" size={20} />
                             <h3 className="text-sm font-black text-white uppercase tracking-wider">Eventos Ativos</h3>
                         </div>
                         <div className="space-y-4">

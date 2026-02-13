@@ -63,39 +63,51 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
   const STORAGE_KEY = `visit_backup_${eventId}_${academy.id}`;
 
   useEffect(() => {
-    // 1. Restore from backup if exists and we are starting fresh (no existing ID or PENDING)
+    // 1. Restore from backup if exists
     const backup = localStorage.getItem(STORAGE_KEY);
-    if (backup && !existingVisit) {
+    if (backup) {
       try {
         const parsed = JSON.parse(backup);
         // Only restore if it's recent (less than 24h)
         const backupDate = new Date(parsed._timestamp || 0);
         if (Date.now() - backupDate.getTime() < 86400000) {
-          console.log("♻️ Restoring visit from local backup");
-          setVisit(prev => ({ ...prev, ...parsed }));
-          toast.info("Dados da visita anterior restaurados.");
-          if (parsed.startedAt) setStep('ACTIVE');
+
+          // Se já existe uma visita no servidor, só restauramos o resumo se o do servidor estiver vazio
+          if (existingVisit) {
+            if (!existingVisit.summary && parsed.summary) {
+              console.log("♻️ [VisitDetail] Mesclando resumo do backup local (servidor estava vazio)");
+              setVisit(prev => ({
+                ...prev,
+                summary: `[RESTAURAÇÃO AUTOMÁTICA] ${parsed.summary}\n\n${prev.summary || ''}`.trim()
+              }));
+              toast.info("Resumo recuperado do backup local.");
+            }
+          } else {
+            // Caso contrário, restaura tudo
+            console.log("♻️ [VisitDetail] Restaurando visita completa do backup local");
+            setVisit(prev => ({ ...prev, ...parsed }));
+            if (parsed.startedAt) setStep('ACTIVE');
+            toast.info("Dados da visita anterior restaurados.");
+          }
         }
       } catch (e) {
         console.error("Failed to restore backup", e);
       }
     }
-  }, [eventId, academy.id, existingVisit]);
+  }, [eventId, academy.id, !!existingVisit]); // Usar !! para evitar triggers circulares
 
   useEffect(() => {
-    // 2. Save to backup on every change
-    if (visit && (visit.startedAt || visit.notes || visit.photos?.length)) {
+    // 2. Save to backup on every change (incluindo summary)
+    if (visit && (visit.startedAt || visit.summary || visit.photos?.length)) {
       const payload = { ...visit, _timestamp: Date.now() };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     }
   }, [visit, STORAGE_KEY]);
 
-  useEffect(() => {
-    // 3. Clear backup on successful finish (status VISITED)
-    if (visit.status === VisitStatus.VISITED) {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, [visit.status, STORAGE_KEY]);
+  const clearBackup = () => {
+    console.log("🧹 [VisitDetail] Limpando backup local");
+    localStorage.removeItem(STORAGE_KEY);
+  };
   // -------------------------------------
   const [editedVisit, setEditedVisit] = useState<Partial<Visit>>({});
   const [showTimeInfo, setShowTimeInfo] = useState(false);
@@ -186,9 +198,10 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
     await withLoading(async () => {
       try {
         await onFinish(visitToSave);
+        clearBackup(); // Limpar backup após sucesso
       } catch (error) {
         console.error("Error finishing visit:", error);
-        alert("Erro ao finalizar visita. Por favor, tente novamente.");
+        toast.error("Erro ao finalizar visita. Por favor, tente novamente.");
       }
     });
   };
@@ -314,6 +327,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
         await DatabaseService.upsertVisit(visitToFinalize as Visit);
         setVisit(visitToFinalize);
         setIsEditingVisit(false);
+        clearBackup(); // Limpar backup após sucesso
         toast.success("Visita finalizada com sucesso!");
 
         // Chamar callback de finalização
