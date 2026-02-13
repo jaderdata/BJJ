@@ -56,6 +56,7 @@ const mockUsers = [
 describe('AdminDashboard Component', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        vi.mocked(DatabaseService.getSetting).mockResolvedValue(true)
     })
 
     it('renders dashboard KPIs correctly', async () => {
@@ -70,13 +71,13 @@ describe('AdminDashboard Component', () => {
             />
         )
 
-        expect(screen.getByText('Eventos Ativos')).toBeInTheDocument()
-        // Verificar que renderiza sem erros
-
-        expect(screen.getByText('Visitas Realizadas')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByText('Eventos Ativos')).toBeInTheDocument()
+            expect(screen.getByText('Visitas Realizadas')).toBeInTheDocument()
+        })
     })
 
-    it('calculates pending visits correctly', () => {
+    it('calculates pending visits correctly', async () => {
         render(
             <AdminDashboard
                 events={mockEvents as any}
@@ -88,6 +89,8 @@ describe('AdminDashboard Component', () => {
             />
         )
 
-        expect(screen.getByText('Visitas Pendentes')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByText('Visitas Pendentes')).toBeInTheDocument()
+        })
     })
 })
