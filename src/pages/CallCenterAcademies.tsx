@@ -415,8 +415,8 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
-                    <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+                    <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02] shrink-0">
                             <h3 className="text-xl font-black text-white flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
                                     {editingAcademy ? <Edit3 size={20} /> : <Plus size={20} />}
@@ -435,7 +435,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                             </button>
                         </div>
 
-                        <form onSubmit={handleSave} className="p-8 space-y-6">
+                        <form onSubmit={handleSave} className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
                             <fieldset disabled={editingAcademy ? (editingAcademy.createdBy !== currentUser.id) : false} className="space-y-6 group-disabled:opacity-60">
                                 <div>
                                     <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-1 mb-1.5 block">Nome da Academia</label>
