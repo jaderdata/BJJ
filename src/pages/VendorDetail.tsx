@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { User, Visit, Event, FinanceRecord, Academy, Voucher, VisitStatus, AcademyTemperature, ContactPerson } from '../types';
+import { User, Visit, Event, FinanceRecord, Academy, Voucher, VisitStatus, AcademyTemperature, ContactPerson, UserRole } from '../types';
 import { mkConfig, generateCsv, download } from 'export-to-csv';
 
 interface VendorDetailProps {
@@ -41,7 +41,23 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
     const vendorFinance = useMemo(() => finance.filter(f => f.salespersonId === vendor.id), [finance, vendor.id]);
 
     // Aggregates
-    const uniqueAcademies = useMemo(() => new Set(vendorVisits.map(v => v.academyId)).size, [vendorVisits]);
+    // Fix: Count academies specifically from the filtered vouchers, not just any visit
+    const uniqueAcademiesWithVouchers = useMemo(() => {
+        const pertinentVouchers = vouchers.filter(v => {
+            const event = events.find(e => e.id === v.eventId);
+            if (event?.isTest) return false;
+
+            // Must match vendor
+            const visit = visits.find(vis => vis.id === v.visitId);
+            if (!visit) return false;
+            const sellerId = visit.salespersonId || event?.salespersonId;
+            if (sellerId !== vendor.id) return false;
+
+            return visit.vouchersGenerated?.includes(v.code);
+        });
+        return new Set(pertinentVouchers.map(v => v.academyId)).size;
+    }, [vouchers, events, visits, vendor.id]);
+
     const totalReceived = vendorFinance.reduce((sum, f) => sum + f.amount, 0);
     const totalVouchersCount = useMemo(() => {
         return vouchers.filter(v => {
@@ -116,17 +132,27 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
     }, [completedVisits]);
 
 
+    const isCallCenter = vendor.role === UserRole.CALL_CENTER;
+
     const handleExport = () => {
         const csvConfig = mkConfig({ useKeysAsHeaders: true, filename: `relatorio_detalhado_${vendor.name.replace(/\s+/g, '_')}` });
         const exportData = vendorVisits.map(v => {
             const event = events.find(e => e.id === v.eventId);
-            return {
+
+            const baseData: any = {
                 Vendedor: vendor.name,
                 Evento: event?.name || 'N/A',
                 Academia: academies.find(a => a.id === v.academyId)?.name || 'N/A',
                 Data: v.finishedAt ? new Date(v.finishedAt).toLocaleDateString() : 'N/A',
                 Status: v.status,
-                'Tempo (min)': v.startedAt && v.finishedAt ? Math.round((new Date(v.finishedAt).getTime() - new Date(v.startedAt).getTime()) / 60000) : '',
+            };
+
+            if (!isCallCenter) {
+                baseData['Tempo (min)'] = v.startedAt && v.finishedAt ? Math.round((new Date(v.finishedAt).getTime() - new Date(v.startedAt).getTime()) / 60000) : '';
+            }
+
+            return {
+                ...baseData,
                 Temperatura: v.temperature || '',
                 Contato: v.contactPerson || '',
                 'Banner Deixado': v.leftBanner ? 'Sim' : 'Não',
@@ -178,7 +204,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
             </div>
 
             {/* Top Metrics Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className={`grid grid-cols-2 ${isCallCenter ? 'md:grid-cols-3' : 'md:grid-cols-4'} gap-4`}>
                 <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Visitas Realizadas</p>
                     <p className="text-3xl font-black text-white">{completedVisits.length}</p>
@@ -188,14 +214,16 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                 <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Vouchers Gerados</p>
                     <p className="text-3xl font-black text-white">{totalVouchersCount}</p>
-                    <p className="text-xs text-neutral-500 mt-2">em {uniqueAcademies} academias distintas</p>
+                    <p className="text-xs text-neutral-500 mt-2">em {uniqueAcademiesWithVouchers} academias distintas</p>
                 </div>
 
-                <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
-                    <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Tempo Médio/Visita</p>
-                    <p className="text-3xl font-black text-white">{formatTime(avgVisitMinutes)}</p>
-                    <p className="text-xs text-neutral-500 mt-2">dedicação por parceiro</p>
-                </div>
+                {!isCallCenter && (
+                    <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
+                        <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Tempo Médio/Visita</p>
+                        <p className="text-3xl font-black text-white">{formatTime(avgVisitMinutes)}</p>
+                        <p className="text-xs text-neutral-500 mt-2">duração média por visita/contato</p>
+                    </div>
+                )}
 
                 <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Financeiro</p>
@@ -282,9 +310,11 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                                                 <p className="text-xs font-bold text-neutral-300">
                                                     {visit.finishedAt ? new Date(visit.finishedAt).toLocaleDateString() : 'N/A'}
                                                 </p>
-                                                <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold">
-                                                    {duration ? formatTime(duration) : '-'}
-                                                </p>
+                                                {!isCallCenter && (
+                                                    <p className="text-[10px] text-neutral-500 uppercase tracking-wider font-bold">
+                                                        {duration ? formatTime(duration) : '-'}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
 
@@ -300,6 +330,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                                                     visit.temperature === AcademyTemperature.WARM ? 'bg-amber-500/10 text-amber-500' :
                                                         'bg-blue-500/10 text-blue-500'
                                                     }`}>
+
                                                     {visit.temperature}
                                                 </span>
                                             )}

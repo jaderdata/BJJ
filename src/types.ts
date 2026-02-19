@@ -1,7 +1,8 @@
 
 export enum UserRole {
   ADMIN = 'ADMIN',
-  SALES = 'SALES'
+  SALES = 'SALES',
+  CALL_CENTER = 'CALL_CENTER'
 }
 
 export interface User {
@@ -26,6 +27,8 @@ export interface Academy {
   responsible: string;
   phone: string;
   createdAt: string;
+  createdBy?: string;
+  status?: 'ACTIVE' | 'INACTIVE';
 }
 
 export enum EventStatus {

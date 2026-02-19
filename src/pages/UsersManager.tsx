@@ -181,12 +181,14 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
 
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let val = e.target.value.replace(/\D/g, '');
-        if (val.length > 10) val = val.slice(0, 10);
+        if (val.length > 11) val = val.slice(0, 11);
 
-        if (val.length > 6) {
-            val = `(${val.slice(0, 3)}) ${val.slice(3, 6)}-${val.slice(6)}`;
-        } else if (val.length > 3) {
-            val = `(${val.slice(0, 3)}) ${val.slice(3)}`;
+        if (val.length > 10) {
+            val = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`;
+        } else if (val.length > 6) {
+            val = `(${val.slice(0, 2)}) ${val.slice(2, 6)}-${val.slice(6)}`;
+        } else if (val.length > 2) {
+            val = `(${val.slice(0, 2)}) ${val.slice(2)}`;
         } else if (val.length > 0) {
             val = `(${val}`;
         }
@@ -205,6 +207,8 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                 return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Admin' };
             case UserRole.SALES:
                 return { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Vendedor' };
+            case UserRole.CALL_CENTER:
+                return { bg: 'bg-indigo-500/20', text: 'text-indigo-400', label: 'Call-Center' };
             default:
                 return { bg: 'bg-white/10', text: 'text-white/60', label: role };
         }
@@ -262,7 +266,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                             type="text"
                             value={redemptionPhone}
                             onChange={handlePhoneChange}
-                            placeholder="(000) 000-0000"
+                            placeholder="(00) 00000-0000"
                             className="w-full bg-neutral-800 border border-neutral-700 text-white px-4 py-3 rounded-xl font-mono text-lg outline-none focus:border-emerald-500 transition-colors pl-10"
                         />
                         <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
@@ -426,16 +430,17 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Perfil de Acesso</label>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-3 gap-3">
                                         {[
                                             { id: UserRole.SALES, label: 'Vendedor', icon: Send },
+                                            { id: UserRole.CALL_CENTER, label: 'Call-Center', icon: Phone },
                                             { id: UserRole.ADMIN, label: 'Admin', icon: Shield }
                                         ].map(role => (
                                             <button
                                                 key={role.id}
                                                 type="button"
                                                 onClick={() => setInviteRole(role.id)}
-                                                className={`flex items-center justify-center space-x-2 p-4 rounded-2xl border-2 transition-all font-bold text-sm ${inviteRole === role.id ? 'bg-white text-neutral-900 border-white' : 'bg-transparent text-neutral-500 border-neutral-800 hover:border-neutral-700'}`}
+                                                className={`flex flex-col items-center justify-center space-y-2 p-3 rounded-2xl border-2 transition-all font-bold text-xs ${inviteRole === role.id ? 'bg-white text-neutral-900 border-white' : 'bg-transparent text-neutral-500 border-neutral-800 hover:border-neutral-700'}`}
                                             >
                                                 <role.icon size={18} />
                                                 <span>{role.label}</span>
@@ -545,6 +550,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                     onChange={e => setFormData({ ...formData, role: e.target.value as UserRole })}
                                 >
                                     <option value={UserRole.SALES} className="bg-neutral-900">Vendedor</option>
+                                    <option value={UserRole.CALL_CENTER} className="bg-neutral-900">Call-Center</option>
                                     <option value={UserRole.ADMIN} className="bg-neutral-900">Administrador</option>
                                 </select>
                             </div>

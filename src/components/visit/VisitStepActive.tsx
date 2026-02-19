@@ -2,7 +2,7 @@
 import React, { useRef } from 'react';
 import { Camera, Loader2, X } from 'lucide-react';
 import { cn, hapticFeedback } from '../../lib/utils';
-import { ContactPerson, AcademyTemperature, Visit, VisitStatus } from '../../types';
+import { ContactPerson, AcademyTemperature, Visit, VisitStatus, UserRole } from '../../types';
 
 interface VisitStepActiveProps {
     visit: Partial<Visit>;
@@ -14,6 +14,7 @@ interface VisitStepActiveProps {
     handleFinishVisit: () => void;
     handleGenerateVoucher: () => void;
     isEditing?: boolean;
+    userRole?: UserRole;
 }
 
 export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
@@ -25,9 +26,17 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
     handlePhotoUpload,
     handleFinishVisit,
     handleGenerateVoucher,
-    isEditing = false
+    isEditing = false,
+    userRole
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Call Center users don't need to verify marketing
+    React.useEffect(() => {
+        if (userRole === UserRole.CALL_CENTER) {
+            setMarketingVerified(true);
+        }
+    }, [userRole, setMarketingVerified]);
 
     const updateField = (field: keyof Visit, value: any) => {
         hapticFeedback('light');
@@ -149,7 +158,7 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
                 <div className="flex items-center justify-between px-1">
                     <div className="flex items-center space-x-2">
                         <div className="w-1 h-4 bg-sky-500 rounded-full"></div>
-                        <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Evidências Fotográficas</label>
+                        <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Evidências</label>
                     </div>
                     <span className="text-[10px] font-black text-white/20">{visit.photos?.length || 0}/3</span>
                 </div>
@@ -191,45 +200,47 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
                 <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handlePhotoUpload} />
             </div>
 
-            {/* Card Marketing */}
-            <div className="space-y-4">
-                <div className="flex items-center space-x-2 px-1">
-                    <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
-                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Entrega de Marketing <span className="text-red-500">*</span></label>
-                </div>
-                <div className="flex flex-wrap gap-4">
-                    {[
-                        { key: 'leftBanner' as const, label: 'Banner 🚩', icon: '🚩' },
-                        { key: 'leftFlyers' as const, label: 'Flyers 📄', icon: '📄' }
-                    ].map(m => (
+            {/* Card Marketing - ONLY SHOW IF NOT CALL CENTER */}
+            {userRole !== UserRole.CALL_CENTER && (
+                <div className="space-y-4">
+                    <div className="flex items-center space-x-2 px-1">
+                        <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                        <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Entrega de Marketing <span className="text-red-500">*</span></label>
+                    </div>
+                    <div className="flex flex-wrap gap-4">
+                        {[
+                            { key: 'leftBanner' as const, label: 'Banner 🚩', icon: '🚩' },
+                            { key: 'leftFlyers' as const, label: 'Flyers 📄', icon: '📄' }
+                        ].map(m => (
+                            <button
+                                key={m.key}
+                                onClick={() => toggleMarketing(m.key)}
+                                className={cn(
+                                    "flex-1 group relative overflow-hidden py-6 rounded-[2rem] border transition-all duration-500 flex flex-col items-center justify-center space-y-2 active:scale-95",
+                                    visit[m.key]
+                                        ? "bg-emerald-500/10 border-emerald-500/30"
+                                        : "bg-white/5 border-white/5 text-white/40"
+                                )}
+                            >
+                                <span className={cn("text-2xl transition-transform duration-500 group-hover:scale-110", visit[m.key] ? "opacity-100" : "opacity-30")}>{m.icon}</span>
+                                <span className={cn("text-[10px] font-black uppercase tracking-wider", visit[m.key] ? "text-emerald-400" : "text-white/20")}>{m.label}</span>
+                            </button>
+                        ))}
+
                         <button
-                            key={m.key}
-                            onClick={() => toggleMarketing(m.key)}
+                            onClick={clearMarketing}
                             className={cn(
-                                "flex-1 group relative overflow-hidden py-6 rounded-[2rem] border transition-all duration-500 flex flex-col items-center justify-center space-y-2 active:scale-95",
-                                visit[m.key]
-                                    ? "bg-emerald-500/10 border-emerald-500/30"
-                                    : "bg-white/5 border-white/5 text-white/40"
+                                "w-full py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] border transition-all active:scale-95",
+                                !visit.leftBanner && !visit.leftFlyers && marketingVerified
+                                    ? "bg-white/20 border-white/20 text-white"
+                                    : "bg-white/5 border-white/5 text-white/20"
                             )}
                         >
-                            <span className={cn("text-2xl transition-transform duration-500 group-hover:scale-110", visit[m.key] ? "opacity-100" : "opacity-30")}>{m.icon}</span>
-                            <span className={cn("text-[10px] font-black uppercase tracking-wider", visit[m.key] ? "text-emerald-400" : "text-white/20")}>{m.label}</span>
+                            Nenhum material entregue
                         </button>
-                    ))}
-
-                    <button
-                        onClick={clearMarketing}
-                        className={cn(
-                            "w-full py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] border transition-all active:scale-95",
-                            !visit.leftBanner && !visit.leftFlyers && marketingVerified
-                                ? "bg-white/20 border-white/20 text-white"
-                                : "bg-white/5 border-white/5 text-white/20"
-                        )}
-                    >
-                        Nenhum material entregue
-                    </button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Actions (Only if not in global edit mode - handled by parent) */}
             {!isEditing && (

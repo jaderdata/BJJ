@@ -8,7 +8,12 @@ export const DatabaseService = {
     async getAcademies() {
         const { data, error } = await supabase.from('academies').select('*').order('created_at', { ascending: false });
         if (error) throw error;
-        return data;
+        return data.map((a: any) => ({
+            ...a,
+            createdAt: a.created_at,
+            createdBy: a.created_by,
+            status: a.status
+        }));
     },
     async createAcademies(academies: Partial<Academy>[]) {
         const payload = academies.map(a => ({
@@ -31,27 +36,49 @@ export const DatabaseService = {
             city: academy.city,
             state: academy.state,
             responsible: academy.responsible,
-            phone: academy.phone
+            phone: academy.phone,
+            status: 'ACTIVE'
         }).select().single();
         if (error) throw error;
-        return data;
+        return {
+            ...data,
+            createdAt: data.created_at,
+            createdBy: data.created_by,
+            status: data.status
+        };
     },
 
     async updateAcademy(id: string, academy: Partial<Academy>) {
-        const { data, error } = await supabase.from('academies').update({
+        const payload: any = {
             name: academy.name,
             address: academy.address,
             city: academy.city,
             state: academy.state,
             responsible: academy.responsible,
             phone: academy.phone
-        }).eq('id', id).select().single();
+        };
+
+        if (academy.status) {
+            payload.status = academy.status;
+        }
+
+        const { data, error } = await supabase.from('academies').update(payload).eq('id', id).select().single();
         if (error) throw error;
-        return data;
+        return {
+            ...data,
+            createdAt: data.created_at,
+            createdBy: data.created_by,
+            status: data.status
+        };
     },
 
     async deleteAcademy(id: string) {
         const { error } = await supabase.from('academies').delete().eq('id', id);
+        if (error) throw error;
+    },
+
+    async softDeleteAcademy(id: string) {
+        const { error } = await supabase.from('academies').update({ status: 'INACTIVE' }).eq('id', id);
         if (error) throw error;
     },
 
@@ -73,12 +100,12 @@ export const DatabaseService = {
     async getSalespersons() {
         const { data, error } = await supabase
             .from('app_users')
-            .select('id, name, email, photo_url')
-            .eq('role', 'SALES');
+            .select('id, name, email, photo_url, role')
+            .in('role', ['SALES', 'CALL_CENTER']);
         if (error) throw error;
         return data.map((u: any) => ({
             ...u,
-            role: 'SALES',
+            role: u.role, // Use the actual role from DB
             status: 'ACTIVE',
             photoUrl: u.photo_url
         }));
@@ -95,13 +122,21 @@ export const DatabaseService = {
 
     // EVENTS
     async getEvents() {
-        const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabase
+            .from('events')
+            .select('*, event_academies(academy_id, is_active)')
+            .order('created_at', { ascending: false });
+
         if (error) throw error;
         // Map snake_case to camelCase
         return data.map((e: any) => ({
             ...e,
             salespersonId: e.salesperson_id,
-            academiesIds: [],
+            academiesIds: e.event_academies
+                ? e.event_academies
+                    .filter((ea: any) => ea.is_active !== false)
+                    .map((ea: any) => ea.academy_id)
+                : [],
             date: e.event_date,
             startDate: e.start_date || e.event_date,
             endDate: e.end_date || e.event_date,

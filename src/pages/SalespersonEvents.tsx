@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useLoading } from '../contexts/LoadingContext';
 import {
   CalendarDays, X, CheckCircle2, Clock, Plus, Minus, AlertCircle, ChevronRight, ChevronLeft,
   Ticket, Info, Bell, Search, Edit3, Camera, Trash2, RefreshCw, QrCode, Copy, ExternalLink,
@@ -25,11 +26,36 @@ import { cn, generateVoucherCode } from '../lib/utils';
 import { VisitDetail } from './VisitDetail';
 import { ProgressBar } from '../components/ProgressBar';
 
-export const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[], visits: Visit[], notifications: any, onDismissNotif: any, onSelectAcademy: any, currentUserId: string }> = ({ events, academies, visits, notifications, onDismissNotif, onSelectAcademy, currentUserId }) => {
+export const SalespersonEvents: React.FC<{
+  events: Event[],
+  academies: Academy[],
+  visits: Visit[],
+  notifications: any,
+  onDismissNotif: any,
+  onSelectAcademy: any,
+  currentUserId: string,
+  userRole?: UserRole,
+  onRefreshData?: () => Promise<void>,
+  onNavigateToAcademies?: (eventId: string) => void
+}> = ({ events, academies, visits, notifications, onDismissNotif, onSelectAcademy, currentUserId, userRole, onRefreshData, onNavigateToAcademies }) => {
+  const { withLoading } = useLoading();
+
+  const handleLinkAcademy = (eventId: string) => {
+    if (onNavigateToAcademies) {
+      onNavigateToAcademies(eventId);
+    } else {
+      toast.error("Navegação para academias não disponível.");
+    }
+  };
+
   const nonTestEvents = events.filter(e => !e.name.trim().toUpperCase().endsWith('TESTE'));
   const totalAcademies = nonTestEvents.reduce((acc, e) => acc + (e.academiesIds?.length || 0), 0);
   const completedVisitsCount = nonTestEvents.reduce((acc, e) => {
-    const visitedInEvent = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED);
+    const visitedInEvent = visits.filter(v =>
+      v.eventId === e.id &&
+      v.status === VisitStatus.VISITED &&
+      v.salespersonId === currentUserId // Only count my visits
+    );
     const uniqueVisitedIds = new Set(visitedInEvent.map(v => v.academyId));
     const validVisitedCount = Array.from(uniqueVisitedIds).filter(aid => e.academiesIds.includes(aid)).length;
     return acc + validVisitedCount;
@@ -163,7 +189,9 @@ export const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[]
           <div className="space-y-8">
             {events.map((e, idx) => {
               const allAcademiesIds = e.academiesIds || [];
-              const allAcademies = allAcademiesIds.map(aid => academies.find(a => a.id === aid)).filter(Boolean) as Academy[];
+              const allAcademies = allAcademiesIds
+                .map(aid => academies.find(a => a.id === aid))
+                .filter((a): a is Academy => !!a && a.status === 'ACTIVE');
 
               const visitedInEvent = visits.filter(v => v.eventId === e.id && v.status === VisitStatus.VISITED);
               const uniqueVisitedIds = new Set(visitedInEvent.map(v => v.academyId));
@@ -203,6 +231,19 @@ export const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[]
                   <div className="bg-neutral-900/50 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all duration-500 group-hover:border-white/20">
                     {/* Event Content */}
                     <div className="p-2 space-y-2">
+                      {/* Call-Center Action Button */}
+                      {userRole === UserRole.CALL_CENTER && (
+                        <div className="px-2 pb-2">
+                          <button
+                            onClick={() => handleLinkAcademy(e.id)}
+                            className="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 rounded-xl text-indigo-300 font-bold text-xs uppercase tracking-widest flex items-center justify-center space-x-2 transition-all active:scale-95"
+                          >
+                            <Plus size={14} />
+                            <span>Vincular Academia</span>
+                          </button>
+                        </div>
+                      )}
+
                       {/* Pendentes */}
                       {pendingAcademies.map(a => {
                         const isActive = activeVisit?.academyId === a.id && activeVisit?.eventId === e.id;
@@ -291,6 +332,7 @@ export const SalespersonEvents: React.FC<{ events: Event[], academies: Academy[]
           </div>
         )}
       </div>
-    </div>
+
+    </div >
   );
 };

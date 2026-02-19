@@ -47,17 +47,25 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
 
     const handleWhatsApp = () => {
         const text = encodeURIComponent(getMessageBody());
-        window.open(`https://wa.me/1${redemptionPhone}?text=${text}`, '_blank');
+        window.open(`https://wa.me/55${redemptionPhone}?text=${text}`, '_blank');
     };
 
     const handleSMS = () => {
         const body = encodeURIComponent(getMessageBody());
-        window.location.href = `sms:1${redemptionPhone}?body=${body}`; // Assuming US Country Code 1 for simplicity based on fallback, can be improved later
+        window.location.href = `sms:55${redemptionPhone}?body=${body}`;
     };
 
-    // Legacy copy logic kept but hidden or repurposed? User said "remover a instrucao de retirada".
-    // Keeping just the copy codes logic if they want to share manually.
-    const contentToCopy = `Academy: ${academyName}\nVouchers: ${codes.join(', ')}\n\nRedeem at: (407) 633-9166`; // Updated to be generic
+    const formatPhone = (p: string) => {
+        const clean = p.replace(/\D/g, '');
+        if (clean.length === 11) {
+            return `(${clean.slice(0, 2)}) ${clean.slice(2, 7)}-${clean.slice(7)}`;
+        } else if (clean.length === 10) {
+            return `(${clean.slice(0, 2)}) ${clean.slice(2, 6)}-${clean.slice(6)}`;
+        }
+        return p;
+    };
+
+    const contentToCopy = `Academy: ${academyName}\nVouchers: ${codes.join(', ')}\n\nRedeem at: ${formatPhone(redemptionPhone)}`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(contentToCopy);

@@ -1,15 +1,18 @@
 import React from 'react';
-import { CalendarDays, Wallet, User as UserIcon } from 'lucide-react';
+import { CalendarDays, Wallet, User as UserIcon, Building2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { UserRole } from '../types';
 
 interface MobileBottomNavProps {
     activeTab: string;
     setActiveTab: (tab: string) => void;
+    userRole: UserRole;
 }
 
-export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, setActiveTab }) => {
+export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, setActiveTab, userRole }) => {
     const tabs = [
         { id: 'my_events', label: 'Eventos', icon: CalendarDays, activeIds: ['my_events', 'visit_detail'] },
+        ...(userRole === UserRole.CALL_CENTER ? [{ id: 'academies', label: 'Academias', icon: Building2, activeIds: ['academies'] }] : []),
         { id: 'sales_finance', label: 'Finanças', icon: Wallet, activeIds: ['sales_finance'] },
         { id: 'profile', label: 'Perfil', icon: UserIcon, activeIds: ['profile'] },
     ];
@@ -27,8 +30,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
                     <div
                         className="absolute h-14 bg-white/5 border border-white/10 rounded-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] z-0"
                         style={{
-                            width: 'calc((100% - 104px) / 3)', // Adjusted for 3 slots (2 tabs + logout)
-                            left: `calc(16px + ${activeIndex} * (100% - 32px) / 3)`
+                            width: `calc(((100% - 32px) / ${tabs.length}) - 12px)`, // Slot width minus gap
+                            left: `calc(16px + 6px + ${activeIndex} * ((100% - 32px) / ${tabs.length}))` // Left padding + half gap + index offset
                         }}
                     />
                 )}

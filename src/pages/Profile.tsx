@@ -23,16 +23,19 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let value = e.target.value.replace(/\D/g, '');
-        if (value.length > 10) value = value.slice(0, 10);
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 11) val = val.slice(0, 11);
 
-        // US Mask: (999) 999-9999
-        let masked = value;
-        if (value.length > 0) masked = `(${value.slice(0, 3)}`;
-        if (value.length > 3) masked += `) ${value.slice(3, 6)}`;
-        if (value.length > 6) masked += `-${value.slice(6, 10)}`;
-
-        setPhone(masked);
+        if (val.length > 10) {
+            val = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`;
+        } else if (val.length > 6) {
+            val = `(${val.slice(0, 2)}) ${val.slice(2, 6)}-${val.slice(6)}`;
+        } else if (val.length > 2) {
+            val = `(${val.slice(0, 2)}) ${val.slice(2)}`;
+        } else if (val.length > 0) {
+            val = `(${val}`;
+        }
+        setPhone(val);
     };
 
     const handlePhotoClick = () => {
@@ -201,7 +204,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
 
                         {/* Telefone */}
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">Telefone (EUA)</label>
+                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">Telefone (Brasil)</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/20 group-focus-within:text-emerald-500 transition-colors">
                                     <Phone size={18} strokeWidth={1.5} />
@@ -211,7 +214,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                                     value={phone}
                                     onChange={handlePhoneChange}
                                     className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all"
-                                    placeholder="(555) 000-0000"
+                                    placeholder="(00) 00000-0000"
                                 />
                             </div>
                         </div>

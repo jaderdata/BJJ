@@ -170,7 +170,7 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
                                         {f.status === FinanceStatus.PENDING && (
                                             <div className="w-full bg-amber-500/10 border border-amber-500/10 text-amber-500/60 h-12 rounded-2xl font-black text-[9px] uppercase tracking-[0.3em] flex items-center justify-center space-x-2">
                                                 <Clock size={14} className="opacity-40 animate-pulse" />
-                                                <span>Aguardando Lançamento Admin</span>
+                                                <span>Aguardando Pagamento</span>
                                             </div>
                                         )}
                                     </div>

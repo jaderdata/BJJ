@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
     Plus,
     Trash2,
@@ -28,6 +28,42 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
     const [showModal, setShowModal] = useState(false);
     const [editingAcademy, setEditingAcademy] = useState<Academy | null>(null);
     const [formData, setFormData] = useState<Partial<Academy>>({});
+    const [selectedCountry, setSelectedCountry] = useState('BR');
+
+    const [showInactive, setShowInactive] = useState(false);
+
+    const applyPhoneMask = (val: string, country: string) => {
+        val = val.replace(/\D/g, '');
+        if (country === 'BR') {
+            if (val.length > 11) val = val.slice(0, 11);
+            if (val.length > 10) {
+                val = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`;
+            } else if (val.length > 6) {
+                val = `(${val.slice(0, 2)}) ${val.slice(2, 6)}-${val.slice(6)}`;
+            } else if (val.length > 2) {
+                val = `(${val.slice(0, 2)}) ${val.slice(2)}`;
+            } else if (val.length > 0) {
+                val = `(${val}`;
+            }
+        } else if (country === 'US') {
+            if (val.length > 10) val = val.slice(0, 10);
+            if (val.length > 6) {
+                val = `(${val.slice(0, 3)}) ${val.slice(3, 6)}-${val.slice(6)}`;
+            } else if (val.length > 3) {
+                val = `(${val.slice(0, 3)}) ${val.slice(3)}`;
+            } else if (val.length > 0) {
+                val = `(${val}`;
+            }
+        } else if (country === 'PT') {
+            if (val.length > 9) val = val.slice(0, 9);
+            if (val.length > 6) {
+                val = `${val.slice(0, 3)} ${val.slice(3, 6)} ${val.slice(6)}`;
+            } else if (val.length > 3) {
+                val = `${val.slice(0, 3)} ${val.slice(3)}`;
+            }
+        }
+        return val;
+    };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -65,7 +101,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (window.confirm(`Deseja realmente excluir a academia "${name}"?`)) {
+        if (window.confirm(`Deseja realmente excluir DEFINITIVAMENTE a academia "${name}"? Esta ação não pode ser desfeita.`)) {
             await withLoading(async () => {
                 try {
                     await DatabaseService.deleteAcademy(id);
@@ -78,15 +114,38 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
         }
     };
 
+    const handleRestore = async (academy: Academy) => {
+        await withLoading(async () => {
+            try {
+                const updated = await DatabaseService.updateAcademy(academy.id, { status: 'ACTIVE' });
+                setAcademies(prev => prev.map(a => a.id === updated.id ? updated : a));
+            } catch (error) {
+                console.error("Error restoring academy:", error);
+                alert("Erro ao restaurar academia");
+            }
+        });
+    };
+
+    const filteredAcademies = academies.filter(a => showInactive ? a.status === 'INACTIVE' : (a.status === 'ACTIVE' || !a.status));
+
     const openEditModal = (academy: Academy) => {
         setEditingAcademy(academy);
         setFormData(academy);
+        // Infer country from phone
+        let country = 'BR';
+        if (academy.phone) {
+            const clean = academy.phone.replace(/\D/g, '');
+            if (clean.length === 9) country = 'PT';
+            else if (clean.length === 10 && academy.phone.startsWith('(') && academy.phone.substring(4, 5) === ')') country = 'US'; // (XXX) XXX
+        }
+        setSelectedCountry(country);
         setShowModal(true);
     };
 
     const openNewModal = () => {
         setEditingAcademy(null);
         setFormData({});
+        setSelectedCountry('BR');
         setShowModal(true);
     };
 
@@ -108,35 +167,61 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                         </p>
                     </div>
 
-                    <button
-                        onClick={openNewModal}
-                        className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-xl font-bold flex items-center space-x-2 hover:bg-white/20 transition-all"
-                    >
-                        <Plus size={18} strokeWidth={2} />
-                        <span>Nova Academia</span>
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setShowInactive(!showInactive)}
+                            className={`px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all border ${showInactive
+                                ? 'bg-amber-500/20 border-amber-500/30 text-amber-500'
+                                : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+                                }`}
+                        >
+                            {showInactive ? 'Ver Ativas' : 'Ver Inativas'}
+                        </button>
+                        <button
+                            onClick={openNewModal}
+                            className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-xl font-bold flex items-center space-x-2 hover:bg-white/20 transition-all"
+                        >
+                            <Plus size={18} strokeWidth={2} />
+                            <span>Nova Academia</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Academies Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {academies.map(academy => (
+                {filteredAcademies.map(academy => (
                     <div
                         key={academy.id}
-                        className="group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+                        className={`group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border ${academy.status === 'INACTIVE' ? 'border-amber-500/30' : 'border-white/10'} rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2`}
                     >
                         {/* Glow effect */}
-                        <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <div className={`absolute -top-24 -right-24 w-48 h-48 ${academy.status === 'INACTIVE' ? 'bg-amber-500/10' : 'bg-emerald-500/20'} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
 
                         <div className="relative z-10">
                             {/* Header */}
                             <div className="flex justify-between items-start mb-3">
-                                <div></div>
+                                {academy.status === 'INACTIVE' ? (
+                                    <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-lg uppercase tracking-widest">Inativa</span>
+                                ) : (
+                                    <div />
+                                )}
                                 <div className="flex items-center space-x-1">
+                                    {academy.status === 'INACTIVE' && (
+                                        <button
+                                            aria-label="Restaurar Academia"
+                                            onClick={() => handleRestore(academy)}
+                                            className="p-1.5 text-white/40 hover:text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-all"
+                                            title="Restaurar Academia"
+                                        >
+                                            <Plus size={14} strokeWidth={2} />
+                                        </button>
+                                    )}
                                     <button
                                         aria-label="Editar Academia"
                                         onClick={() => openEditModal(academy)}
                                         className="p-1.5 text-white/40 hover:text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all"
+                                        title="Editar Academia"
                                     >
                                         <Edit3 size={14} strokeWidth={2} />
                                     </button>
@@ -144,6 +229,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                         aria-label="Excluir Academia"
                                         onClick={() => handleDelete(academy.id, academy.name)}
                                         className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                                        title="Excluir Academia"
                                     >
                                         <Trash2 size={14} strokeWidth={2} />
                                     </button>
@@ -151,7 +237,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                             </div>
 
                             {/* Content */}
-                            <h4 className="text-lg font-black text-white mb-2">{academy.name}</h4>
+                            <h4 className={`text-lg font-black text-white mb-2 ${academy.status === 'INACTIVE' ? 'opacity-50' : ''}`}>{academy.name}</h4>
 
                             <div className="space-y-2 mb-3">
                                 {academy.address && (
@@ -256,23 +342,33 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                             </div>
 
                             <div className="space-y-2">
+                                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">País</label>
+                                <select
+                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                    value={selectedCountry}
+                                    onChange={(e) => {
+                                        const newCountry = e.target.value;
+                                        setSelectedCountry(newCountry);
+                                        // Re-apply mask to existing phone number
+                                        const masked = applyPhoneMask(formData.phone || '', newCountry);
+                                        setFormData({ ...formData, phone: masked });
+                                    }}
+                                >
+                                    <option value="BR" className="bg-neutral-900">Brasil</option>
+                                    <option value="US" className="bg-neutral-900">Estados Unidos</option>
+                                    <option value="PT" className="bg-neutral-900">Portugal</option>
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
                                 <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Telefone</label>
                                 <input
                                     type="text"
-                                    placeholder="(000) 000-0000"
+                                    placeholder="Número de telefone"
                                     value={formData.phone || ''}
                                     className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                     onChange={(e) => {
-                                        let val = e.target.value.replace(/\D/g, '');
-                                        if (val.length > 10) val = val.slice(0, 10);
-
-                                        if (val.length > 6) {
-                                            val = `(${val.slice(0, 3)}) ${val.slice(3, 6)}-${val.slice(6)}`;
-                                        } else if (val.length > 3) {
-                                            val = `(${val.slice(0, 3)}) ${val.slice(3)}`;
-                                        } else if (val.length > 0) {
-                                            val = `(${val}`;
-                                        }
+                                        const val = applyPhoneMask(e.target.value, selectedCountry);
                                         setFormData({ ...formData, phone: val });
                                     }}
                                 />

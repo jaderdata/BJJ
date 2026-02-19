@@ -15,14 +15,29 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
+              // Core React
+              if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
+                return 'react-vendor';
+              }
+              // Supabase
               if (id.includes('@supabase')) {
                 return 'supabase-vendor';
               }
-              if (id.includes('lucide')) {
-                return 'lucide-vendor';
+              // UI Libraries
+              if (id.includes('lucide') || id.includes('sonner') || id.includes('radix-ui')) {
+                return 'ui-vendor';
               }
+              // PDF Generation
               if (id.includes('jspdf')) {
-                return 'jspdf-vendor';
+                return 'pdf-vendor';
+              }
+              // Charts
+              if (id.includes('recharts')) {
+                return 'charts-vendor';
+              }
+              // Utilities
+              if (id.includes('date-fns') || id.includes('lodash')) {
+                return 'utils-vendor';
               }
               return 'vendor';
             }

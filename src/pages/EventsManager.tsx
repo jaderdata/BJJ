@@ -251,6 +251,14 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                     <span>{e.city} - {e.state}</span>
                                 </div>
 
+                                {e.salespersonId && (
+                                    <div className="flex items-center space-x-2 text-xs text-white/80 mb-2 font-bold drop-shadow-md">
+                                        <span className="bg-white/10 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
+                                            {vendedores.find(v => v.id === e.salespersonId)?.name || 'Vendedor Desconhecido'}
+                                        </span>
+                                    </div>
+                                )}
+
                                 {/* Date */}
                                 <div className="flex items-center space-x-2 text-xs font-bold text-white/80 mb-4 drop-shadow-md">
                                     <span>
@@ -361,6 +369,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                 <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Vendedor Responsável (Opcional)</label>
                                 <select
                                     className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                    value={newEvent.salespersonId || ''}
                                     onChange={e => setNewEvent({ ...newEvent, salespersonId: e.target.value || undefined })}
                                 >
                                     <option value="" className="bg-[hsl(222,47%,15%)]">Vincular depois...</option>

@@ -33,7 +33,7 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 
 
 
-export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: (v: Partial<Visit>) => Promise<Visit | void>, onCancel: any }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel }) => {
+export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: (v: Partial<Visit>) => Promise<Visit | void>, onCancel: any, userRole?: UserRole }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel, userRole }) => {
   const { withLoading } = useLoading();
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(
     existingVisit
@@ -514,6 +514,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
               handlePhotoUpload={handlePhotoUpload}
               handleFinishVisit={handleFinishVisit}
               handleGenerateVoucher={handleGenerateVoucher}
+              userRole={userRole}
             />
           )}
 

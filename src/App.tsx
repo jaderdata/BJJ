@@ -17,6 +17,13 @@ import {
   Notification,
 } from './types';
 
+import { useAcademies } from './hooks/useAcademies';
+import { useEvents } from './hooks/useEvents';
+import { useVisits } from './hooks/useVisits';
+import { useFinance } from './hooks/useFinance';
+import { useVouchers } from './hooks/useVouchers';
+import { useQueryClient } from '@tanstack/react-query';
+
 import { PublicVoucherLanding } from './components/PublicVoucherLanding';
 // Lazy loaded page components
 const EventDetailAdmin = lazy(() => import('./pages/EventDetailAdmin').then(m => ({ default: m.EventDetailAdmin })));
@@ -28,7 +35,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(m => ({ 
 const Reports = lazy(() => import('./pages/Reports').then(m => ({ default: m.Reports })));
 const EventsManager = lazy(() => import('./pages/EventsManager').then(m => ({ default: m.EventsManager })));
 const AcademiesManager = lazy(() => import('./pages/AcademiesManager').then(m => ({ default: m.AcademiesManager })));
-
+const CallCenterAcademies = lazy(() => import('./pages/CallCenterAcademies').then(m => ({ default: m.CallCenterAcademies })));
 const UsersManager = lazy(() => import('./pages/UsersManager').then(m => ({ default: m.UsersManager })));
 const VendorList = lazy(() => import('./pages/VendorList').then(m => ({ default: m.VendorList })));
 const VendorDetail = lazy(() => import('./pages/VendorDetail').then(m => ({ default: m.VendorDetail })));
@@ -49,30 +56,6 @@ import { toast, Toaster } from 'sonner';
 import { LoadingProvider, useLoading } from './contexts/LoadingContext';
 import { LoadingOverlay } from './components/LoadingOverlay';
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const AppContent: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -82,11 +65,15 @@ const AppContent: React.FC = () => {
   const [showElevationPrompt, setShowElevationPrompt] = useState(false);
   const { isElevated, session, requestElevation, revokeElevation } = useElevation();
 
-  const [academies, setAcademies] = useState<Academy[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [visits, setVisits] = useState<Visit[]>([]);
-  const [finance, setFinance] = useState<FinanceRecord[]>([]);
-  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const queryClient = useQueryClient();
+
+  // TanStack Queries (replacing local states)
+  const { data: academies = [], refetch: refetchAcademies } = useAcademies();
+  const { data: events = [], refetch: refetchEvents } = useEvents();
+  const { data: visits = [], refetch: refetchVisits } = useVisits();
+  const { data: finance = [], refetch: refetchFinance } = useFinance();
+  const { data: vouchers = [], refetch: refetchVouchers } = useVouchers();
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [sellers, setSellers] = useState<User[]>([]);
   const [admins, setAdmins] = useState<User[]>([]);
@@ -94,6 +81,7 @@ const AppContent: React.FC = () => {
   const [selectedAcademyId, setSelectedAcademyId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [linkingEventId, setLinkingEventId] = useState<string | null>(null);
   const [globalToast, setGlobalToast] = useState<{ message: string, type: 'success' | 'info' | 'error' } | null>(null);
 
   // Auto-hide toast
@@ -126,10 +114,19 @@ const AppContent: React.FC = () => {
 
     // Verificação de Segurança de Perfil (Role Protection)
     if (currentUser) {
-      const adminTabs = ['dashboard', 'access_control', 'academies', 'events', 'admin_finance', 'reports', 'event_detail_admin', 'vendors', 'vendor_detail'];
-      if (currentUser.role !== UserRole.ADMIN && adminTabs.includes(activeTab)) {
-        setActiveTab('my_events');
+      const adminRestrictedTabs = ['dashboard', 'access_control', 'admin_finance', 'reports', 'event_detail_admin', 'vendors', 'vendor_detail', 'events'];
+      const isCallCenter = currentUser.role === UserRole.CALL_CENTER;
+
+      if (currentUser.role !== UserRole.ADMIN) {
+        if (adminRestrictedTabs.includes(activeTab)) {
+          setActiveTab('my_events');
+        }
+        // Specific check for academies: if not admin AND not call center, block
+        if (activeTab === 'academies' && !isCallCenter) {
+          setActiveTab('my_events');
+        }
       }
+
       if (currentUser.role === UserRole.ADMIN && activeTab === 'visit_detail') {
         setActiveTab('dashboard');
       }
@@ -157,50 +154,32 @@ const AppContent: React.FC = () => {
     // Reset state and set initial tab
     setSelectedEventId(null);
     setSelectedAcademyId(null);
-    setActiveTab(user.role === UserRole.ADMIN ? 'dashboard' : 'my_events');
+    let initialTab = 'my_events';
+    if (user.role === UserRole.ADMIN) initialTab = 'dashboard';
+    else if (user.role === UserRole.CALL_CENTER) initialTab = 'academies';
+    setActiveTab(initialTab);
   };
-
-  useEffect(() => {
-    if (currentUser) {
-      loadData();
-    }
-  }, [currentUser?.id]); // Use ID to be safe
 
   const loadData = React.useCallback(async () => {
     return withLoading(async () => {
       try {
-        // Parallel fetch for main data entities
-        const [dbAcademies, dbEvents, dbVisits, dbFinance, dbVouchers] = await Promise.all([
-          DatabaseService.getAcademies(),
-          DatabaseService.getEvents(),
-          DatabaseService.getVisits(),
-          DatabaseService.getFinance(),
-          DatabaseService.getVouchers()
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['academies'] }),
+          queryClient.invalidateQueries({ queryKey: ['events'] }),
+          queryClient.invalidateQueries({ queryKey: ['visits'] }),
+          queryClient.invalidateQueries({ queryKey: ['finance'] }),
+          queryClient.invalidateQueries({ queryKey: ['vouchers'] })
         ]);
-
-        // Batch state updates - React 18+ does this naturally, but fetching first minimizes lifecycle gaps
-        setAcademies(dbAcademies);
-        setVisits(dbVisits);
-        setFinance(dbFinance);
-        setVouchers(dbVouchers);
-
-        // Need to fetch academies for each event (junction)
-        const eventsWithAcademies = await Promise.all(dbEvents.map(async (e: any) => {
-          const ids = await DatabaseService.getEventAcademies(e.id);
-          return { ...e, academiesIds: ids };
-        }));
-        setEvents(eventsWithAcademies);
 
         if (currentUser) {
           const dbNotifications = await DatabaseService.getNotifications(currentUser.id);
           setNotifications(dbNotifications);
         }
-
       } catch (error) {
-        console.error("Error loading data:", error);
+        console.error("Error refreshing data:", error);
       }
     });
-  }, [currentUser?.id, withLoading]);
+  }, [currentUser, queryClient, withLoading]);
 
   // Real-time Notifications Subscription
   useEffect(() => {
@@ -418,14 +397,13 @@ const AppContent: React.FC = () => {
         for (const id of added) await DatabaseService.addEventAcademy(updatedEvent.id, id);
         for (const id of removed) {
           await DatabaseService.removeEventAcademy(updatedEvent.id, id);
-          // O histórico de visita é preservado mesmo ao remover a academia do evento
         }
       }
 
-      // 3. Update local state
-      setEvents((prev: Event[]) => prev.map((e: Event) => e.id === updatedEvent.id ? updatedEvent : e));
+      // 3. Update local state (Invalidate to Refetch)
+      queryClient.invalidateQueries({ queryKey: ['events'] });
 
-      // 4. Notifications (Legacy Logic adapted)
+      // 4. Notifications
       if (oldEvent && oldEvent.salespersonId !== updatedEvent.salespersonId) {
         if (updatedEvent.salespersonId) {
           notifyUser(updatedEvent.salespersonId, `Você é o novo responsável pelo evento "${updatedEvent.name}".`);
@@ -441,26 +419,22 @@ const AppContent: React.FC = () => {
           notifyUser(updatedEvent.salespersonId, `${added.length} novas academias atribuídas ao evento "${updatedEvent.name}".`);
         }
 
-        // Notificar se detalhes básicos mudaram
         if (oldEvent.name !== updatedEvent.name || oldEvent.city !== updatedEvent.city || oldEvent.state !== updatedEvent.state) {
           notifyUser(updatedEvent.salespersonId, `As informações do evento "${updatedEvent.name}" foram atualizadas.`);
         }
       }
 
       setGlobalToast({ message: "Evento atualizado com sucesso!", type: 'success' });
-
     } catch (error) {
       console.error("Error updating event:", error);
       alert("Erro ao atualizar evento.");
     }
   };
 
-  // Se o hash contiver public-voucher, renderiza a tela pública
+  // Conditional renders moved inside component scope
   if (hash.startsWith('#/public-voucher/')) {
     const rawHash = decodeURIComponent(hash.replace('#/public-voucher/', ''));
     let voucherData = rawHash.split('|');
-
-    // Decodifica cada parte novamente para garantir limpeza total
     const academyName = decodeURIComponent(voucherData[0] || '');
     const codesStr = decodeURIComponent(voucherData[1] || '');
     const timestamp = parseInt(voucherData[2] || '0');
@@ -474,8 +448,6 @@ const AppContent: React.FC = () => {
     );
   }
 
-
-  // Se não estiver logado, exibe a tela de Auth
   if (!currentUser) {
     return (
       <Suspense fallback={<div className="h-screen bg-neutral-900 flex items-center justify-center">
@@ -543,12 +515,12 @@ const AppContent: React.FC = () => {
             onOpenElevationPrompt={() => setShowElevationPrompt(true)}
           />
         ) : activeTab !== 'visit_detail' ? (
-          <SalesHeader user={currentUser} />
+          <SalesHeader user={currentUser} activeTab={activeTab} onNavigate={setActiveTab} />
         ) : null}
 
         <div className={cn(
           "flex-1 overflow-y-auto relative z-10 custom-scrollbar",
-          currentUser.role === UserRole.SALES ? "p-4 pb-48" : "p-4 md:p-6 lg:p-8"
+          (currentUser.role === UserRole.SALES || currentUser.role === UserRole.CALL_CENTER) ? "p-4 pb-48" : "p-4 md:p-6 lg:p-8"
         )}>
           <GlobalToast toast={globalToast} onClose={() => setGlobalToast(null)} />
 
@@ -569,19 +541,34 @@ const AppContent: React.FC = () => {
               <UsersManager
                 users={[...sellers, ...admins]}
                 setUsers={(newUsersOrUpdater: User[] | ((prev: User[]) => User[])) => {
-                  if (typeof newUsersOrUpdater === 'function') {
-                    fetchUsers();
-                  } else {
-                    setSellers(newUsersOrUpdater.filter((u: User) => u.role === UserRole.SALES));
-                    setAdmins(newUsersOrUpdater.filter((u: User) => u.role === UserRole.ADMIN));
-                  }
+                  fetchUsers();
                 }}
                 currentUser={currentUser}
                 notifyUser={notifyUser}
               />
             )}
-            {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={setAcademies} currentUser={currentUser} notifyUser={notifyUser} events={events} />}
-            {activeTab === 'events' && currentUser.role === UserRole.ADMIN && <EventsManager events={events} visits={visits} setEvents={setEvents} academies={academies} vendedores={sellers} onSelectEvent={(id: string) => { setSelectedEventId(id); setActiveTab('event_detail_admin'); }} notifyUser={notifyUser} />}
+            {activeTab === 'academies' && currentUser.role === UserRole.ADMIN && <AcademiesManager academies={academies} setAcademies={() => queryClient.invalidateQueries({ queryKey: ['academies'] })} currentUser={currentUser} notifyUser={notifyUser} events={events} />}
+            {activeTab === 'academies' && (currentUser.role === UserRole.CALL_CENTER || currentUser.role === UserRole.SALES) && (
+              <CallCenterAcademies
+                academies={academies}
+                setAcademies={() => queryClient.invalidateQueries({ queryKey: ['academies'] })}
+                currentUser={currentUser}
+                notifyUser={notifyUser}
+                events={events}
+                linkingEventId={linkingEventId}
+                onLinkComplete={() => {
+                  setLinkingEventId(null);
+                  setActiveTab('my_events');
+                  setGlobalToast({ message: 'Academia vinculada com sucesso!', type: 'success' });
+                  loadData(); // This now invalidates all queries
+                }}
+                onCancelLinking={() => {
+                  setLinkingEventId(null);
+                  setActiveTab('my_events');
+                }}
+              />
+            )}
+            {activeTab === 'events' && currentUser.role === UserRole.ADMIN && <EventsManager events={events} visits={visits} setEvents={() => queryClient.invalidateQueries({ queryKey: ['events'] })} academies={academies} vendedores={sellers} onSelectEvent={(id: string) => { setSelectedEventId(id); setActiveTab('event_detail_admin'); }} notifyUser={notifyUser} />}
             {activeTab === 'event_detail_admin' && selectedEventId && currentUser.role === UserRole.ADMIN && (
               <EventDetailAdmin
                 event={events.find(e => e.id === selectedEventId)!}
@@ -597,7 +584,7 @@ const AppContent: React.FC = () => {
             {activeTab === 'admin_finance' && currentUser.role === UserRole.ADMIN && (
               <AdminFinance
                 finance={finance}
-                setFinance={setFinance}
+                setFinance={() => queryClient.invalidateQueries({ queryKey: ['finance'] })}
                 events={events}
                 vendedores={sellers}
                 notifyUser={notifyUser}
@@ -627,21 +614,34 @@ const AppContent: React.FC = () => {
               />
             )}
 
-            {activeTab === 'my_events' && <SalespersonEvents events={events.filter((e: Event) => e.salespersonId === currentUser.id)} academies={academies} visits={visits} notifications={notifications.filter((n: Notification) => n.userId === currentUser.id && !n.read)} onDismissNotif={(id: string) => setNotifications((prev: Notification[]) => prev.map((n: Notification) => n.id === id ? { ...n, read: true } : n))} onSelectAcademy={(eventId: string, academyId: string) => { setSelectedEventId(eventId); setSelectedAcademyId(academyId); setActiveTab('visit_detail'); }} currentUserId={currentUser.id} />}
+            {activeTab === 'my_events' && (
+              <SalespersonEvents
+                events={events.filter((e: Event) => e.salespersonId === currentUser.id)}
+                academies={academies}
+                visits={visits}
+                notifications={notifications.filter((n: Notification) => n.userId === currentUser.id && !n.read)}
+                onDismissNotif={(id: string) => setNotifications((prev: Notification[]) => prev.map((n: Notification) => n.id === id ? { ...n, read: true } : n))}
+                onSelectAcademy={(eventId: string, academyId: string) => { setSelectedEventId(eventId); setSelectedAcademyId(academyId); setActiveTab('visit_detail'); }}
+                currentUserId={currentUser.id}
+                userRole={currentUser.role}
+                onRefreshData={loadData}
+                onNavigateToAcademies={(eventId) => {
+                  setLinkingEventId(eventId);
+                  setActiveTab('academies');
+                }}
+              />
+            )}
             {activeTab === 'visit_detail' && selectedEventId && selectedAcademyId && (
               <VisitDetail
                 eventId={selectedEventId}
                 academy={academies.find((a: Academy) => a.id === selectedAcademyId)!}
                 event={events.find((e: Event) => e.id === selectedEventId)!}
                 existingVisit={visits.find((v: Visit) => v.eventId === selectedEventId && v.academyId === selectedAcademyId)}
+                userRole={currentUser.role}
                 onStart={async (visit: Visit) => {
                   try {
                     const saved = await DatabaseService.upsertVisit(visit);
-                    // Update local state to reflect the started visit
-                    setVisits((prev: Visit[]) => {
-                      const filtered = prev.filter((v: Visit) => !(v.eventId === visit.eventId && v.academyId === visit.academyId));
-                      return [...filtered, saved];
-                    });
+                    queryClient.invalidateQueries({ queryKey: ['visits'] });
                     return saved;
                   } catch (e) {
                     console.error("Error start visit:", e);
@@ -667,9 +667,9 @@ const AppContent: React.FC = () => {
                       const savedVisit = await DatabaseService.finalizeVisitTransaction(visit, newVoucherObjects);
 
                       // Atualizar Estado Local
-                      setVisits((prev: Visit[]) => [...prev.filter((v: Visit) => !(v.eventId === visit.eventId && v.academyId === visit.academyId)), savedVisit]);
+                      queryClient.invalidateQueries({ queryKey: ['visits'] });
                       if (newVoucherObjects.length > 0) {
-                        setVouchers((prev: Voucher[]) => [...prev, ...newVoucherObjects]);
+                        queryClient.invalidateQueries({ queryKey: ['vouchers'] });
                       }
 
                       // Notify Admins (Only if transitioning to VISITED for the first time)
@@ -701,7 +701,7 @@ const AppContent: React.FC = () => {
                       console.log("🗑️ [App] Visita pendente ou inexistente. Limpando rascunho...");
                       try {
                         await DatabaseService.deleteVisitByEventAndAcademy(selectedEventId, selectedAcademyId);
-                        setVisits(prev => prev.filter(v => !(v.eventId === selectedEventId && v.academyId === selectedAcademyId)));
+                        queryClient.invalidateQueries({ queryKey: ['visits'] });
                       } catch (error) {
                         console.error("Error cancelling visit:", error);
                       }
@@ -720,7 +720,7 @@ const AppContent: React.FC = () => {
                   if (record) {
                     try {
                       const updated = await DatabaseService.updateFinance(record.id, { ...record, status: FinanceStatus.RECEIVED, updatedAt: new Date().toISOString() });
-                      setFinance((prev: FinanceRecord[]) => prev.map((f: FinanceRecord) => f.id === recordId ? updated : f));
+                      queryClient.invalidateQueries({ queryKey: ['finance'] });
 
                       // Notificar admins que o vendedor recebeu o dinheiro
                       const eventName = events.find((e: Event) => e.id === record.eventId)?.name;
@@ -756,12 +756,13 @@ const AppContent: React.FC = () => {
         </div>
       </main>
 
-      {/* Mobile Bottom Nav - Only for Salesperson */}
+      {/* Mobile Bottom Nav - Only for Salesperson & Call-Center */}
       {
-        currentUser.role === UserRole.SALES && (
+        (currentUser.role === UserRole.SALES || currentUser.role === UserRole.CALL_CENTER) && (
           <MobileBottomNav
             activeTab={activeTab}
             setActiveTab={setActiveTab}
+            userRole={currentUser.role}
           />
         )
       }
