@@ -588,7 +588,7 @@ export const DatabaseService = {
             key,
             value,
             updated_at: new Date().toISOString()
-        }).select().single();
+        }, { onConflict: 'key' }).select().single();
         if (error) throw error;
         return data;
     },

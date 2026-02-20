@@ -45,8 +45,15 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
 
     // Settings State
     const [redemptionPhone, setRedemptionPhone] = useState('');
+    const [phoneCountry, setPhoneCountry] = useState<'BR' | 'US' | 'PT'>('US');
     const [loadingPhone, setLoadingPhone] = useState(false);
     const [savingPhone, setSavingPhone] = useState(false);
+
+    const COUNTRY_CONFIG = {
+        US: { code: '1', label: '🇺🇸 EUA', mask: '(XXX) XXX-XXXX', maxDigits: 10 },
+        BR: { code: '55', label: '🇧🇷 Brasil', mask: '(XX) XXXXX-XXXX', maxDigits: 11 },
+        PT: { code: '351', label: '🇵🇹 Portugal', mask: 'XXX XXX XXX', maxDigits: 9 },
+    };
 
     useEffect(() => {
         loadPendingInvites();
@@ -57,7 +64,15 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
         setLoadingPhone(true);
         try {
             const phone = await DatabaseService.getSetting('voucher_redemption_phone');
-            if (phone) setRedemptionPhone(phone);
+            if (phone) {
+                const clean = String(phone).replace(/"/g, '').replace(/\D/g, '');
+                setRedemptionPhone(clean);
+            }
+            const country = await DatabaseService.getSetting('voucher_phone_country');
+            if (country) {
+                const cleanCountry = String(country).replace(/"/g, '') as 'BR' | 'US' | 'PT';
+                if (['BR', 'US', 'PT'].includes(cleanCountry)) setPhoneCountry(cleanCountry);
+            }
         } catch (err) {
             console.error('Error loading settings:', err);
         } finally {
@@ -170,7 +185,8 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
         await withLoading(async () => {
             try {
                 const clean = redemptionPhone.replace(/\D/g, '');
-                await DatabaseService.updateSetting('voucher_redemption_phone', JSON.stringify(clean));
+                await DatabaseService.updateSetting('voucher_redemption_phone', clean);
+                await DatabaseService.updateSetting('voucher_phone_country', phoneCountry);
                 alert('Número de resgate atualizado com sucesso!');
             } catch (e: any) {
                 console.error('Error saving phone:', e);
@@ -179,20 +195,35 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
         });
     };
 
+    const applyPhoneMask = (digits: string, country: 'BR' | 'US' | 'PT') => {
+        if (country === 'US') {
+            if (digits.length > 6) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+            if (digits.length > 3) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+            if (digits.length > 0) return `(${digits}`;
+        } else if (country === 'BR') {
+            if (digits.length > 7) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+            if (digits.length > 2) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+            if (digits.length > 0) return `(${digits}`;
+        } else if (country === 'PT') {
+            if (digits.length > 6) return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+            if (digits.length > 3) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+        }
+        return digits;
+    };
+
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let val = e.target.value.replace(/\D/g, '');
-        if (val.length > 11) val = val.slice(0, 11);
+        const max = COUNTRY_CONFIG[phoneCountry].maxDigits;
+        if (val.length > max) val = val.slice(0, max);
+        setRedemptionPhone(applyPhoneMask(val, phoneCountry));
+    };
 
-        if (val.length > 10) {
-            val = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`;
-        } else if (val.length > 6) {
-            val = `(${val.slice(0, 2)}) ${val.slice(2, 6)}-${val.slice(6)}`;
-        } else if (val.length > 2) {
-            val = `(${val.slice(0, 2)}) ${val.slice(2)}`;
-        } else if (val.length > 0) {
-            val = `(${val}`;
-        }
-        setRedemptionPhone(val);
+    const handleCountryChange = (newCountry: 'BR' | 'US' | 'PT') => {
+        setPhoneCountry(newCountry);
+        // Re-apply mask to current digits
+        const digits = redemptionPhone.replace(/\D/g, '');
+        const max = COUNTRY_CONFIG[newCountry].maxDigits;
+        setRedemptionPhone(applyPhoneMask(digits.slice(0, max), newCountry));
     };
 
     const openEditModal = (user: User) => {
@@ -260,13 +291,22 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="relative w-full md:w-64">
+                <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
+                    <select
+                        value={phoneCountry}
+                        onChange={(e) => handleCountryChange(e.target.value as 'BR' | 'US' | 'PT')}
+                        className="bg-neutral-800 border border-neutral-700 text-white px-3 py-3 rounded-xl text-sm outline-none focus:border-emerald-500 transition-colors cursor-pointer"
+                    >
+                        {Object.entries(COUNTRY_CONFIG).map(([key, cfg]) => (
+                            <option key={key} value={key}>{cfg.label}</option>
+                        ))}
+                    </select>
+                    <div className="relative flex-1 md:w-52">
                         <input
                             type="text"
                             value={redemptionPhone}
                             onChange={handlePhoneChange}
-                            placeholder="(00) 00000-0000"
+                            placeholder={COUNTRY_CONFIG[phoneCountry].mask}
                             className="w-full bg-neutral-800 border border-neutral-700 text-white px-4 py-3 rounded-xl font-mono text-lg outline-none focus:border-emerald-500 transition-colors pl-10"
                         />
                         <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />

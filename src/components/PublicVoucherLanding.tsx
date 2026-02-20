@@ -14,21 +14,27 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
 
     // Settings State
     const [redemptionPhone, setRedemptionPhone] = useState('4076339166'); // Default fallback
+    const [phoneCountry, setPhoneCountry] = useState<'BR' | 'US' | 'PT'>('US');
     const [loadingPhone, setLoadingPhone] = useState(true);
+
+    const COUNTRY_CODES: Record<string, string> = { US: '1', BR: '55', PT: '351' };
 
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const phone = await DatabaseService.getSetting('voucher_redemption_phone');
+                const [phone, country] = await Promise.all([
+                    DatabaseService.getSetting('voucher_redemption_phone'),
+                    DatabaseService.getSetting('voucher_phone_country'),
+                ]);
                 if (phone) {
-                    // remove quotes if stored as json string and non-digits
-                    let clean = String(phone).replace(/"/g, '').replace(/\D/g, '');
-                    // Fallback valid format check - if empty after clean, stick to default?
-                    // Assuming admin saves valid phone.
-                    if (clean && clean.length >= 10) setRedemptionPhone(clean);
+                    const clean = String(phone).replace(/"/g, '').replace(/\D/g, '');
+                    if (clean && clean.length >= 9) setRedemptionPhone(clean);
+                }
+                if (country) {
+                    const c = String(country).replace(/"/g, '') as 'BR' | 'US' | 'PT';
+                    if (['BR', 'US', 'PT'].includes(c)) setPhoneCountry(c);
                 }
             } catch (err) {
-                // Silently fail and use default phone - this is a public page
                 console.log('Using default redemption phone (public access)');
             } finally {
                 setLoadingPhone(false);
@@ -45,24 +51,35 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
         return `PBJJF Voucher Redemption\n\nAcademy: ${academyName}\nVouchers: ${codes.join(', ')}\n\nPlease confirm receipt and processing.`;
     };
 
+    const getCleanPhone = (phone: string) => {
+        const clean = String(phone).replace(/"/g, '').replace(/\D/g, '');
+        const prefix = COUNTRY_CODES[phoneCountry] || '1';
+        return `${prefix}${clean}`;
+    };
+
     const handleWhatsApp = () => {
         const text = encodeURIComponent(getMessageBody());
-        window.open(`https://wa.me/55${redemptionPhone}?text=${text}`, '_blank');
+        const cleanPhone = getCleanPhone(redemptionPhone);
+        window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
     };
 
     const handleSMS = () => {
         const body = encodeURIComponent(getMessageBody());
-        window.location.href = `sms:55${redemptionPhone}?body=${body}`;
+        const cleanPhone = getCleanPhone(redemptionPhone);
+        window.location.href = `sms:${cleanPhone}?body=${body}`;
     };
 
     const formatPhone = (p: string) => {
         const clean = p.replace(/\D/g, '');
-        if (clean.length === 11) {
-            return `(${clean.slice(0, 2)}) ${clean.slice(2, 7)}-${clean.slice(7)}`;
-        } else if (clean.length === 10) {
-            return `(${clean.slice(0, 2)}) ${clean.slice(2, 6)}-${clean.slice(6)}`;
+        const prefix = COUNTRY_CODES[phoneCountry] || '1';
+        if (phoneCountry === 'US' && clean.length === 10) {
+            return `+${prefix} (${clean.slice(0, 3)}) ${clean.slice(3, 6)}-${clean.slice(6)}`;
+        } else if (phoneCountry === 'BR' && clean.length >= 10) {
+            return `+${prefix} (${clean.slice(0, 2)}) ${clean.slice(2, clean.length === 11 ? 7 : 6)}-${clean.slice(clean.length === 11 ? 7 : 6)}`;
+        } else if (phoneCountry === 'PT' && clean.length === 9) {
+            return `+${prefix} ${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6)}`;
         }
-        return p;
+        return `+${prefix} ${clean}`;
     };
 
     const contentToCopy = `Academy: ${academyName}\nVouchers: ${codes.join(', ')}\n\nRedeem at: ${formatPhone(redemptionPhone)}`;
