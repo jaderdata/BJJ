@@ -49,15 +49,24 @@ export const SalespersonEvents: React.FC<{
   };
 
   const nonTestEvents = events.filter(e => !e.name.trim().toUpperCase().endsWith('TESTE'));
-  const totalAcademies = nonTestEvents.reduce((acc, e) => acc + (e.academiesIds?.length || 0), 0);
+  const totalAcademies = nonTestEvents.reduce((acc, e) => {
+    const activeCount = (e.academiesIds || []).filter(aid => {
+      const a = academies.find(ac => ac.id === aid);
+      return a && a.status === 'ACTIVE';
+    }).length;
+    return acc + activeCount;
+  }, 0);
   const completedVisitsCount = nonTestEvents.reduce((acc, e) => {
     const visitedInEvent = visits.filter(v =>
       v.eventId === e.id &&
-      v.status === VisitStatus.VISITED &&
-      v.salespersonId === currentUserId // Only count my visits
+      v.status === VisitStatus.VISITED
     );
     const uniqueVisitedIds = new Set(visitedInEvent.map(v => v.academyId));
-    const validVisitedCount = Array.from(uniqueVisitedIds).filter(aid => e.academiesIds.includes(aid)).length;
+    const validVisitedCount = Array.from(uniqueVisitedIds).filter(aid => {
+      if (!e.academiesIds.includes(aid)) return false;
+      const a = academies.find(ac => ac.id === aid);
+      return a && a.status === 'ACTIVE';
+    }).length;
     return acc + validVisitedCount;
   }, 0);
 
@@ -200,7 +209,7 @@ export const SalespersonEvents: React.FC<{
               const completedIds = Array.from(uniqueVisitedIds).filter(aid => allAcademiesIds.includes(aid));
               const pendingAcademies = allAcademies.filter(a => !completedIds.includes(a.id));
               const finishedAcademies = allAcademies.filter(a => completedIds.includes(a.id));
-              const progress = Math.round((validVisitedCount / (allAcademiesIds.length || 1)) * 100);
+              const progress = Math.round((validVisitedCount / (allAcademies.length || 1)) * 100);
 
               return (
                 <div
