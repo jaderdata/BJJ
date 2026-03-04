@@ -44,6 +44,7 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useLoading } from '../contexts/LoadingContext';
+import { calculateTrueVisitDuration } from '../lib/business-utils';
 
 interface ReportsProps {
     events: Event[];
@@ -246,17 +247,7 @@ export const Reports: React.FC<ReportsProps> = ({
         const visitsWithDuration = filteredVisits.filter(v => v.startedAt && v.finishedAt);
         if (visitsWithDuration.length === 0) return { avgDuration: 0, conversionRate: 0 };
 
-        const durations = visitsWithDuration.map(v => {
-            const start = new Date(v.startedAt!).getTime();
-            const end = new Date(v.finishedAt!).getTime();
-            let minutes = Math.round((end - start) / (1000 * 60));
-
-            // Rule: 0 min -> 30 min, Max -> 60 min
-            if (minutes <= 0) minutes = 30;
-            if (minutes > 60) minutes = 60;
-
-            return minutes;
-        }).filter(d => d > 0);
+        const durations = visitsWithDuration.map(v => calculateTrueVisitDuration(v.startedAt, v.finishedAt)).filter((d): d is number => d !== null);
 
         if (durations.length === 0) return { avgDuration: 0, conversionRate: 0 };
 
@@ -514,13 +505,7 @@ export const Reports: React.FC<ReportsProps> = ({
 
                     let duration = 0;
                     if (visit?.startedAt && visit?.finishedAt) {
-                        const start = new Date(visit.startedAt).getTime();
-                        const end = new Date(visit.finishedAt).getTime();
-                        duration = Math.round((end - start) / (1000 * 60));
-
-                        // Rules: 0 -> 30, Max -> 60
-                        if (duration <= 0) duration = 30;
-                        if (duration > 60) duration = 60;
+                        duration = calculateTrueVisitDuration(visit.startedAt, visit.finishedAt) || 0;
                     }
 
                     return [
@@ -990,12 +975,8 @@ export const Reports: React.FC<ReportsProps> = ({
                                                 <td className="px-4 py-3 text-sm text-white/60 font-medium">
                                                     {(() => {
                                                         if (visit?.startedAt && visit?.finishedAt) {
-                                                            const start = new Date(visit.startedAt).getTime();
-                                                            const end = new Date(visit.finishedAt).getTime();
-                                                            let diff = Math.round((end - start) / (1000 * 60));
-                                                            if (diff <= 0) diff = 30;
-                                                            if (diff > 60) diff = 60;
-                                                            return `${diff} min`;
+                                                            const duration = calculateTrueVisitDuration(visit.startedAt, visit.finishedAt);
+                                                            if (duration) return `${duration} min`;
                                                         }
                                                         return '---';
                                                     })()}

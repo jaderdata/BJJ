@@ -8,6 +8,7 @@ import {
     calculateTemperatureStats,
     calculateContactStats,
     calculateAvgVisitMinutes,
+    calculateTrueVisitDuration
 } from '../lib/business-utils';
 
 interface VendorDetailProps {
@@ -31,34 +32,79 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
 }) => {
     // --- Data Processing ---
 
-    // Base Sets
-    // Base Sets - Unified logic matching Dashboard
-    const vendorVisits = useMemo(() => filterVendorVisits(visits, events, vendor.id), [visits, events, vendor.id]);
+    const [filterYear, setFilterYear] = useState<string>('');
+    const [filterEventId, setFilterEventId] = useState<string>('');
 
-    const completedVisits = useMemo(() => vendorVisits.filter(v => v.status === VisitStatus.VISITED), [vendorVisits]);
-    const vendorEvents = useMemo(() => events.filter(e => !e.isTest && e.salespersonIds?.includes(vendor.id)), [events, vendor.id]);
+    // Base Sets
+    const vendorVisits = useMemo(() => filterVendorVisits(visits, events, vendor.id), [visits, events, vendor.id]);
     const vendorFinance = useMemo(() => finance.filter(f => f.salespersonId === vendor.id), [finance, vendor.id]);
 
+    // Derived Available Filters
+    const availableEvents = useMemo(() => {
+        const eventIds = new Set(vendorVisits.map(v => v.eventId));
+        let evts = events.filter(e => eventIds.has(e.id));
+        if (filterYear) {
+            evts = evts.filter(e => new Date(e.startDate).getFullYear().toString() === filterYear);
+        }
+        return evts.sort((a, b) => a.name.localeCompare(b.name));
+    }, [vendorVisits, events, filterYear]);
+
+    const availableYears = useMemo(() => {
+        const eventIds = new Set(vendorVisits.map(v => v.eventId));
+        const evts = events.filter(e => eventIds.has(e.id));
+        const years = new Set(evts.map(e => new Date(e.startDate).getFullYear().toString()));
+        return Array.from(years).sort((a, b) => b.localeCompare(a));
+    }, [vendorVisits, events]);
+
+    // Filtered Display Data
+    const displayedVisits = useMemo(() => {
+        return vendorVisits.filter(v => {
+            const event = events.find(e => e.id === v.eventId);
+            if (!event) return false;
+
+            if (filterEventId && event.id !== filterEventId) return false;
+            if (filterYear) {
+                const eventYear = new Date(event.startDate).getFullYear().toString();
+                if (eventYear !== filterYear) return false;
+            }
+            return true;
+        });
+    }, [vendorVisits, events, filterEventId, filterYear]);
+
+    const completedVisits = useMemo(() => displayedVisits.filter(v => v.status === VisitStatus.VISITED), [displayedVisits]);
+
+    const displayedFinance = useMemo(() => {
+        return vendorFinance.filter(f => {
+            const event = events.find(e => e.id === f.eventId);
+            if (!event) return false;
+            if (filterEventId && event.id !== filterEventId) return false;
+            if (filterYear) {
+                const eventYear = new Date(event.startDate).getFullYear().toString();
+                if (eventYear !== filterYear) return false;
+            }
+            return true;
+        });
+    }, [vendorFinance, events, filterEventId, filterYear]);
+
+    const vendorEvents = useMemo(() => events.filter(e => !e.isTest && e.salespersonIds?.includes(vendor.id)), [events, vendor.id]);
+
     // Aggregates
-    // Fix: Count academies specifically from the filtered vouchers, not just any visit
     const uniqueAcademiesWithVouchers = useMemo(() => {
         const pertinentVouchers = vouchers.filter(v => {
             const event = events.find(e => e.id === v.eventId);
             if (event?.isTest) return false;
 
-            // Must match vendor
-            const visit = visits.find(vis => vis.id === v.visitId);
+            // Must match vendor & filters
+            const visit = displayedVisits.find(vis => vis.id === v.visitId);
             if (!visit) return false;
-            const sellerId = visit.salespersonId || event?.salespersonIds?.[0];
-            if (sellerId !== vendor.id) return false;
 
             return visit.vouchersGenerated?.includes(v.code);
         });
         return new Set(pertinentVouchers.map(v => v.academyId)).size;
-    }, [vouchers, events, visits, vendor.id]);
+    }, [vouchers, events, displayedVisits]);
 
-    const totalReceived = vendorFinance.reduce((sum, f) => sum + f.amount, 0);
-    const totalVouchersCount = useMemo(() => countVendorVouchers(vouchers, events, visits, vendor.id), [vouchers, events, visits, vendor.id]);
+    const totalReceived = displayedFinance.reduce((sum, f) => sum + f.amount, 0);
+    const totalVouchersCount = useMemo(() => countVendorVouchers(vouchers, events, displayedVisits, vendor.id), [vouchers, events, displayedVisits, vendor.id]);
 
     // Materials
     const bannersLeft = useMemo(() => completedVisits.filter(v => v.leftBanner).length, [completedVisits]);
@@ -85,8 +131,13 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
     const isCallCenter = vendor.role === UserRole.CALL_CENTER;
 
     const handleExport = () => {
-        const csvConfig = mkConfig({ useKeysAsHeaders: true, filename: `relatorio_detalhado_${vendor.name.replace(/\s+/g, '_')}` });
-        const exportData = vendorVisits.map(v => {
+        const csvConfig = mkConfig({
+            useKeysAsHeaders: true,
+            filename: `relatorio_detalhado_${vendor.name.replace(/\s+/g, '_')}`
+        });
+
+        // Export only completed visits to avoid "incomplete" rows
+        const exportData = completedVisits.map(v => {
             const event = events.find(e => e.id === v.eventId);
 
             const baseData: any = {
@@ -94,11 +145,11 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                 Evento: event?.name || 'N/A',
                 Academia: academies.find(a => a.id === v.academyId)?.name || 'N/A',
                 Data: v.finishedAt ? new Date(v.finishedAt).toLocaleDateString() : 'N/A',
-                Status: v.status,
+                Status: v.status === VisitStatus.VISITED ? 'Concluída' : v.status,
             };
 
             if (!isCallCenter) {
-                baseData['Tempo (min)'] = v.startedAt && v.finishedAt ? Math.round((new Date(v.finishedAt).getTime() - new Date(v.startedAt).getTime()) / 60000) : '';
+                baseData['Tempo (min)'] = calculateTrueVisitDuration(v.startedAt, v.finishedAt) || '';
             }
 
             return {
@@ -107,7 +158,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                 Contato: v.contactPerson || '',
                 'Banner Deixado': v.leftBanner ? 'Sim' : 'Não',
                 Vouchers: v.vouchersGenerated?.length || 0,
-                Notas: v.notes || ''
+                Resumo: v.summary || ''
             };
         });
 
@@ -138,7 +189,29 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                     </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-3 flex-wrap justify-end">
+                    <select
+                        value={filterYear}
+                        onChange={(e) => setFilterYear(e.target.value)}
+                        className="bg-black/40 border border-white/10 text-white text-xs rounded-xl px-3 py-2 outline-none font-bold"
+                    >
+                        <option value="" className="bg-neutral-900">Todos os Anos</option>
+                        {availableYears.map(year => (
+                            <option key={year} value={year} className="bg-neutral-900">{year}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={filterEventId}
+                        onChange={(e) => setFilterEventId(e.target.value)}
+                        className="bg-black/40 border border-white/10 text-white text-xs rounded-xl px-3 py-2 outline-none font-bold max-w-[200px]"
+                    >
+                        <option value="" className="bg-neutral-900">Todos os Eventos</option>
+                        {availableEvents.map(e => (
+                            <option key={e.id} value={e.id} className="bg-neutral-900">{e.name}</option>
+                        ))}
+                    </select>
+
                     <button
                         onClick={handleExport}
                         className="flex items-center space-x-2 bg-white text-neutral-900 hover:bg-neutral-200 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg"
@@ -238,9 +311,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                         <div className="divide-y divide-white/5">
                             {recentActivity.map((visit, i) => {
                                 const event = events.find(e => e.id === visit.eventId);
-                                const duration = visit.startedAt && visit.finishedAt
-                                    ? Math.round((new Date(visit.finishedAt).getTime() - new Date(visit.startedAt).getTime()) / 60000)
-                                    : null;
+                                const duration = calculateTrueVisitDuration(visit.startedAt, visit.finishedAt);
 
                                 return (
                                     <div key={visit.id} className="p-4 hover:bg-white/[0.02] transition-colors group">

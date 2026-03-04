@@ -160,8 +160,11 @@ export function filterVendorVisits(
     return visits.filter((v) => {
         const event = events.find((e) => e.id === v.eventId);
         if (event?.isTest) return false;
-        const sellerMatch = v.salespersonId === vendorId || event?.salespersonIds?.includes(vendorId);
-        return sellerMatch;
+
+        // A visit strictly belongs to a vendor if they were the one who made it
+        // Do NOT check event?.salespersonIds here, otherwise a newly added vendor 
+        // to an ongoing event absorbs all past visits from other vendors.
+        return v.salespersonId === vendorId;
     });
 }
 
@@ -181,8 +184,8 @@ export function countVendorVouchers(
         const visit = visits.find((vis) => vis.id === v.visitId);
         if (!visit) return false;
 
-        const sellerMatch = visit.salespersonId === vendorId || event?.salespersonIds?.includes(vendorId);
-        if (!sellerMatch) return false;
+        // The voucher should be counted for the vendor only if they made the parent visit
+        if (visit.salespersonId !== vendorId) return false;
 
         return visit.vouchersGenerated?.includes(v.code);
     }).length;
@@ -226,24 +229,32 @@ export function calculateContactStats(
 }
 
 /**
- * Calcula tempo médio de visita em minutos (filtra outliers > 8h e negativos).
+ * Calcula a duração real de uma visita, limitando ao piso de 5 min e teto de 90 min.
+ * Retorna null se não houver datas válidas disponíveis.
+ */
+export function calculateTrueVisitDuration(startedAt?: string, finishedAt?: string): number | null {
+    if (!startedAt || !finishedAt) return null;
+
+    const start = new Date(startedAt).getTime();
+    const end = new Date(finishedAt).getTime();
+    let minutes = Math.round((end - start) / 1000 / 60);
+
+    if (minutes < 5) minutes = 5;
+    if (minutes > 90) minutes = 90;
+
+    return minutes;
+}
+
+/**
+ * Calcula tempo médio de visita em minutos utilizando a trava de (5-90min).
  */
 export function calculateAvgVisitMinutes(completedVisits: Visit[]): number {
-    const timedVisits = completedVisits.filter((v) => {
-        if (!v.startedAt || !v.finishedAt) return false;
-        const start = new Date(v.startedAt).getTime();
-        const end = new Date(v.finishedAt).getTime();
-        const diff = (end - start) / 1000 / 60;
-        return diff > 0 && diff < 480;
-    });
+    const durations = completedVisits
+        .map(v => calculateTrueVisitDuration(v.startedAt, v.finishedAt))
+        .filter((d): d is number => d !== null);
 
-    if (timedVisits.length === 0) return 0;
+    if (durations.length === 0) return 0;
 
-    const totalMinutes = timedVisits.reduce((sum, v) => {
-        const start = new Date(v.startedAt!).getTime();
-        const end = new Date(v.finishedAt!).getTime();
-        return sum + (end - start) / 1000 / 60;
-    }, 0);
-
-    return Math.round(totalMinutes / timedVisits.length);
+    const totalMinutes = durations.reduce((sum, d) => sum + d, 0);
+    return Math.round(totalMinutes / durations.length);
 }
