@@ -380,9 +380,12 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                     <div className="bg-neutral-900 border border-white/5 p-6 rounded-2xl">
                         <div className="flex items-center gap-2 mb-6">
                             <h3 className="text-sm font-black text-white uppercase tracking-wider">Eventos Ativos</h3>
+                            <span className="text-xs bg-white/10 text-white px-2 py-0.5 rounded-full font-bold">
+                                {vendorEvents.length}
+                            </span>
                         </div>
-                        <div className="space-y-4">
-                            {vendorEvents.slice(0, 5).map(event => (
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            {vendorEvents.map(event => (
                                 <div key={event.id} className="p-3 bg-white/[0.02] rounded-xl border border-white/5">
                                     <p className="text-sm font-bold text-white mb-1">{event.name}</p>
                                     <div className="flex justify-between text-xs text-neutral-400">
