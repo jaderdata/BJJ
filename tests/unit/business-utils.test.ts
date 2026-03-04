@@ -385,13 +385,13 @@ describe('filterVendorVisits', () => {
         expect(result[0].id).toBe('v1');
     });
 
-    it('falls back to event salespersonId when visit has no salesperson', () => {
+    it('does NOT fall back to event salespersonId when visit has no salesperson to prevent incorrect attribution', () => {
         const events = [makeEvent({ id: 'e1', salespersonIds: ['vendor-1'] })];
         const visits = [
             makeVisit({ id: 'v1', salespersonId: '', eventId: 'e1' }),
         ];
         const result = filterVendorVisits(visits, events, 'vendor-1');
-        expect(result).toHaveLength(1);
+        expect(result).toHaveLength(0);
     });
 
     it('excludes visits from test events', () => {
@@ -530,21 +530,22 @@ describe('calculateAvgVisitMinutes', () => {
         expect(calculateAvgVisitMinutes(visits)).toBe(45);
     });
 
-    it('filters out outliers > 8 hours', () => {
+    it('teto de 90 minutos para visitas muito longas > 90m (ex: esquecimento de finalizar)', () => {
         const visits = [
-            makeVisit({ startedAt: '2026-01-01T10:00:00Z', finishedAt: '2026-01-01T10:30:00Z' }),
-            makeVisit({ startedAt: '2026-01-01T00:00:00Z', finishedAt: '2026-01-01T20:00:00Z' }), // 20h outlier
+            makeVisit({ startedAt: '2026-01-01T10:00:00Z', finishedAt: '2026-01-01T10:30:00Z' }), // 30 min
+            makeVisit({ startedAt: '2026-01-01T00:00:00Z', finishedAt: '2026-01-01T20:00:00Z' }), // 20h -> clamps to 90 min
         ];
-        // Only 30 min visit counts
-        expect(calculateAvgVisitMinutes(visits)).toBe(30);
+        // (30 + 90) / 2 = 60
+        expect(calculateAvgVisitMinutes(visits)).toBe(60);
     });
 
-    it('filters out negative durations', () => {
+    it('piso de 5 minutos para visitas negativas ou muito curtas', () => {
         const visits = [
-            makeVisit({ startedAt: '2026-01-01T12:00:00Z', finishedAt: '2026-01-01T10:00:00Z' }), // negative
-            makeVisit({ startedAt: '2026-01-01T10:00:00Z', finishedAt: '2026-01-01T11:00:00Z' }),
+            makeVisit({ startedAt: '2026-01-01T12:00:00Z', finishedAt: '2026-01-01T10:00:00Z' }), // negative -> clamps to 5 min
+            makeVisit({ startedAt: '2026-01-01T10:00:00Z', finishedAt: '2026-01-01T11:00:00Z' }), // 60 min
         ];
-        expect(calculateAvgVisitMinutes(visits)).toBe(60);
+        // (5 + 60) / 2 = 32.5 -> Math.round -> 33
+        expect(calculateAvgVisitMinutes(visits)).toBe(33);
     });
 
     it('returns 0 when no valid timed visits', () => {
