@@ -39,6 +39,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
 }) => {
     const { withLoading } = useLoading();
     const [showModal, setShowModal] = useState(false);
+    const [showAddVendorModal, setShowAddVendorModal] = useState(false);
     const [newEvent, setNewEvent] = useState<Partial<Event>>({
         status: EventStatus.UPCOMING,
         academiesIds: [],
@@ -107,8 +108,10 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                 });
                 setEvents((prev: Event[]) => [created, ...prev]);
 
-                if (created.salespersonId) {
-                    notifyUser(created.salespersonId, `Você foi atribuído ao novo evento "${created.name}".`);
+                if (created.salespersonIds && created.salespersonIds.length > 0) {
+                    created.salespersonIds.forEach(id => {
+                        notifyUser(id, `Você foi atribuído ao novo evento "${created.name}".`);
+                    });
                 }
 
                 toast.success('Evento criado com sucesso!', { id: loadingToast });
@@ -130,6 +133,23 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
         });
     };
 
+    const handleAddVendor = (vendorId: string) => {
+        if (!newEvent.salespersonIds?.includes(vendorId)) {
+            setNewEvent({
+                ...newEvent,
+                salespersonIds: [...(newEvent.salespersonIds || []), vendorId]
+            });
+        }
+        setShowAddVendorModal(false);
+    };
+
+    const handleRemoveVendor = (vendorId: string) => {
+        setNewEvent({
+            ...newEvent,
+            salespersonIds: (newEvent.salespersonIds || []).filter(id => id !== vendorId)
+        });
+    };
+
     const handleDeleteEvent = async (e: React.MouseEvent, eventId: string, eventName: string) => {
         e.stopPropagation();
         if (window.confirm(`Deseja realmente excluir o evento "${eventName}"?`)) {
@@ -140,8 +160,10 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                     await DatabaseService.deleteEvent(eventId);
                     setEvents((prev: Event[]) => prev.filter(ev => ev.id !== eventId));
 
-                    if (eventToDelete?.salespersonId) {
-                        notifyUser(eventToDelete.salespersonId, `O evento "${eventName}" foi removido pelo administrador.`);
+                    if (eventToDelete?.salespersonIds && eventToDelete.salespersonIds.length > 0) {
+                        eventToDelete.salespersonIds.forEach(id => {
+                            notifyUser(id, `O evento "${eventName}" foi removido pelo administrador.`);
+                        });
                     }
 
                     toast.success(`Evento "${eventName}" excluído com sucesso!`, { id: loadingToast });
@@ -251,11 +273,13 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                     <span>{e.city} - {e.state}</span>
                                 </div>
 
-                                {e.salespersonId && (
-                                    <div className="flex items-center space-x-2 text-xs text-white/80 mb-2 font-bold drop-shadow-md">
-                                        <span className="bg-white/10 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
-                                            {vendedores.find(v => v.id === e.salespersonId)?.name || 'Vendedor Desconhecido'}
-                                        </span>
+                                {e.salespersonIds && e.salespersonIds.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 text-xs text-white/80 mb-2 font-bold drop-shadow-md">
+                                        {e.salespersonIds.map(id => (
+                                            <span key={id} className="bg-white/10 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
+                                                {vendedores.find(v => v.id === id)?.name || 'Vendedor Desconhecido'}
+                                            </span>
+                                        ))}
                                     </div>
                                 )}
 
@@ -365,20 +389,47 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Vendedor Responsável (Opcional)</label>
-                                <select
-                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                    value={newEvent.salespersonId || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, salespersonId: e.target.value || undefined })}
-                                >
-                                    <option value="" className="bg-[hsl(222,47%,15%)]">Vincular depois...</option>
-                                    {vendedores.map(v => (
-                                        <option key={v.id} value={v.id} className="bg-[hsl(222,47%,15%)]">
-                                            {v.name}
-                                        </option>
-                                    ))}
-                                </select>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">
+                                        Vendedores Responsáveis (Opcional)
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddVendorModal(true)}
+                                        className="bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase px-3 py-1.5 rounded-lg flex items-center transition-all border border-white/10"
+                                    >
+                                        <Plus size={14} strokeWidth={1.5} className="mr-1.5" /> Adicionar Vendedor
+                                    </button>
+                                </div>
+
+                                <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden">
+                                    <div className="divide-y divide-white/5">
+                                        {newEvent.salespersonIds && newEvent.salespersonIds.length > 0 ? (
+                                            newEvent.salespersonIds.map(id => {
+                                                const vendor = vendedores.find(v => v.id === id);
+                                                return (
+                                                    <div key={id} className="p-3 flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors">
+                                                        <div>
+                                                            <p className="font-bold text-white text-sm">{vendor?.name || 'Vendedor Desconhecido'}</p>
+                                                            <p className="text-[10px] text-white/60">{vendor?.city ? `${vendor.city} - ` : ''}{vendor?.email}</p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveVendor(id)}
+                                                            className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+                                                            title="Remover Vendedor"
+                                                        >
+                                                            <Trash2 size={14} strokeWidth={1.5} />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="p-4 text-center text-white/40 text-xs italic">Nenhum vendedor selecionado.</div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Photo Upload Section */}
@@ -442,6 +493,50 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                 )}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {showAddVendorModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
+                    <div className="bg-neutral-800 rounded-3xl w-full max-w-md shadow-2xl border border-neutral-700 overflow-hidden flex flex-col max-h-[85vh]">
+                        <div className="p-6 border-b border-neutral-700 flex justify-between items-center bg-neutral-800/50">
+                            <div>
+                                <h3 className="text-xl font-bold text-white">Selecionar Vendedor</h3>
+                                <p className="text-xs text-neutral-400 mt-1">
+                                    Quem será responsável por este evento?
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowAddVendorModal(false)}
+                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-xl transition-colors"
+                            >
+                                <X size={18} strokeWidth={1.5} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-neutral-900/20">
+                            {vendedores.filter(v => !newEvent.salespersonIds?.includes(v.id)).length > 0 ? (
+                                vendedores.filter(v => !newEvent.salespersonIds?.includes(v.id)).map(v => (
+                                    <button
+                                        key={v.id}
+                                        type="button"
+                                        onClick={() => handleAddVendor(v.id)}
+                                        className="w-full p-4 flex justify-between items-center bg-neutral-800/50 border border-neutral-700 hover:border-emerald-500 transition-all rounded-2xl group text-left"
+                                    >
+                                        <div>
+                                            <p className="font-bold text-white">{v.name}</p>
+                                            <p className="text-[10px] text-neutral-400 mt-1">{v.city ? `${v.city} - ` : ''}{v.email}</p>
+                                        </div>
+                                        <div className="bg-neutral-900 p-2 rounded-xl text-neutral-500 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                            <Plus size={16} strokeWidth={2} />
+                                        </div>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="p-8 text-center text-neutral-500 text-sm italic">Todos os vendedores já foram selecionados.</div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

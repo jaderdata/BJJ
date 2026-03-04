@@ -43,7 +43,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
   const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || {
     eventId,
     academyId: academy.id,
-    salespersonId: event.salespersonId!,
+    salespersonId: event.salespersonIds?.[0] || '',
     status: VisitStatus.PENDING,
     vouchersGenerated: [],
     temperature: undefined,

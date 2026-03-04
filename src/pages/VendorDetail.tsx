@@ -1,6 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { User, Visit, Event, FinanceRecord, Academy, Voucher, VisitStatus, AcademyTemperature, ContactPerson, UserRole } from '../types';
 import { mkConfig, generateCsv, download } from 'export-to-csv';
+import {
+    formatTime,
+    filterVendorVisits,
+    countVendorVouchers,
+    calculateTemperatureStats,
+    calculateContactStats,
+    calculateAvgVisitMinutes,
+} from '../lib/business-utils';
 
 interface VendorDetailProps {
     vendor: User;
@@ -25,19 +33,10 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
 
     // Base Sets
     // Base Sets - Unified logic matching Dashboard
-    const vendorVisits = useMemo(() => {
-        return visits.filter(v => {
-            const event = events.find(e => e.id === v.eventId);
-            if (event?.isTest) return false;
-
-            // Check visit salesperson first, then fallback to event salesperson
-            const sellerId = v.salespersonId || event?.salespersonId;
-            return sellerId === vendor.id;
-        });
-    }, [visits, events, vendor.id]);
+    const vendorVisits = useMemo(() => filterVendorVisits(visits, events, vendor.id), [visits, events, vendor.id]);
 
     const completedVisits = useMemo(() => vendorVisits.filter(v => v.status === VisitStatus.VISITED), [vendorVisits]);
-    const vendorEvents = useMemo(() => events.filter(e => !e.isTest && e.salespersonId === vendor.id), [events, vendor.id]);
+    const vendorEvents = useMemo(() => events.filter(e => !e.isTest && e.salespersonIds?.includes(vendor.id)), [events, vendor.id]);
     const vendorFinance = useMemo(() => finance.filter(f => f.salespersonId === vendor.id), [finance, vendor.id]);
 
     // Aggregates
@@ -50,7 +49,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
             // Must match vendor
             const visit = visits.find(vis => vis.id === v.visitId);
             if (!visit) return false;
-            const sellerId = visit.salespersonId || event?.salespersonId;
+            const sellerId = visit.salespersonId || event?.salespersonIds?.[0];
             if (sellerId !== vendor.id) return false;
 
             return visit.vouchersGenerated?.includes(v.code);
@@ -59,68 +58,19 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
     }, [vouchers, events, visits, vendor.id]);
 
     const totalReceived = vendorFinance.reduce((sum, f) => sum + f.amount, 0);
-    const totalVouchersCount = useMemo(() => {
-        return vouchers.filter(v => {
-            const event = events.find(e => e.id === v.eventId);
-            if (event?.isTest) return false;
-
-            // Check if this voucher belongs to this vendor
-            const visit = visits.find(vis => vis.id === v.visitId);
-            if (!visit) return false;
-
-            const sellerId = visit.salespersonId || event?.salespersonId;
-            if (sellerId !== vendor.id) return false;
-
-            // Robust Filtering: Must be in the visit's list
-            return visit.vouchersGenerated?.includes(v.code);
-        }).length;
-    }, [vouchers, events, visits, vendor.id]);
+    const totalVouchersCount = useMemo(() => countVendorVouchers(vouchers, events, visits, vendor.id), [vouchers, events, visits, vendor.id]);
 
     // Materials
     const bannersLeft = useMemo(() => completedVisits.filter(v => v.leftBanner).length, [completedVisits]);
 
     // Breakdown: Temperature
-    const tempStats = useMemo(() => {
-        const counts = { [AcademyTemperature.HOT]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.COLD]: 0 };
-        completedVisits.forEach(v => {
-            // Robust fallback: unclassified to WARM
-            const temp = v.temperature || AcademyTemperature.WARM;
-            if (counts[temp] !== undefined) counts[temp]++;
-        });
-        return counts;
-    }, [completedVisits]);
+    const tempStats = useMemo(() => calculateTemperatureStats(completedVisits), [completedVisits]);
 
     // Breakdown: Contact
-    const contactStats = useMemo(() => {
-        const counts = { [ContactPerson.OWNER]: 0, [ContactPerson.TEACHER]: 0, [ContactPerson.STAFF]: 0, [ContactPerson.NOBODY]: 0 };
-        completedVisits.forEach(v => {
-            // Robust fallback: unclassified to NOBODY
-            const contact = v.contactPerson || ContactPerson.NOBODY;
-            if (counts[contact] !== undefined) counts[contact]++;
-        });
-        return counts;
-    }, [completedVisits]);
+    const contactStats = useMemo(() => calculateContactStats(completedVisits), [completedVisits]);
 
     // Avg Time Calculation
-    const avgVisitMinutes = useMemo(() => {
-        const timedVisits = completedVisits.filter(v => {
-            if (!v.startedAt || !v.finishedAt) return false;
-            const start = new Date(v.startedAt).getTime();
-            const end = new Date(v.finishedAt).getTime();
-            const diff = (end - start) / 1000 / 60;
-            return diff > 0 && diff < 480; // Filter out negative or > 8h outliers
-        });
-
-        if (timedVisits.length === 0) return 0;
-
-        const totalMinutes = timedVisits.reduce((sum, v) => {
-            const start = new Date(v.startedAt!).getTime();
-            const end = new Date(v.finishedAt!).getTime();
-            return sum + ((end - start) / 1000 / 60);
-        }, 0);
-
-        return Math.round(totalMinutes / timedVisits.length);
-    }, [completedVisits]);
+    const avgVisitMinutes = useMemo(() => calculateAvgVisitMinutes(completedVisits), [completedVisits]);
 
     // Recent Activity Feed (Top 50)
     const recentActivity = useMemo(() => {
@@ -166,12 +116,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
         download(csvConfig)(csv);
     };
 
-    const formatTime = (minutes: number) => {
-        if (minutes < 60) return `${minutes} min`;
-        const h = Math.floor(minutes / 60);
-        const m = minutes % 60;
-        return `${h}h ${m}m`;
-    };
+    // formatTime imported from business-utils
 
     return (
         <div className="space-y-8 p-6 md:p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4">

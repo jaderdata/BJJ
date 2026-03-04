@@ -45,7 +45,7 @@ export interface Event {
   state: string;
   address: string;
   status: EventStatus;
-  salespersonId?: string;
+  salespersonIds?: string[];
   academiesIds: string[];
   date: string; // Maintain for legacy if needed/sorting
   startDate: string;

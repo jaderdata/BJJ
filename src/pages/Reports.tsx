@@ -144,7 +144,7 @@ export const Reports: React.FC<ReportsProps> = ({
 
             const matchesYear = !yearFilter || new Date(v.createdAt).getFullYear().toString() === yearFilter;
             const matchesEvent = !eventFilter || v.eventId === eventFilter;
-            const matchesSales = !salesFilter || (visit?.salespersonId === salesFilter || event?.salespersonId === salesFilter);
+            const matchesSales = !salesFilter || (visit?.salespersonId === salesFilter || event?.salespersonIds?.includes(salesFilter));
 
             return matchesSearch && matchesYear && matchesEvent && matchesSales;
         });
@@ -301,8 +301,8 @@ export const Reports: React.FC<ReportsProps> = ({
                     const visitB = visits.find(v => v.id === b.visitId);
                     const eventA = events.find(e => e.id === a.eventId);
                     const eventB = events.find(e => e.id === b.eventId);
-                    compareA = vendedores.find(u => u.id === (visitA?.salespersonId || eventA?.salespersonId))?.name || '';
-                    compareB = vendedores.find(u => u.id === (visitB?.salespersonId || eventB?.salespersonId))?.name || '';
+                    compareA = vendedores.find(u => u.id === (visitA?.salespersonId || eventA?.salespersonIds?.[0]))?.name || '';
+                    compareB = vendedores.find(u => u.id === (visitB?.salespersonId || eventB?.salespersonIds?.[0]))?.name || '';
                     break;
             }
 
@@ -320,7 +320,7 @@ export const Reports: React.FC<ReportsProps> = ({
     const uniqueSellers = new Set(filteredVouchers.map(v => {
         const visit = visits.find(vis => vis.id === v.visitId);
         const event = events.find(e => e.id === v.eventId);
-        return visit?.salespersonId || event?.salespersonId;
+        return visit?.salespersonId || event?.salespersonIds?.[0];
     })).size;
 
     // Export PDF function
@@ -401,7 +401,7 @@ export const Reports: React.FC<ReportsProps> = ({
                     const visit = visits.find(vis => vis.id === v.visitId);
                     const academy = academies.find(a => a.id === v.academyId);
                     const event = events.find(e => e.id === v.eventId);
-                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId));
+                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]));
 
                     let durationStr = '---';
                     if (visit?.startedAt && visit?.finishedAt) {
@@ -510,7 +510,7 @@ export const Reports: React.FC<ReportsProps> = ({
                     const visit = visits.find(vis => vis.id === v.visitId);
                     const academy = academies.find(a => a.id === v.academyId);
                     const event = events.find(e => e.id === v.eventId);
-                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId));
+                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]));
 
                     let duration = 0;
                     if (visit?.startedAt && visit?.finishedAt) {
@@ -960,7 +960,7 @@ export const Reports: React.FC<ReportsProps> = ({
                                         const visit = visits.find(vis => vis.id === v.visitId);
                                         const academy = academies.find(a => a.id === v.academyId);
                                         const event = events.find(e => e.id === v.eventId);
-                                        const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId));
+                                        const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]));
 
                                         return (
                                             <tr key={v.code} className="hover:bg-white/5 transition-colors group">
@@ -1011,7 +1011,7 @@ export const Reports: React.FC<ReportsProps> = ({
                                             if (groupBy === 'seller') {
                                                 const visit = visits.find(vis => vis.id === v.visitId);
                                                 const event = events.find(e => e.id === v.eventId);
-                                                key = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || 'Sistêmico';
+                                                key = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]))?.name || 'Sistêmico';
                                             } else if (groupBy === 'event') {
                                                 key = events.find(e => e.id === v.eventId)?.name || 'Eventos Antigos';
                                             }
@@ -1037,7 +1037,7 @@ export const Reports: React.FC<ReportsProps> = ({
                                                     const visit = visits.find(vis => vis.id === v.visitId);
                                                     const academy = academies.find(a => a.id === v.academyId);
                                                     const event = events.find(e => e.id === v.eventId);
-                                                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId));
+                                                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]));
                                                     return (
                                                         <tr key={v.code} className="hover:bg-white/5 transition-colors group">
                                                             <td className="px-4 py-3">

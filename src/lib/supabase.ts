@@ -124,14 +124,16 @@ export const DatabaseService = {
     async getEvents() {
         const { data, error } = await supabase
             .from('events')
-            .select('*, event_academies(academy_id, is_active)')
+            .select('*, event_academies(academy_id, is_active), event_salespersons(salesperson_id)')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
         // Map snake_case to camelCase
         return data.map((e: any) => ({
             ...e,
-            salespersonId: e.salesperson_id,
+            salespersonIds: e.event_salespersons && e.event_salespersons.length > 0
+                ? e.event_salespersons.map((s: any) => s.salesperson_id)
+                : (e.salesperson_id ? [e.salesperson_id] : []),
             academiesIds: e.event_academies
                 ? e.event_academies
                     .filter((ea: any) => ea.is_active !== false)
@@ -152,7 +154,6 @@ export const DatabaseService = {
             state: event.state,
             address: event.address,
             status: event.status,
-            salesperson_id: event.salespersonId || null,
             event_date: event.startDate || event.date,
             start_date: event.startDate,
             end_date: event.endDate,
@@ -160,9 +161,20 @@ export const DatabaseService = {
             is_test: event.isTest
         }).select().single();
         if (error) throw error;
+
+        const salespersonIds = event.salespersonIds || [];
+        if (salespersonIds.length > 0) {
+            const spPayload = salespersonIds.map(id => ({
+                event_id: data.id,
+                salesperson_id: id
+            }));
+            const { error: spError } = await supabase.from('event_salespersons').insert(spPayload);
+            if (spError) throw spError;
+        }
+
         return {
             ...data,
-            salespersonId: data.salesperson_id,
+            salespersonIds: salespersonIds,
             academiesIds: [],
             date: data.event_date,
             startDate: data.start_date,
@@ -179,14 +191,36 @@ export const DatabaseService = {
             state: event.state,
             address: event.address,
             status: event.status,
-            salesperson_id: event.salespersonId || null,
             event_date: event.startDate || event.date,
             start_date: event.startDate,
             end_date: event.endDate,
             photo_url: event.photoUrl || null,
             is_test: event.isTest
         }).eq('id', id);
-        if (error) throw error;
+        if (error) {
+            console.error('[updateEvent] Error updating events table:', error);
+            throw error;
+        }
+
+        if (event.salespersonIds !== undefined) {
+            const { error: delError } = await supabase.from('event_salespersons').delete().eq('event_id', id);
+            if (delError) {
+                console.error('[updateEvent] Error deleting from event_salespersons:', delError);
+                throw delError;
+            }
+
+            if (event.salespersonIds.length > 0) {
+                const spPayload = event.salespersonIds.map(spId => ({
+                    event_id: id,
+                    salesperson_id: spId
+                }));
+                const { error: insError } = await supabase.from('event_salespersons').insert(spPayload);
+                if (insError) {
+                    console.error('[updateEvent] Error inserting into event_salespersons:', insError);
+                    throw insError;
+                }
+            }
+        }
     },
 
     async deleteEvent(id: string) {

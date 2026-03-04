@@ -404,23 +404,37 @@ const AppContent: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
 
       // 4. Notifications
-      if (oldEvent && oldEvent.salespersonId !== updatedEvent.salespersonId) {
-        if (updatedEvent.salespersonId) {
-          notifyUser(updatedEvent.salespersonId, `Você é o novo responsável pelo evento "${updatedEvent.name}".`);
-        }
-        if (oldEvent.salespersonId) {
-          notifyUser(oldEvent.salespersonId, `Você não é mais o responsável pelo evento "${oldEvent.name}".`);
-        }
-      }
+      if (oldEvent) {
+        const oldSalespersonIds = oldEvent.salespersonIds || [];
+        const newSalespersonIds = updatedEvent.salespersonIds || [];
 
-      if (oldEvent && updatedEvent.salespersonId) {
-        const added = updatedEvent.academiesIds.filter(id => !oldEvent.academiesIds.includes(id));
-        if (added.length > 0) {
-          notifyUser(updatedEvent.salespersonId, `${added.length} novas academias atribuídas ao evento "${updatedEvent.name}".`);
-        }
+        const addedIds = newSalespersonIds.filter(id => !oldSalespersonIds.includes(id));
+        const removedIds = oldSalespersonIds.filter(id => !newSalespersonIds.includes(id));
 
-        if (oldEvent.name !== updatedEvent.name || oldEvent.city !== updatedEvent.city || oldEvent.state !== updatedEvent.state) {
-          notifyUser(updatedEvent.salespersonId, `As informações do evento "${updatedEvent.name}" foram atualizadas.`);
+        addedIds.forEach(id => {
+          notifyUser(id, `Você é o novo responsável pelo evento "${updatedEvent.name}".`);
+        });
+
+        removedIds.forEach(id => {
+          notifyUser(id, `Você não é mais o responsável pelo evento "${oldEvent.name}".`);
+        });
+
+        // Notifications for existing salespersons (still linked) if event details changed or academies assigned
+        const keptIds = newSalespersonIds.filter(id => oldSalespersonIds.includes(id));
+        if (keptIds.length > 0) {
+          const addedAcademies = updatedEvent.academiesIds.filter(id => !oldEvent.academiesIds.includes(id));
+
+          if (addedAcademies.length > 0) {
+            keptIds.forEach(id => {
+              notifyUser(id, `${addedAcademies.length} novas academias atribuídas ao evento "${updatedEvent.name}".`);
+            });
+          }
+
+          if (oldEvent.name !== updatedEvent.name || oldEvent.city !== updatedEvent.city || oldEvent.state !== updatedEvent.state) {
+            keptIds.forEach(id => {
+              notifyUser(id, `As informações do evento "${updatedEvent.name}" foram atualizadas.`);
+            });
+          }
         }
       }
 
@@ -616,7 +630,7 @@ const AppContent: React.FC = () => {
 
             {activeTab === 'my_events' && (
               <SalespersonEvents
-                events={events.filter((e: Event) => e.salespersonId === currentUser.id)}
+                events={events.filter((e: Event) => e.salespersonIds && e.salespersonIds.includes(currentUser.id))}
                 academies={academies}
                 visits={visits}
                 notifications={notifications.filter((n: Notification) => n.userId === currentUser.id && !n.read)}

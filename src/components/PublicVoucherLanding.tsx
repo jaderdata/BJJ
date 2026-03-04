@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, MessageCircle, CheckCircle2, Copy, X } from 'lucide-react';
 import { DatabaseService } from '../lib/supabase';
+import { formatPhone, getCleanPhone, isExpired as checkExpired } from '../lib/business-utils';
 
 interface PublicVoucherLandingProps {
     academyName: string;
@@ -17,7 +18,7 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
     const [phoneCountry, setPhoneCountry] = useState<'BR' | 'US' | 'PT'>('US');
     const [loadingPhone, setLoadingPhone] = useState(true);
 
-    const COUNTRY_CODES: Record<string, string> = { US: '1', BR: '55', PT: '351' };
+    // COUNTRY_CODES moved to business-utils
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -43,46 +44,29 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
         fetchSettings();
     }, []);
 
-    const now = Date.now();
-    const expirationTime = 24 * 60 * 60 * 1000; // 24 hours
-    const isExpired = createdAt > 0 && (now - createdAt > expirationTime);
+    const isExpired = checkExpired(createdAt);
 
     const getMessageBody = () => {
         return `PBJJF Voucher Redemption\n\nAcademy: ${academyName}\nVouchers: ${codes.join(', ')}\n\nPlease confirm receipt and processing.`;
     };
 
-    const getCleanPhone = (phone: string) => {
-        const clean = String(phone).replace(/"/g, '').replace(/\D/g, '');
-        const prefix = COUNTRY_CODES[phoneCountry] || '1';
-        return `${prefix}${clean}`;
-    };
+    const getClean = (phone: string) => getCleanPhone(phone, phoneCountry);
 
     const handleWhatsApp = () => {
         const text = encodeURIComponent(getMessageBody());
-        const cleanPhone = getCleanPhone(redemptionPhone);
-        window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
+        const clean = getClean(redemptionPhone);
+        window.open(`https://wa.me/${clean}?text=${text}`, '_blank');
     };
 
     const handleSMS = () => {
         const body = encodeURIComponent(getMessageBody());
-        const cleanPhone = getCleanPhone(redemptionPhone);
-        window.location.href = `sms:${cleanPhone}?body=${body}`;
+        const clean = getClean(redemptionPhone);
+        window.location.href = `sms:${clean}?body=${body}`;
     };
 
-    const formatPhone = (p: string) => {
-        const clean = p.replace(/\D/g, '');
-        const prefix = COUNTRY_CODES[phoneCountry] || '1';
-        if (phoneCountry === 'US' && clean.length === 10) {
-            return `+${prefix} (${clean.slice(0, 3)}) ${clean.slice(3, 6)}-${clean.slice(6)}`;
-        } else if (phoneCountry === 'BR' && clean.length >= 10) {
-            return `+${prefix} (${clean.slice(0, 2)}) ${clean.slice(2, clean.length === 11 ? 7 : 6)}-${clean.slice(clean.length === 11 ? 7 : 6)}`;
-        } else if (phoneCountry === 'PT' && clean.length === 9) {
-            return `+${prefix} ${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6)}`;
-        }
-        return `+${prefix} ${clean}`;
-    };
+    // formatPhone imported from business-utils
 
-    const contentToCopy = `Academy: ${academyName}\nVouchers: ${codes.join(', ')}\n\nRedeem at: ${formatPhone(redemptionPhone)}`;
+    const contentToCopy = `Academy: ${academyName}\nVouchers: ${codes.join(', ')}\n\nRedeem at: ${formatPhone(redemptionPhone, phoneCountry)}`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(contentToCopy);

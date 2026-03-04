@@ -107,7 +107,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 const event = events.find(e => e.id === v.eventId);
                 const eventName = event?.name || 'Sem Evento';
                 const academyName = academies.find(a => a.id === v.academyId)?.name || '';
-                const sellerName = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonId))?.name || '';
+                const sellerName = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]))?.name || '';
                 const dateStr = new Date(v.createdAt).toLocaleDateString('pt-BR');
 
                 if (!groupedData[eventName]) {
@@ -240,7 +240,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             let sellerId = v.salespersonId;
             if (!sellerId) {
                 const event = events.find(e => e.id === v.eventId);
-                sellerId = event?.salespersonId;
+                // Fallback to the first salesperson in the array if visit has no explicitly recorded salesperson
+                sellerId = event?.salespersonIds?.[0];
             }
 
             if (sellerId && stats[sellerId]) {

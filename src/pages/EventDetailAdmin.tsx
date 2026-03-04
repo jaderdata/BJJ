@@ -41,6 +41,7 @@ interface EventDetailAdminProps {
 export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, academies, visits, vendedores, onBack, onUpdateEvent, notifyUser, events }) => {
     const { withLoading } = useLoading();
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showAddVendorModal, setShowAddVendorModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [cityFilter, setCityFilter] = useState('');
     const [stateFilter, setStateFilter] = useState('');
@@ -106,21 +107,26 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
         }
     };
 
-    const handleSalespersonChange = (newSalespersonId: string) => {
-        const oldSalespersonId = event.salespersonId;
-        const newSalesperson = vendedores.find(v => v.id === newSalespersonId);
+    const handleAddVendor = (vendorId: string) => {
+        if (!event.salespersonIds?.includes(vendorId)) {
+            const newSalespersonIds = [...(event.salespersonIds || []), vendorId];
+            onUpdateEvent({ ...event, salespersonIds: newSalespersonIds });
 
-        onUpdateEvent({ ...event, salespersonId: newSalespersonId || undefined });
-
-        if (newSalespersonId && newSalespersonId !== oldSalespersonId) {
-            notifyUser(newSalespersonId, `Você foi atribuído ao evento "${event.name}".`);
-            toast.success(`Vendedor "${newSalesperson?.name}" atribuído ao evento.`);
-        } else if (!newSalespersonId && oldSalespersonId) {
-            toast.info('Vendedor removido do evento.');
+            const newSalesperson = vendedores.find(v => v.id === vendorId);
+            notifyUser(vendorId, `Você foi atribuído ao evento "${event.name}".`);
+            toast.success(`Vendedor "${newSalesperson?.name || 'Desconhecido'}" atribuído ao evento.`);
         }
+        setShowAddVendorModal(false);
+    };
 
-        if (oldSalespersonId && oldSalespersonId !== newSalespersonId) {
-            notifyUser(oldSalespersonId, `Você não é mais o responsável pelo evento "${event.name}".`);
+    const handleRemoveVendor = (vendorId: string) => {
+        const vendor = vendedores.find(v => v.id === vendorId);
+        if (window.confirm(`Deseja remover o vendedor "${vendor?.name}" deste evento?`)) {
+            const newSalespersonIds = (event.salespersonIds || []).filter(id => id !== vendorId);
+            onUpdateEvent({ ...event, salespersonIds: newSalespersonIds });
+
+            notifyUser(vendorId, `Você não é mais o responsável pelo evento "${event.name}".`);
+            toast.info(`Vendedor removido do evento.`);
         }
     };
 
@@ -180,7 +186,8 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                 setSelectedPhoto(null);
             } catch (error: any) {
                 console.error('Error updating event:', error);
-                toast.error(`Erro ao atualizar evento: ${error.message}`, { id: loadingToast });
+                const errorMessage = error?.message || JSON.stringify(error) || "Erro desconhecido";
+                toast.error(`Erro ao atualizar evento: ${errorMessage}`, { id: loadingToast });
             } finally {
                 setIsUploading(false);
             }
@@ -490,28 +497,51 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
 
                 <div className="space-y-6">
                     <div className="bg-neutral-800 p-6 rounded-3xl border border-neutral-700 shadow-sm space-y-6">
-                        <div className="space-y-1">
-                            <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest flex items-center">
-                                Vendedor Responsável
-                            </h4>
-                            <p className="text-[10px] text-neutral-400 mb-3 italic">Defina quem executará as visitas</p>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest flex items-center">
+                                    Vendedores Responsáveis
+                                </h4>
+                                <button
+                                    onClick={() => setShowAddVendorModal(true)}
+                                    className="bg-white hover:bg-neutral-200 text-neutral-900 text-[10px] font-bold uppercase px-3 py-1.5 rounded-lg flex items-center transition-all shadow-lg active:scale-95"
+                                >
+                                    <Plus size={14} strokeWidth={1.5} className="mr-1.5" /> Adicionar Vendedor
+                                </button>
+                            </div>
 
-                            <select
-                                value={event.salespersonId || ''}
-                                onChange={(e) => handleSalespersonChange(e.target.value)}
-                                className="w-full border border-neutral-600 p-3 rounded-xl bg-neutral-900 focus:bg-neutral-800 outline-none focus:ring-2 focus:ring-white transition-all font-bold text-white"
-                            >
-                                <option value="">Nenhum Atribuído</option>
-                                {vendedores.map(v => (
-                                    <option key={v.id} value={v.id} className="bg-neutral-800">{v.name}</option>
-                                ))}
-                            </select>
+                            <div className="bg-neutral-900 rounded-2xl border border-neutral-700 overflow-hidden">
+                                <div className="divide-y divide-neutral-800">
+                                    {event.salespersonIds && event.salespersonIds.length > 0 ? (
+                                        event.salespersonIds.map(id => {
+                                            const vendor = vendedores.find(v => v.id === id);
+                                            return (
+                                                <div key={id} className="p-4 flex justify-between items-center bg-neutral-800 hover:bg-neutral-700 transition-colors">
+                                                    <div>
+                                                        <p className="font-bold text-white text-sm">{vendor?.name || 'Vendedor Desconhecido'}</p>
+                                                        <p className="text-[10px] text-neutral-400">{vendor?.city ? `${vendor.city} - ` : ''}{vendor?.email}</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleRemoveVendor(id)}
+                                                        className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
+                                                        title="Remover Vendedor"
+                                                    >
+                                                        <Trash2 size={14} strokeWidth={1.5} />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="p-4 text-center text-neutral-500 text-xs italic">Nenhum vendedor atribuído.</div>
+                                    )}
+                                </div>
+                            </div>
 
-                            <div className="mt-4 p-3 bg-neutral-900/30 border border-neutral-800/50 rounded-xl">
+                            <div className="p-3 bg-neutral-900/30 border border-neutral-800/50 rounded-xl">
                                 <div className="flex items-start space-x-2">
                                     <Info size={14} strokeWidth={1.5} className="text-neutral-400 mt-0.5" />
                                     <p className="text-[10px] text-neutral-300 leading-relaxed font-medium">
-                                        Ao alterar o vendedor, ele receberá uma notificação instantânea e o evento passará a aparecer em seu dashboard exclusivo.
+                                        Ao vincular vendedores, eles receberão uma notificação instantânea e o evento passará a aparecer em seus dashboards exclusivos.
                                     </p>
                                 </div>
                             </div>
@@ -630,6 +660,49 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     <span>Vincular Selecionadas</span>
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showAddVendorModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
+                    <div className="bg-neutral-800 rounded-3xl w-full max-w-md shadow-2xl border border-neutral-700 overflow-hidden flex flex-col max-h-[85vh]">
+                        <div className="p-6 border-b border-neutral-700 flex justify-between items-center bg-neutral-800/50">
+                            <div>
+                                <h3 className="text-xl font-bold text-white">Adicionar Vendedor</h3>
+                                <p className="text-xs text-neutral-400 mt-1">
+                                    Selecione quem será responsável por este evento.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowAddVendorModal(false)}
+                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-xl transition-colors"
+                            >
+                                <X size={18} strokeWidth={1.5} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-neutral-900/20">
+                            {vendedores.filter(v => !event.salespersonIds?.includes(v.id)).length > 0 ? (
+                                vendedores.filter(v => !event.salespersonIds?.includes(v.id)).map(v => (
+                                    <button
+                                        key={v.id}
+                                        onClick={() => handleAddVendor(v.id)}
+                                        className="w-full p-4 flex justify-between items-center bg-neutral-800/50 border border-neutral-700 hover:border-blue-500 transition-all rounded-2xl group text-left"
+                                    >
+                                        <div>
+                                            <p className="font-bold text-white">{v.name}</p>
+                                            <p className="text-[10px] text-neutral-400 mt-1">{v.city ? `${v.city} - ` : ''}{v.email}</p>
+                                        </div>
+                                        <div className="bg-neutral-900 p-2 rounded-xl text-neutral-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                            <Plus size={16} strokeWidth={2} />
+                                        </div>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="p-8 text-center text-neutral-500 text-sm italic">Todos os vendedores já estão vinculados.</div>
+                            )}
                         </div>
                     </div>
                 </div>

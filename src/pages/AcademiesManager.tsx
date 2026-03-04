@@ -80,7 +80,10 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
 
                     // Notify salespeople of events where this academy is present
                     const relatedEvents = events.filter(e => e.academiesIds.includes(updated.id));
-                    const salespeopleToNotify = new Set(relatedEvents.map(e => e.salespersonId).filter(Boolean) as string[]);
+                    const salespeopleToNotify = new Set<string>();
+                    relatedEvents.forEach(e => {
+                        e.salespersonIds?.forEach(id => salespeopleToNotify.add(id));
+                    });
 
                     salespeopleToNotify.forEach(sid => {
                         notifyUser(sid, `Os dados da academia "${updated.name}" foram atualizados pelo administrador.`);
@@ -167,223 +170,246 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                         </p>
                     </div>
 
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => setShowInactive(!showInactive)}
-                            className={`px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all border ${showInactive
-                                ? 'bg-amber-500/20 border-amber-500/30 text-amber-500'
-                                : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
-                                }`}
-                        >
-                            {showInactive ? 'Ver Ativas' : 'Ver Inativas'}
-                        </button>
-                        <button
-                            onClick={openNewModal}
-                            className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-xl font-bold flex items-center space-x-2 hover:bg-white/20 transition-all"
-                        >
-                            <Plus size={18} strokeWidth={2} />
-                            <span>Nova Academia</span>
-                        </button>
+                    {/* Academy Counter Badge */}
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
+                            <div className="flex flex-col items-center">
+                                <span className="text-2xl font-black text-emerald-400 leading-none">
+                                    {academies.filter(a => a.status === 'ACTIVE' || !a.status).length}
+                                </span>
+                                <span className="text-[9px] font-black text-white/30 uppercase tracking-widest mt-0.5">Ativas</span>
+                            </div>
+                            {academies.some(a => a.status === 'INACTIVE') && (
+                                <>
+                                    <div className="w-px h-8 bg-white/10" />
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-2xl font-black text-amber-400 leading-none">
+                                            {academies.filter(a => a.status === 'INACTIVE').length}
+                                        </span>
+                                        <span className="text-[9px] font-black text-white/30 uppercase tracking-widest mt-0.5">Inativas</span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowInactive(!showInactive)}
+                                className={`px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all border ${showInactive
+                                    ? 'bg-amber-500/20 border-amber-500/30 text-amber-500'
+                                    : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+                                    }`}
+                            >
+                                {showInactive ? 'Ver Ativas' : 'Ver Inativas'}
+                            </button>
+                            <button
+                                onClick={openNewModal}
+                                className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-xl font-bold flex items-center space-x-2 hover:bg-white/20 transition-all"
+                            >
+                                <Plus size={18} strokeWidth={2} />
+                                <span>Nova Academia</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Academies Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredAcademies.map(academy => (
-                    <div
-                        key={academy.id}
-                        className={`group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border ${academy.status === 'INACTIVE' ? 'border-amber-500/30' : 'border-white/10'} rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2`}
-                    >
-                        {/* Glow effect */}
-                        <div className={`absolute -top-24 -right-24 w-48 h-48 ${academy.status === 'INACTIVE' ? 'bg-amber-500/10' : 'bg-emerald-500/20'} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                {/* Academies Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredAcademies.map(academy => (
+                        <div
+                            key={academy.id}
+                            className={`group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border ${academy.status === 'INACTIVE' ? 'border-amber-500/30' : 'border-white/10'} rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2`}
+                        >
+                            {/* Glow effect */}
+                            <div className={`absolute -top-24 -right-24 w-48 h-48 ${academy.status === 'INACTIVE' ? 'bg-amber-500/10' : 'bg-emerald-500/20'} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
 
-                        <div className="relative z-10">
-                            {/* Header */}
-                            <div className="flex justify-between items-start mb-3">
-                                {academy.status === 'INACTIVE' ? (
-                                    <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-lg uppercase tracking-widest">Inativa</span>
-                                ) : (
-                                    <div />
-                                )}
-                                <div className="flex items-center space-x-1">
-                                    {academy.status === 'INACTIVE' && (
-                                        <button
-                                            aria-label="Restaurar Academia"
-                                            onClick={() => handleRestore(academy)}
-                                            className="p-1.5 text-white/40 hover:text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-all"
-                                            title="Restaurar Academia"
-                                        >
-                                            <Plus size={14} strokeWidth={2} />
-                                        </button>
+                            <div className="relative z-10">
+                                {/* Header */}
+                                <div className="flex justify-between items-start mb-3">
+                                    {academy.status === 'INACTIVE' ? (
+                                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-lg uppercase tracking-widest">Inativa</span>
+                                    ) : (
+                                        <div />
                                     )}
-                                    <button
-                                        aria-label="Editar Academia"
-                                        onClick={() => openEditModal(academy)}
-                                        className="p-1.5 text-white/40 hover:text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all"
-                                        title="Editar Academia"
-                                    >
-                                        <Edit3 size={14} strokeWidth={2} />
-                                    </button>
-                                    <button
-                                        aria-label="Excluir Academia"
-                                        onClick={() => handleDelete(academy.id, academy.name)}
-                                        className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
-                                        title="Excluir Academia"
-                                    >
-                                        <Trash2 size={14} strokeWidth={2} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Content */}
-                            <h4 className={`text-lg font-black text-white mb-2 ${academy.status === 'INACTIVE' ? 'opacity-50' : ''}`}>{academy.name}</h4>
-
-                            <div className="space-y-2 mb-3">
-                                {academy.address && (
-                                    <div className="flex items-center space-x-2 text-xs text-white/60">
-                                        <span className="font-bold">{academy.address}</span>
+                                    <div className="flex items-center space-x-1">
+                                        {academy.status === 'INACTIVE' && (
+                                            <button
+                                                aria-label="Restaurar Academia"
+                                                onClick={() => handleRestore(academy)}
+                                                className="p-1.5 text-white/40 hover:text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-all"
+                                                title="Restaurar Academia"
+                                            >
+                                                <Plus size={14} strokeWidth={2} />
+                                            </button>
+                                        )}
+                                        <button
+                                            aria-label="Editar Academia"
+                                            onClick={() => openEditModal(academy)}
+                                            className="p-1.5 text-white/40 hover:text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all"
+                                            title="Editar Academia"
+                                        >
+                                            <Edit3 size={14} strokeWidth={2} />
+                                        </button>
+                                        <button
+                                            aria-label="Excluir Academia"
+                                            onClick={() => handleDelete(academy.id, academy.name)}
+                                            className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                                            title="Excluir Academia"
+                                        >
+                                            <Trash2 size={14} strokeWidth={2} />
+                                        </button>
                                     </div>
-                                )}
-                                <div className="flex items-center space-x-2 text-xs text-white/60">
-                                    <span className="font-bold">{academy.city} - {academy.state}</span>
                                 </div>
 
-                                {academy.responsible && (
-                                    <div className="flex items-center space-x-2 text-xs text-white/60">
-                                        <span className="font-bold">{academy.responsible}</span>
-                                    </div>
-                                )}
+                                {/* Content */}
+                                <h4 className={`text-lg font-black text-white mb-2 ${academy.status === 'INACTIVE' ? 'opacity-50' : ''}`}>{academy.name}</h4>
 
-                                {academy.phone && (
+                                <div className="space-y-2 mb-3">
+                                    {academy.address && (
+                                        <div className="flex items-center space-x-2 text-xs text-white/60">
+                                            <span className="font-bold">{academy.address}</span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center space-x-2 text-xs text-white/60">
-                                        <span className="font-bold">{academy.phone}</span>
+                                        <span className="font-bold">{academy.city} - {academy.state}</span>
                                     </div>
-                                )}
+
+                                    {academy.responsible && (
+                                        <div className="flex items-center space-x-2 text-xs text-white/60">
+                                            <span className="font-bold">{academy.responsible}</span>
+                                        </div>
+                                    )}
+
+                                    {academy.phone && (
+                                        <div className="flex items-center space-x-2 text-xs text-white/60">
+                                            <span className="font-bold">{academy.phone}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-                    <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
-                        <div className="p-6 border-b border-white/10 flex justify-between items-center">
-                            <h3 className="text-xl font-black text-white">
-                                {editingAcademy ? 'Editar Academia' : 'Nova Academia'}
-                            </h3>
-                            <button
-                                onClick={() => {
-                                    setShowModal(false);
-                                    setEditingAcademy(null);
-                                    setFormData({});
-                                }}
-                                className="text-white/60 hover:text-white transition-colors"
-                            >
-                                <X size={20} strokeWidth={2} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSave} className="p-6 space-y-4">
-                            <input
-                                type="text"
-                                placeholder="Nome da Academia"
-                                value={formData.name || ''}
-                                className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            />
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Endereço</label>
-                                <input
-                                    type="text"
-                                    placeholder="Endereço completo"
-                                    value={formData.address || ''}
-                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                    onChange={e => setFormData({ ...formData, address: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Cidade</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Ex: Orlando"
-                                        value={formData.city || ''}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                        onChange={e => setFormData({ ...formData, city: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">UF</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Ex: FL"
-                                        maxLength={2}
-                                        value={formData.state || ''}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                        onChange={e => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Responsável</label>
-                                <input
-                                    type="text"
-                                    placeholder="Nome do responsável"
-                                    value={formData.responsible || ''}
-                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                    onChange={e => setFormData({ ...formData, responsible: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">País</label>
-                                <select
-                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                    value={selectedCountry}
-                                    onChange={(e) => {
-                                        const newCountry = e.target.value;
-                                        setSelectedCountry(newCountry);
-                                        // Re-apply mask to existing phone number
-                                        const masked = applyPhoneMask(formData.phone || '', newCountry);
-                                        setFormData({ ...formData, phone: masked });
-                                    }}
-                                >
-                                    <option value="BR" className="bg-neutral-900">Brasil</option>
-                                    <option value="US" className="bg-neutral-900">Estados Unidos</option>
-                                    <option value="PT" className="bg-neutral-900">Portugal</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Telefone</label>
-                                <input
-                                    type="text"
-                                    placeholder="Número de telefone"
-                                    value={formData.phone || ''}
-                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                    onChange={(e) => {
-                                        const val = applyPhoneMask(e.target.value, selectedCountry);
-                                        setFormData({ ...formData, phone: val });
-                                    }}
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-emerald-500/50"
-                            >
-                                {editingAcademy ? 'Salvar Alterações' : 'Criar Academia'}
-                            </button>
-                        </form>
-                    </div>
+                    ))}
                 </div>
-            )}
+
+                {/* Modal */}
+                {showModal && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+                        <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
+                            <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                                <h3 className="text-xl font-black text-white">
+                                    {editingAcademy ? 'Editar Academia' : 'Nova Academia'}
+                                </h3>
+                                <button
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        setEditingAcademy(null);
+                                        setFormData({});
+                                    }}
+                                    className="text-white/60 hover:text-white transition-colors"
+                                >
+                                    <X size={20} strokeWidth={2} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSave} className="p-6 space-y-4">
+                                <input
+                                    type="text"
+                                    placeholder="Nome da Academia"
+                                    value={formData.name || ''}
+                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                />
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Endereço</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Endereço completo"
+                                        value={formData.address || ''}
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Cidade</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: Orlando"
+                                            value={formData.city || ''}
+                                            className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                            onChange={e => setFormData({ ...formData, city: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">UF</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: FL"
+                                            maxLength={2}
+                                            value={formData.state || ''}
+                                            className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                            onChange={e => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Responsável</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Nome do responsável"
+                                        value={formData.responsible || ''}
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        onChange={e => setFormData({ ...formData, responsible: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">País</label>
+                                    <select
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        value={selectedCountry}
+                                        onChange={(e) => {
+                                            const newCountry = e.target.value;
+                                            setSelectedCountry(newCountry);
+                                            // Re-apply mask to existing phone number
+                                            const masked = applyPhoneMask(formData.phone || '', newCountry);
+                                            setFormData({ ...formData, phone: masked });
+                                        }}
+                                    >
+                                        <option value="BR" className="bg-neutral-900">Brasil</option>
+                                        <option value="US" className="bg-neutral-900">Estados Unidos</option>
+                                        <option value="PT" className="bg-neutral-900">Portugal</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Telefone</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Número de telefone"
+                                        value={formData.phone || ''}
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        onChange={(e) => {
+                                            const val = applyPhoneMask(e.target.value, selectedCountry);
+                                            setFormData({ ...formData, phone: val });
+                                        }}
+                                    />
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-emerald-500/50"
+                                >
+                                    {editingAcademy ? 'Salvar Alterações' : 'Criar Academia'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
