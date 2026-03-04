@@ -133,7 +133,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
 
                 // Notify salespeople associated with events at this academy
                 const relatedEvents = events.filter(e => e.academiesIds.includes(updated.id));
-                const salespeopleToNotify = new Set(relatedEvents.map(e => e.salespersonId).filter(Boolean) as string[]);
+                const salespeopleToNotify = new Set(relatedEvents.flatMap(e => e.salespersonIds || []));
                 salespeopleToNotify.forEach(sid => {
                     notifyUser(sid, `A academia "${updated.name}" foi atualizada pelo Call-Center.`);
                 });

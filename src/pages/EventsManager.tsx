@@ -50,6 +50,10 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
+    // States for sorting and filtering
+    const [sortBy, setSortBy] = useState<'date' | 'alpha'>('date');
+    const [hideFinished, setHideFinished] = useState(true);
+
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -193,128 +197,175 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                         </p>
                     </div>
 
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-xl font-bold flex items-center space-x-2 hover:bg-white/20 transition-all"
-                    >
-                        <Plus size={18} strokeWidth={2} />
-                        <span>Novo Evento</span>
-                    </button>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                        <div className="flex items-center space-x-2 bg-black/20 p-1.5 rounded-xl border border-white/10">
+                            <select
+                                value={sortBy}
+                                onChange={e => setSortBy(e.target.value as 'date' | 'alpha')}
+                                className="bg-transparent text-white text-sm px-3 py-2 outline-none font-medium cursor-pointer"
+                            >
+                                <option value="date" className="bg-neutral-800">Mais Próximo</option>
+                                <option value="alpha" className="bg-neutral-800">Ordem Alfabética</option>
+                            </select>
+
+                            <div className="w-px h-6 bg-white/10 mx-2"></div>
+
+                            <label className="flex items-center space-x-2 px-3 py-2 cursor-pointer group">
+                                <div className="relative flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={hideFinished}
+                                        onChange={(e) => setHideFinished(e.target.checked)}
+                                        className="sr-only"
+                                    />
+                                    <div className={`w-8 h-4 bg-white/10 rounded-full transition-colors ${hideFinished ? 'bg-emerald-500/50' : ''}`}></div>
+                                    <div className={`absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${hideFinished ? 'translate-x-4' : ''}`}></div>
+                                </div>
+                                <span className="text-white/80 text-xs font-bold uppercase tracking-wider group-hover:text-white transition-colors select-none">
+                                    Ocultar Encerrados
+                                </span>
+                            </label>
+                        </div>
+
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-xl font-bold flex items-center justify-center space-x-2 hover:bg-white/20 transition-all"
+                        >
+                            <Plus size={18} strokeWidth={2} />
+                            <span>Novo Evento</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Events Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {events.map(e => {
-                    const totalAcademies = e.academiesIds.length;
-                    const completedVisits = e.academiesIds.filter(aid =>
-                        visits.some(v => v.eventId === e.id && v.academyId === aid && v.status === VisitStatus.VISITED)
-                    ).length;
-                    const progress = totalAcademies > 0 ? Math.round((completedVisits / totalAcademies) * 100) : 0;
+                {events
+                    .filter(e => {
+                        if (!hideFinished) return true;
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const endDate = new Date(e.endDate);
+                        endDate.setHours(0, 0, 0, 0);
+                        return today <= endDate; // Return only events that end today or in the future
+                    })
+                    .sort((a, b) => {
+                        if (sortBy === 'date') {
+                            return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+                        } else {
+                            return a.name.localeCompare(b.name);
+                        }
+                    })
+                    .map(e => {
+                        const totalAcademies = e.academiesIds.length;
+                        const completedVisits = e.academiesIds.filter(aid =>
+                            visits.some(v => v.eventId === e.id && v.academyId === aid && v.status === VisitStatus.VISITED)
+                        ).length;
+                        const progress = totalAcademies > 0 ? Math.round((completedVisits / totalAcademies) * 100) : 0;
 
-                    const startDate = new Date(e.startDate);
-                    const endDate = new Date(e.endDate);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    startDate.setHours(0, 0, 0, 0);
-                    endDate.setHours(0, 0, 0, 0);
+                        const startDate = new Date(e.startDate);
+                        const endDate = new Date(e.endDate);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        startDate.setHours(0, 0, 0, 0);
+                        endDate.setHours(0, 0, 0, 0);
 
-                    const isExpired = today > endDate;
-                    const isOngoing = today >= startDate && today <= endDate;
-                    const diffDays = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                        const isExpired = today > endDate;
+                        const isOngoing = today >= startDate && today <= endDate;
+                        const diffDays = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-                    return (
-                        <div
-                            key={e.id}
-                            onClick={() => onSelectEvent(e.id)}
-                            className="group relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer h-64"
-                        >
-                            {/* Background Image */}
-                            {e.photoUrl ? (
-                                <div
-                                    className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-transform duration-500 group-hover:scale-105"
-                                    style={{ backgroundImage: `url(${e.photoUrl})` }}
-                                />
-                            ) : (
-                                <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
-                            )}
-
-                            {/* Dark Overlay - Hidden by default on desktop, visible on hover. Always visible on mobile */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-black/40 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-500" />
-
-                            {/* Glow effect */}
-                            <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                            {/* Top Badges - Always visible */}
-                            <div className="absolute top-0 left-0 right-0 z-20 p-5 flex justify-between items-start">
-                                <span className={`text-xs font-black px-3 py-1.5 rounded-lg uppercase backdrop-blur-md ${isExpired ? 'bg-white/10 text-white/60 border border-white/20' :
-                                    isOngoing ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/50' :
-                                        'bg-blue-500/30 text-blue-300 border border-blue-400/50'
-                                    }`}>
-                                    {isExpired ? 'Encerrado' : isOngoing ? 'Em Andamento' : diffDays === 0 ? 'Hoje' : diffDays === 1 ? 'Amanhã' : `${diffDays} dias`}
-                                </span>
-                                <button
-                                    onClick={(ev) => handleDeleteEvent(ev, e.id, e.name)}
-                                    className="p-2 text-white/80 hover:text-red-400 hover:bg-red-500/30 backdrop-blur-md rounded-lg transition-all border border-white/20 hover:border-red-400/50"
-                                >
-                                    <Trash2 size={16} strokeWidth={2.5} />
-                                </button>
-                            </div>
-
-                            {/* Event Info - Hidden on desktop, visible on hover. Always visible on mobile */}
-                            <div className="absolute bottom-0 left-0 right-0 z-10 p-5 opacity-100 translate-y-0 md:opacity-0 md:translate-y-4 md:group-hover:opacity-100 md:group-hover:translate-y-0 transition-all duration-500">
-                                {/* Event Name */}
-                                <h4 className="text-xl font-black text-white mb-2 leading-tight drop-shadow-lg line-clamp-2">
-                                    {e.name}
-                                </h4>
-
-                                {/* Location */}
-                                <div className="flex items-center space-x-2 text-sm text-white/90 mb-3 font-bold drop-shadow-md">
-                                    <span>{e.city} - {e.state}</span>
-                                </div>
-
-                                {e.salespersonIds && e.salespersonIds.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 text-xs text-white/80 mb-2 font-bold drop-shadow-md">
-                                        {e.salespersonIds.map(id => (
-                                            <span key={id} className="bg-white/10 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
-                                                {vendedores.find(v => v.id === id)?.name || 'Vendedor Desconhecido'}
-                                            </span>
-                                        ))}
-                                    </div>
+                        return (
+                            <div
+                                key={e.id}
+                                onClick={() => onSelectEvent(e.id)}
+                                className="group relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer h-64"
+                            >
+                                {/* Background Image */}
+                                {e.photoUrl ? (
+                                    <div
+                                        className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-transform duration-500 group-hover:scale-105"
+                                        style={{ backgroundImage: `url(${e.photoUrl})` }}
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
                                 )}
 
-                                {/* Date */}
-                                <div className="flex items-center space-x-2 text-xs font-bold text-white/80 mb-4 drop-shadow-md">
-                                    <span>
-                                        {e.startDate === e.endDate
-                                            ? new Date(e.startDate).toLocaleDateString('pt-BR')
-                                            : `${new Date(e.startDate).toLocaleDateString('pt-BR')} - ${new Date(e.endDate).toLocaleDateString('pt-BR')}`
-                                        }
+                                {/* Dark Overlay - Hidden by default on desktop, visible on hover. Always visible on mobile */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-black/40 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-500" />
+
+                                {/* Glow effect */}
+                                <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                                {/* Top Badges - Always visible */}
+                                <div className="absolute top-0 left-0 right-0 z-20 p-5 flex justify-between items-start">
+                                    <span className={`text-xs font-black px-3 py-1.5 rounded-lg uppercase backdrop-blur-md ${isExpired ? 'bg-white/10 text-white/60 border border-white/20' :
+                                        isOngoing ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/50' :
+                                            'bg-blue-500/30 text-blue-300 border border-blue-400/50'
+                                        }`}>
+                                        {isExpired ? 'Encerrado' : isOngoing ? 'Em Andamento' : diffDays === 0 ? 'Hoje' : diffDays === 1 ? 'Amanhã' : `${diffDays} dias`}
                                     </span>
+                                    <button
+                                        onClick={(ev) => handleDeleteEvent(ev, e.id, e.name)}
+                                        className="p-2 text-white/80 hover:text-red-400 hover:bg-red-500/30 backdrop-blur-md rounded-lg transition-all border border-white/20 hover:border-red-400/50"
+                                    >
+                                        <Trash2 size={16} strokeWidth={2.5} />
+                                    </button>
                                 </div>
 
-                                {/* Stats */}
-                                <div className="flex items-center justify-between text-xs mb-2">
-                                    <div className="flex items-center space-x-1 text-white/90 font-bold drop-shadow-md">
-                                        <span>{totalAcademies} Academias</span>
+                                {/* Event Info - Hidden on desktop, visible on hover. Always visible on mobile */}
+                                <div className="absolute bottom-0 left-0 right-0 z-10 p-5 opacity-100 translate-y-0 md:opacity-0 md:translate-y-4 md:group-hover:opacity-100 md:group-hover:translate-y-0 transition-all duration-500">
+                                    {/* Event Name */}
+                                    <h4 className="text-xl font-black text-white mb-2 leading-tight drop-shadow-lg line-clamp-2">
+                                        {e.name}
+                                    </h4>
+
+                                    {/* Location */}
+                                    <div className="flex items-center space-x-2 text-sm text-white/90 mb-3 font-bold drop-shadow-md">
+                                        <span>{e.city} - {e.state}</span>
                                     </div>
-                                    <span className="text-lg font-black text-white drop-shadow-lg">{progress}%</span>
-                                </div>
 
-                                {/* Progress Bar */}
-                                <div className="h-2.5 bg-black/40 backdrop-blur-sm rounded-full overflow-hidden border border-white/20 shadow-lg">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-1000 shadow-lg ${progress === 100
-                                            ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                                            : 'bg-gradient-to-r from-blue-500 to-cyan-500'
-                                            }`}
-                                        style={{ width: `${progress}%` }}
-                                    />
+                                    {e.salespersonIds && e.salespersonIds.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 text-xs text-white/80 mb-2 font-bold drop-shadow-md">
+                                            {e.salespersonIds.map(id => (
+                                                <span key={id} className="bg-white/10 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
+                                                    {vendedores.find(v => v.id === id)?.name || 'Vendedor Desconhecido'}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Date */}
+                                    <div className="flex items-center space-x-2 text-xs font-bold text-white/80 mb-4 drop-shadow-md">
+                                        <span>
+                                            {e.startDate === e.endDate
+                                                ? new Date(e.startDate).toLocaleDateString('pt-BR')
+                                                : `${new Date(e.startDate).toLocaleDateString('pt-BR')} - ${new Date(e.endDate).toLocaleDateString('pt-BR')}`
+                                            }
+                                        </span>
+                                    </div>
+
+                                    {/* Stats */}
+                                    <div className="flex items-center justify-between text-xs mb-2">
+                                        <div className="flex items-center space-x-1 text-white/90 font-bold drop-shadow-md">
+                                            <span>{totalAcademies} Academias</span>
+                                        </div>
+                                        <span className="text-lg font-black text-white drop-shadow-lg">{progress}%</span>
+                                    </div>
+
+                                    {/* Progress Bar */}
+                                    <div className="h-2.5 bg-black/40 backdrop-blur-sm rounded-full overflow-hidden border border-white/20 shadow-lg">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-1000 shadow-lg ${progress === 100
+                                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                                                : 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                                                }`}
+                                            style={{ width: `${progress}%` }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
             </div>
 
             {/* Modal */}
