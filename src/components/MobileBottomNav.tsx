@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, Wallet, User as UserIcon, Building2 } from 'lucide-react';
+import { CalendarDays, Wallet, User as UserIcon, Building2, TrendingUp } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { UserRole } from '../types';
 
@@ -13,6 +13,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
     const tabs = [
         { id: 'my_events', label: 'Eventos', icon: CalendarDays, activeIds: ['my_events', 'visit_detail'] },
         ...(userRole === UserRole.CALL_CENTER ? [{ id: 'academies', label: 'Academias', icon: Building2, activeIds: ['academies'] }] : []),
+        { id: 'follow_up', label: 'Follow-Up', icon: TrendingUp, activeIds: ['follow_up'] },
         { id: 'sales_finance', label: 'Finanças', icon: Wallet, activeIds: ['sales_finance'] },
         { id: 'profile', label: 'Perfil', icon: UserIcon, activeIds: ['profile'] },
     ];

@@ -229,7 +229,7 @@ export function calculateContactStats(
 }
 
 /**
- * Calcula a duração real de uma visita, limitando ao piso de 5 min e teto de 90 min.
+ * Calcula a duração real de uma visita, limitando ao piso de 5 min e teto de 60 min.
  * Retorna null se não houver datas válidas disponíveis.
  */
 export function calculateTrueVisitDuration(startedAt?: string, finishedAt?: string): number | null {
@@ -240,13 +240,13 @@ export function calculateTrueVisitDuration(startedAt?: string, finishedAt?: stri
     let minutes = Math.round((end - start) / 1000 / 60);
 
     if (minutes < 5) minutes = 5;
-    if (minutes > 90) minutes = 90;
+    if (minutes > 60) minutes = 60;
 
     return minutes;
 }
 
 /**
- * Calcula tempo médio de visita em minutos utilizando a trava de (5-90min).
+ * Calcula tempo médio de visita em minutos utilizando a trava de (5-60min).
  */
 export function calculateAvgVisitMinutes(completedVisits: Visit[]): number {
     const durations = completedVisits

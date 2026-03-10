@@ -530,13 +530,13 @@ describe('calculateAvgVisitMinutes', () => {
         expect(calculateAvgVisitMinutes(visits)).toBe(45);
     });
 
-    it('teto de 90 minutos para visitas muito longas > 90m (ex: esquecimento de finalizar)', () => {
+    it('teto de 60 minutos para visitas muito longas > 60m (ex: esquecimento de finalizar)', () => {
         const visits = [
             makeVisit({ startedAt: '2026-01-01T10:00:00Z', finishedAt: '2026-01-01T10:30:00Z' }), // 30 min
-            makeVisit({ startedAt: '2026-01-01T00:00:00Z', finishedAt: '2026-01-01T20:00:00Z' }), // 20h -> clamps to 90 min
+            makeVisit({ startedAt: '2026-01-01T00:00:00Z', finishedAt: '2026-01-01T20:00:00Z' }), // 20h -> clamps to 60 min
         ];
-        // (30 + 90) / 2 = 60
-        expect(calculateAvgVisitMinutes(visits)).toBe(60);
+        // (30 + 60) / 2 = 45
+        expect(calculateAvgVisitMinutes(visits)).toBe(45);
     });
 
     it('piso de 5 minutos para visitas negativas ou muito curtas', () => {

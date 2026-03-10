@@ -142,3 +142,32 @@ export interface VendorDetails {
   notes?: string;
   updatedAt?: string;
 }
+
+export enum FollowUpStatus {
+  WAITING = 'AGUARDANDO',
+  HIGH = 'INTERESSE_ALTO',
+  MEDIUM = 'INTERESSE_MEDIO',
+  LOW = 'INTERESSE_BAIXO',
+  NO_INTEREST = 'SEM_INTERESSE',
+  CLOSED = 'FECHADO'
+}
+
+export enum ContactChannel {
+  CALL = 'CALL',
+  WHATSAPP = 'WHATSAPP',
+  PRESENCIAL = 'PRESENCIAL'
+}
+
+export interface FollowUp {
+  id: string;
+  academyId: string;
+  visitId?: string;
+  createdBy: string;
+  status: FollowUpStatus;
+  notes?: string;
+  nextContactAt?: string;
+  contactPerson?: string;
+  contactChannel: ContactChannel;
+  createdAt: string;
+  updatedAt: string;
+}

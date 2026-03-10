@@ -85,7 +85,22 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
           } else {
             // Caso contrário, restaura tudo
             console.log("♻️ [VisitDetail] Restaurando visita completa do backup local");
-            setVisit(prev => ({ ...prev, ...parsed }));
+
+            // CORREÇÃO DE DURAÇÃO: Se o startedAt do backup é mais antigo que
+            // o tempo máximo de uma visita válida (2h), resetamos para agora.
+            // Isso evita que o "relógio continue contando" entre sessões, gerando
+            // durações infladas que chegam ao teto de 90 min mesmo em visitas curtas.
+            const MAX_VALID_VISIT_MS = 2 * 60 * 60 * 1000; // 2 horas
+            const restoredData = { ...parsed };
+            if (restoredData.startedAt) {
+              const visitAge = Date.now() - new Date(restoredData.startedAt).getTime();
+              if (visitAge > MAX_VALID_VISIT_MS) {
+                console.warn("⏱️ [VisitDetail] startedAt muito antigo, resetando para agora para evitar duração inflada.");
+                restoredData.startedAt = new Date().toISOString();
+              }
+            }
+
+            setVisit(prev => ({ ...prev, ...restoredData }));
             if (parsed.startedAt) setStep('ACTIVE');
             toast.info("Dados da visita anterior restaurados.");
           }

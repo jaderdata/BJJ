@@ -1,16 +1,5 @@
 import React from 'react';
-import {
-  Menu,
-  Building2,
-  BarChart3,
-  CalendarDays,
-  Wallet,
-  FileBarChart,
-  Shield,
-  LogOut,
-  X,
-  User as UserIcon
-} from 'lucide-react';
+import { X } from 'lucide-react';
 import { User, UserRole } from '../types';
 import pkg from '../../package.json';
 
@@ -34,7 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   logout
 }) => {
 
-  const SidebarItem = ({ id, icon: Icon, label }: { id: string, icon: any, label: string }) => {
+  const SidebarItem = ({ id, label }: { id: string, label: string }) => {
     // Logic for 'events' highlighting when in detail view moved here or kept simple
     // Original: const isActive = activeTab === id || (id === 'events' && activeTab === 'event_detail_admin');
     // We will pass the exact activeTab, so we can keep the logic simple or duplicate it.
@@ -50,7 +39,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
           }`}
       >
-        <Icon size={16} strokeWidth={1.5} />
         <span className="text-sm font-medium">{label}</span>
       </button>
     );
@@ -69,19 +57,20 @@ const Sidebar: React.FC<SidebarProps> = ({
         <nav className="flex-1 space-y-1">
           {currentUser.role === UserRole.ADMIN ? (
             <>
-              <SidebarItem id="dashboard" icon={BarChart3} label="Dashboard" />
-              <SidebarItem id="academies" icon={Building2} label="Academias" />
-              <SidebarItem id="events" icon={CalendarDays} label="Eventos" />
-              <SidebarItem id="admin_finance" icon={Wallet} label="Financeiro" />
-              <SidebarItem id="reports" icon={FileBarChart} label="Relatórios" />
-              <SidebarItem id="vendors" icon={UserIcon} label="Vendedores" />
-              <SidebarItem id="access_control" icon={Shield} label="Gestão de Acessos" />
+              <SidebarItem id="dashboard" label="Dashboard" />
+              <SidebarItem id="academies" label="Academias" />
+              <SidebarItem id="events" label="Eventos" />
+              <SidebarItem id="admin_finance" label="Financeiro" />
+              <SidebarItem id="reports" label="Relatórios" />
+              <SidebarItem id="follow_up" label="Follow-Up" />
+              <SidebarItem id="vendors" label="Vendedores" />
+              <SidebarItem id="access_control" label="Gestão de Acessos" />
             </>
           ) : (
             <>
-              <SidebarItem id="my_events" icon={CalendarDays} label="Meus Eventos" />
-              <SidebarItem id="sales_finance" icon={Wallet} label="Meu Financeiro" />
-              <SidebarItem id="profile" icon={UserIcon} label="Perfil" />
+              <SidebarItem id="my_events" label="Meus Eventos" />
+              <SidebarItem id="sales_finance" label="Meu Financeiro" />
+              <SidebarItem id="profile" label="Perfil" />
             </>
           )}
         </nav>
@@ -94,7 +83,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
           {currentUser.role === UserRole.ADMIN && (
             <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors">
-              <LogOut size={16} strokeWidth={1.5} />
               <span className="text-sm font-medium">Sair</span>
             </button>
           )}

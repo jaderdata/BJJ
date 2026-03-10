@@ -1,4 +1,4 @@
-import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus, VendorDetails } from '../types';
+import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus, VendorDetails, FollowUp, ContactChannel, FollowUpStatus } from '../types';
 import { supabase } from './supabase-client';
 
 export { supabase };
@@ -822,6 +822,108 @@ export const DatabaseService = {
         }
 
         return savedVisit;
+    },
+
+    // FOLLOW-UPS
+    async getFollowUps(createdBy?: string) {
+        let query = supabase
+            .from('follow_ups')
+            .select('*')
+            .order('updated_at', { ascending: false });
+
+        if (createdBy) {
+            query = query.eq('created_by', createdBy);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return (data || []).map((f: any) => ({
+            id: f.id,
+            academyId: f.academy_id,
+            visitId: f.visit_id,
+            createdBy: f.created_by,
+            status: f.status as FollowUpStatus,
+            notes: f.notes,
+            nextContactAt: f.next_contact_at,
+            contactPerson: f.contact_person,
+            contactChannel: (f.contact_channel || ContactChannel.CALL) as ContactChannel,
+            createdAt: f.created_at,
+            updatedAt: f.updated_at
+        } as FollowUp));
+    },
+
+    async createFollowUp(data: Partial<FollowUp>) {
+        const payload = {
+            academy_id: data.academyId,
+            visit_id: data.visitId || null,
+            created_by: data.createdBy,
+            status: data.status || FollowUpStatus.WAITING,
+            notes: data.notes || null,
+            next_contact_at: data.nextContactAt || null,
+            contact_person: data.contactPerson || null,
+            contact_channel: data.contactChannel || ContactChannel.CALL,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data: saved, error } = await supabase
+            .from('follow_ups')
+            .insert(payload)
+            .select()
+            .single();
+        if (error) throw error;
+
+        return {
+            id: saved.id,
+            academyId: saved.academy_id,
+            visitId: saved.visit_id,
+            createdBy: saved.created_by,
+            status: saved.status as FollowUpStatus,
+            notes: saved.notes,
+            nextContactAt: saved.next_contact_at,
+            contactPerson: saved.contact_person,
+            contactChannel: saved.contact_channel as ContactChannel,
+            createdAt: saved.created_at,
+            updatedAt: saved.updated_at
+        } as FollowUp;
+    },
+
+    async updateFollowUp(id: string, data: Partial<FollowUp>) {
+        const payload: any = {
+            updated_at: new Date().toISOString()
+        };
+        if (data.status !== undefined) payload.status = data.status;
+        if (data.notes !== undefined) payload.notes = data.notes;
+        if (data.nextContactAt !== undefined) payload.next_contact_at = data.nextContactAt;
+        if (data.contactPerson !== undefined) payload.contact_person = data.contactPerson;
+        if (data.contactChannel !== undefined) payload.contact_channel = data.contactChannel;
+        if (data.visitId !== undefined) payload.visit_id = data.visitId;
+
+        const { data: saved, error } = await supabase
+            .from('follow_ups')
+            .update(payload)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+
+        return {
+            id: saved.id,
+            academyId: saved.academy_id,
+            visitId: saved.visit_id,
+            createdBy: saved.created_by,
+            status: saved.status as FollowUpStatus,
+            notes: saved.notes,
+            nextContactAt: saved.next_contact_at,
+            contactPerson: saved.contact_person,
+            contactChannel: saved.contact_channel as ContactChannel,
+            createdAt: saved.created_at,
+            updatedAt: saved.updated_at
+        } as FollowUp;
+    },
+
+    async deleteFollowUp(id: string) {
+        const { error } = await supabase.from('follow_ups').delete().eq('id', id);
+        if (error) throw error;
     }
 
 };
@@ -1092,4 +1194,3 @@ export const ElevationService = {
         return data || [];
     }
 };
-

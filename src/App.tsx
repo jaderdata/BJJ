@@ -41,6 +41,7 @@ const VendorList = lazy(() => import('./pages/VendorList').then(m => ({ default:
 const VendorDetail = lazy(() => import('./pages/VendorDetail').then(m => ({ default: m.VendorDetail })));
 const SalesFinance = lazy(() => import('./pages/SalesFinance').then(m => ({ default: m.SalesFinance })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
+const FollowUpPage = lazy(() => import('./pages/FollowUp').then(m => ({ default: m.FollowUpPage })));
 import { SalesHeader } from './components/SalesHeader';
 import { GlobalToast } from './components/GlobalToast';
 import { SystemAlerts } from './components/SystemAlerts';
@@ -114,6 +115,7 @@ const AppContent: React.FC = () => {
 
     // Verificação de Segurança de Perfil (Role Protection)
     if (currentUser) {
+      // follow_up is accessible by ALL roles — do NOT include it here
       const adminRestrictedTabs = ['dashboard', 'access_control', 'admin_finance', 'reports', 'event_detail_admin', 'vendors', 'vendor_detail', 'events'];
       const isCallCenter = currentUser.role === UserRole.CALL_CENTER;
 
@@ -762,6 +764,14 @@ const AppContent: React.FC = () => {
                 }}
                 onBack={() => setActiveTab('dashboard')}
                 onNavigate={(tab) => setActiveTab(tab)}
+              />
+            )}
+            {activeTab === 'follow_up' && currentUser && (
+              <FollowUpPage
+                academies={academies}
+                visits={visits}
+                vendedores={sellers}
+                currentUser={currentUser}
               />
             )}
 

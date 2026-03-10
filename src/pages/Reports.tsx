@@ -1,50 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-    Download,
-    Printer,
-    Search,
-    Ticket,
-    FileBarChart,
-    TrendingUp,
-    Calendar,
-    Users as UsersIcon,
-    CheckCircle2,
-    AlertCircle,
-    X,
-    ArrowUpDown,
-    ArrowUp,
-    ArrowDown,
-    Eraser
-} from 'lucide-react';
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-    AreaChart,
-    Area,
-    PieChart,
-    Pie,
-    Cell,
-    CartesianGrid,
-    Legend
+    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area,
+    PieChart, Pie, Cell, CartesianGrid, Legend
 } from 'recharts';
-import {
-    User,
-    Academy,
-    Event,
-    Visit,
-    Voucher,
-    FinanceRecord,
-    AcademyTemperature
-} from '../types';
-
+import { User, Academy, Event, Visit, Voucher, FinanceRecord, AcademyTemperature, FinanceStatus, FollowUp, FollowUpStatus, ContactChannel } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useLoading } from '../contexts/LoadingContext';
 import { calculateTrueVisitDuration } from '../lib/business-utils';
+import { DatabaseService } from '../lib/supabase';
+
+type ReportTab = 'overview' | 'academies' | 'events' | 'sellers' | 'financial' | 'vouchers' | 'followup';
 
 interface ReportsProps {
     events: Event[];
@@ -55,1010 +21,816 @@ interface ReportsProps {
     finance: FinanceRecord[];
 }
 
-export const Reports: React.FC<ReportsProps> = ({
-    events,
-    academies,
-    visits,
-    vouchers,
-    vendedores,
-    finance = []
-}) => {
+const TABS: { key: ReportTab; label: string }[] = [
+    { key: 'overview', label: 'Visão Geral' },
+    { key: 'academies', label: 'Academias' },
+    { key: 'events', label: 'Eventos' },
+    { key: 'sellers', label: 'Vendedores' },
+    { key: 'financial', label: 'Financeiro' },
+    { key: 'vouchers', label: 'Vouchers' },
+    { key: 'followup', label: 'Follow-Up' },
+];
+
+const FU_STATUS_META: Record<FollowUpStatus, { label: string; color: string; bg: string; chartColor: string }> = {
+    [FollowUpStatus.WAITING]:     { label: 'Aguardando',     color: 'text-neutral-400', bg: 'bg-neutral-500/10',  chartColor: '#71717a' },
+    [FollowUpStatus.HIGH]:        { label: 'Int. Alto',       color: 'text-emerald-400', bg: 'bg-emerald-500/10', chartColor: '#10b981' },
+    [FollowUpStatus.MEDIUM]:      { label: 'Int. Médio',      color: 'text-yellow-400',  bg: 'bg-yellow-500/10',  chartColor: '#eab308' },
+    [FollowUpStatus.LOW]:         { label: 'Int. Baixo',      color: 'text-orange-400',  bg: 'bg-orange-500/10',  chartColor: '#f97316' },
+    [FollowUpStatus.NO_INTEREST]: { label: 'Sem Interesse',   color: 'text-red-400',     bg: 'bg-red-500/10',     chartColor: '#ef4444' },
+    [FollowUpStatus.CLOSED]:      { label: 'Fechado',         color: 'text-blue-400',    bg: 'bg-blue-500/10',    chartColor: '#3b82f6' },
+};
+
+const FU_CHANNEL_META: Record<ContactChannel, { label: string; chartColor: string }> = {
+    [ContactChannel.CALL]:       { label: 'Ligação',    chartColor: '#8b5cf6' },
+    [ContactChannel.WHATSAPP]:   { label: 'WhatsApp',   chartColor: '#10b981' },
+    [ContactChannel.PRESENCIAL]: { label: 'Presencial', chartColor: '#0ea5e9' },
+};
+
+const CHART_COLORS = ['#10b981', '#0ea5e9', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+
+export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vouchers, vendedores, finance = [] }) => {
     const { withLoading } = useLoading();
-    // Filter states
+    const [activeTab, setActiveTab] = useState<ReportTab>('overview');
+    const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+    const [followUpsLoading, setFollowUpsLoading] = useState(false);
+
+    useEffect(() => {
+        if (activeTab === 'followup' && followUps.length === 0 && !followUpsLoading) {
+            setFollowUpsLoading(true);
+            DatabaseService.getFollowUps()
+                .then(data => setFollowUps(data))
+                .catch(console.error)
+                .finally(() => setFollowUpsLoading(false));
+        }
+    }, [activeTab]);
     const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    const [yearFilter, setYearFilter] = useState('');
     const [eventFilter, setEventFilter] = useState('');
     const [salesFilter, setSalesFilter] = useState('');
-
-    // Sorting states
-    const [sortBy, setSortBy] = useState<'code' | 'date' | 'academy' | 'event' | 'seller'>('date');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [sortBy, setSortBy] = useState<string>('date');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-    // Toast state
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    useEffect(() => { const t = setTimeout(() => setSearchTerm(searchInput), 300); return () => clearTimeout(t); }, [searchInput]);
+    useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
 
-    // Grouping state
-    const [groupBy, setGroupBy] = useState<'none' | 'seller' | 'event'>('none');
+    const nonTestEvents = useMemo(() => events.filter(e => !e.name.trim().toUpperCase().endsWith('TESTE')), [events]);
 
-    // Debounce search input
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setSearchTerm(searchInput);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [searchInput]);
+    const activeFiltersCount = [searchTerm, eventFilter, salesFilter, dateFrom, dateTo].filter(Boolean).length;
+    const clearAllFilters = () => { setSearchInput(''); setSearchTerm(''); setEventFilter(''); setSalesFilter(''); setDateFrom(''); setDateTo(''); };
 
-    // Auto-dismiss toast
-    useEffect(() => {
-        if (toast) {
-            const timer = setTimeout(() => setToast(null), 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [toast]);
-
-    // Get unique years
-    const years = useMemo(() => {
-        const yearsSet = new Set<number>();
-        vouchers.forEach(v => {
-            if (v.createdAt) yearsSet.add(new Date(v.createdAt).getFullYear());
-        });
-        return Array.from(yearsSet).sort((a, b) => b - a);
-    }, [vouchers]);
-
-    // Count active filters
-    const activeFiltersCount = [searchTerm, yearFilter, eventFilter, salesFilter].filter(Boolean).length;
-
-    // Clear all filters
-    const clearAllFilters = () => {
-        setSearchInput('');
-        setSearchTerm('');
-        setYearFilter('');
-        setEventFilter('');
-        setSalesFilter('');
+    const inDateRange = (dateStr?: string) => {
+        if (!dateStr) return true;
+        const d = new Date(dateStr);
+        if (dateFrom && d < new Date(dateFrom)) return false;
+        if (dateTo) { const to = new Date(dateTo); to.setHours(23, 59, 59); if (d > to) return false; }
+        return true;
     };
 
-    // Advanced Data Filtering & Transformation
-    const filteredVisits = useMemo(() => {
-        return visits.filter(v => {
-            const event = events.find(e => e.id === v.eventId);
-            if (event?.name.trim().toUpperCase().endsWith('TESTE')) return false;
+    const filteredVisits = useMemo(() => visits.filter(v => {
+        const event = events.find(e => e.id === v.eventId);
+        if (event?.name.trim().toUpperCase().endsWith('TESTE')) return false;
+        if (eventFilter && v.eventId !== eventFilter) return false;
+        if (salesFilter && v.salespersonId !== salesFilter) return false;
+        if (!inDateRange(v.finishedAt || v.startedAt)) return false;
+        return true;
+    }), [visits, eventFilter, salesFilter, dateFrom, dateTo, events]);
 
-            const matchesYear = !yearFilter || (v.finishedAt && new Date(v.finishedAt).getFullYear().toString() === yearFilter);
-            const matchesEvent = !eventFilter || v.eventId === eventFilter;
-            const matchesSales = !salesFilter || v.salespersonId === salesFilter;
-            return matchesYear && matchesEvent && matchesSales;
-        });
-    }, [visits, yearFilter, eventFilter, salesFilter, events]);
+    const filteredVouchers = useMemo(() => vouchers.filter(v => {
+        const event = events.find(e => e.id === v.eventId);
+        if (event?.name.trim().toUpperCase().endsWith('TESTE')) return false;
+        const academy = academies.find(a => a.id === v.academyId);
+        const visit = visits.find(vis => vis.id === v.visitId);
+        if (searchTerm) {
+            const s = searchTerm.toLowerCase();
+            if (!v.code.toLowerCase().includes(s) && !(academy?.name || '').toLowerCase().includes(s)) return false;
+        }
+        if (eventFilter && v.eventId !== eventFilter) return false;
+        if (salesFilter && visit?.salespersonId !== salesFilter) return false;
+        if (!inDateRange(v.createdAt)) return false;
+        return true;
+    }), [vouchers, searchTerm, eventFilter, salesFilter, dateFrom, dateTo, visits, academies, events]);
 
-    const filteredVouchers = useMemo(() => {
-        return vouchers.filter(v => {
-            const visit = visits.find(vis => vis.id === v.visitId);
-            const academy = academies.find(a => a.id === v.academyId);
-            const event = events.find(e => e.id === v.eventId);
+    const filteredFinance = useMemo(() => finance.filter(f => {
+        if (eventFilter && f.eventId !== eventFilter) return false;
+        if (salesFilter && f.salespersonId !== salesFilter) return false;
+        return true;
+    }), [finance, eventFilter, salesFilter]);
 
-            if (event?.name.trim().toUpperCase().endsWith('TESTE')) return false;
-
-            const matchesSearch = !searchTerm ||
-                v.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (academy?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-
-            const matchesYear = !yearFilter || new Date(v.createdAt).getFullYear().toString() === yearFilter;
-            const matchesEvent = !eventFilter || v.eventId === eventFilter;
-            const matchesSales = !salesFilter || (visit?.salespersonId === salesFilter || event?.salespersonIds?.includes(salesFilter));
-
-            return matchesSearch && matchesYear && matchesEvent && matchesSales;
-        });
-    }, [vouchers, searchTerm, yearFilter, eventFilter, salesFilter, visits, academies, events]);
-
-    const filteredFinance = useMemo(() => {
-        return finance.filter(f => {
-            const matchesEvent = !eventFilter || f.eventId === eventFilter;
-            const matchesSales = !salesFilter || f.salespersonId === salesFilter;
-            return matchesEvent && matchesSales;
-        });
-    }, [finance, eventFilter, salesFilter]);
-
-    // 1. Funnel Data (Attribution -> Visit -> Voucher)
-    const funnelData = useMemo(() => {
-        // Find academies assigned to events in filter
-        const relevantEvents = (eventFilter ? events.filter(e => e.id === eventFilter) : events)
-            .filter(e => !e.name.trim().toUpperCase().endsWith('TESTE'));
-        const totalAssignedAcademies = relevantEvents.reduce((acc, e) => acc + e.academiesIds.length, 0);
-
-        const totalVisits = filteredVisits.length;
-        const totalVouchers = filteredVouchers.length;
-
-        return [
-            { name: 'Possíveis Atribuições', value: totalAssignedAcademies, color: '#3b82f6' },
-            { name: 'Visitas Realizadas', value: totalVisits, color: '#10b981' },
-            { name: 'Vouchers Gerados', value: totalVouchers, color: '#0ea5e9' }
-        ];
-    }, [events, eventFilter, filteredVisits, filteredVouchers]);
-
-    // 2. Timeline Data (Evolution)
-    const timelineData = useMemo(() => {
-        const days: Record<string, { date: string, visits: number, vouchers: number }> = {};
-
-        // Group by last 30 days or by month if year is selected
-        filteredVisits.forEach(v => {
-            if (v.finishedAt) {
-                const d = new Date(v.finishedAt).toLocaleDateString('pt-BR');
-                if (!days[d]) days[d] = { date: d, visits: 0, vouchers: 0 };
-                days[d].visits++;
-            }
-        });
-
-        filteredVouchers.forEach(v => {
-            const d = new Date(v.createdAt).toLocaleDateString('pt-BR');
-            if (!days[d]) days[d] = { date: d, visits: 0, vouchers: 0 };
-            days[d].vouchers++;
-        });
-
-        return Object.values(days).sort((a, b) => {
-            const [da, ma, ya] = a.date.split('/').map(Number);
-            const [db, mb, yb] = b.date.split('/').map(Number);
-            return new Date(ya, ma - 1, da).getTime() - new Date(yb, mb - 1, db).getTime();
-        }).slice(-15); // Show last 15 active days
+    // === COMPUTED DATA ===
+    const efficiencyMetrics = useMemo(() => {
+        const withDur = filteredVisits.filter(v => v.startedAt && v.finishedAt);
+        const durations = withDur.map(v => calculateTrueVisitDuration(v.startedAt, v.finishedAt)).filter((d): d is number => d !== null);
+        const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
+        return { avgDuration };
     }, [filteredVisits, filteredVouchers]);
 
-    // 3. Temperature Data (Sentimento)
-    const temperatureData = useMemo(() => {
-        const counts = {
-            [AcademyTemperature.COLD]: 0,
-            [AcademyTemperature.WARM]: 0,
-            [AcademyTemperature.HOT]: 0
-        };
-
-        filteredVisits.forEach(v => {
-            if (v.temperature) {
-                counts[v.temperature]++;
-            }
-        });
-
-        return [
-            { name: 'Frio (Cold)', value: counts[AcademyTemperature.COLD], color: '#3b82f6' },
-            { name: 'Morno (Warm)', value: counts[AcademyTemperature.WARM], color: '#eab308' },
-            { name: 'Quente (Hot)', value: counts[AcademyTemperature.HOT], color: '#ef4444' }
-        ];
-    }, [filteredVisits]);
-
-    // 4. Financial Analytics
-    const financialAnalytic = useMemo(() => {
-        const totalReceived = filteredFinance
-            .filter(f => f.status === 'Recebido')
-            .reduce((acc, f) => acc + f.amount, 0);
-
-        const totalPaid = filteredFinance
-            .filter(f => f.status === 'Pago')
-            .reduce((acc, f) => acc + f.amount, 0);
-
-        const netBalance = totalReceived - totalPaid;
-
-        return {
-            received: totalReceived,
-            paid: totalPaid,
-            balance: netBalance
-        };
+    const uniqueAcademies = new Set(filteredVouchers.map(v => v.academyId)).size;
+    const financialSummary = useMemo(() => {
+        const received = filteredFinance.filter(f => f.status === 'Recebido').reduce((a, f) => a + f.amount, 0);
+        const paid = filteredFinance.filter(f => f.status === 'Pago').reduce((a, f) => a + f.amount, 0);
+        const pending = filteredFinance.filter(f => f.status === 'Pendente').reduce((a, f) => a + f.amount, 0);
+        return { received, paid, pending, total: received + paid + pending, balance: received - paid };
     }, [filteredFinance]);
 
-    // 5. Efficiency Metrics
-    const efficiencyMetrics = useMemo(() => {
-        const visitsWithDuration = filteredVisits.filter(v => v.startedAt && v.finishedAt);
-        if (visitsWithDuration.length === 0) return { avgDuration: 0, conversionRate: 0 };
-
-        const durations = visitsWithDuration.map(v => calculateTrueVisitDuration(v.startedAt, v.finishedAt)).filter((d): d is number => d !== null);
-
-        if (durations.length === 0) return { avgDuration: 0, conversionRate: 0 };
-
-        const totalDuration = durations.reduce((acc, d) => acc + d, 0);
-        const avgMinutes = Math.round(totalDuration / durations.length);
-
-        const conversionRate = filteredVisits.length > 0
-            ? Math.round((filteredVouchers.length / filteredVisits.length) * 100)
-            : 0;
-
-        return {
-            avgDuration: avgMinutes,
-            conversionRate
-        };
+    const timelineData = useMemo(() => {
+        const days: Record<string, { date: string; visits: number; vouchers: number }> = {};
+        filteredVisits.forEach(v => { if (v.finishedAt) { const d = new Date(v.finishedAt).toLocaleDateString('pt-BR'); if (!days[d]) days[d] = { date: d, visits: 0, vouchers: 0 }; days[d].visits++; } });
+        filteredVouchers.forEach(v => { const d = new Date(v.createdAt).toLocaleDateString('pt-BR'); if (!days[d]) days[d] = { date: d, visits: 0, vouchers: 0 }; days[d].vouchers++; });
+        return Object.values(days).sort((a, b) => { const [da, ma, ya] = a.date.split('/').map(Number); const [db, mb, yb] = b.date.split('/').map(Number); return new Date(ya, ma - 1, da).getTime() - new Date(yb, mb - 1, db).getTime(); }).slice(-20);
     }, [filteredVisits, filteredVouchers]);
 
-    // Sorting vouchers
-    const sortedVouchers = useMemo(() => {
-        const sorted = [...filteredVouchers].sort((a, b) => {
-            let compareA: any;
-            let compareB: any;
+    const temperatureData = useMemo(() => {
+        const c = { [AcademyTemperature.COLD]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.HOT]: 0 };
+        filteredVisits.forEach(v => { if (v.temperature) c[v.temperature]++; });
+        return [{ name: 'Frio', value: c[AcademyTemperature.COLD], color: '#3b82f6' }, { name: 'Morno', value: c[AcademyTemperature.WARM], color: '#eab308' }, { name: 'Quente', value: c[AcademyTemperature.HOT], color: '#ef4444' }];
+    }, [filteredVisits]);
 
-            switch (sortBy) {
-                case 'code':
-                    compareA = a.code;
-                    compareB = b.code;
-                    break;
-                case 'date':
-                    compareA = new Date(a.createdAt).getTime();
-                    compareB = new Date(b.createdAt).getTime();
-                    break;
-                case 'academy':
-                    compareA = academies.find(ac => ac.id === a.academyId)?.name || '';
-                    compareB = academies.find(ac => ac.id === b.academyId)?.name || '';
-                    break;
-                case 'event':
-                    compareA = events.find(e => e.id === a.eventId)?.name || '';
-                    compareB = events.find(e => e.id === b.eventId)?.name || '';
-                    break;
-                case 'seller':
-                    const visitA = visits.find(v => v.id === a.visitId);
-                    const visitB = visits.find(v => v.id === b.visitId);
-                    const eventA = events.find(e => e.id === a.eventId);
-                    const eventB = events.find(e => e.id === b.eventId);
-                    compareA = vendedores.find(u => u.id === (visitA?.salespersonId || eventA?.salespersonIds?.[0]))?.name || '';
-                    compareB = vendedores.find(u => u.id === (visitB?.salespersonId || eventB?.salespersonIds?.[0]))?.name || '';
-                    break;
-            }
-
-            if (compareA < compareB) return sortOrder === 'asc' ? -1 : 1;
-            if (compareA > compareB) return sortOrder === 'asc' ? 1 : -1;
-            return 0;
+    const academyRanking = useMemo(() => {
+        const map: Record<string, { name: string; city: string; visits: number; vouchers: number; temps: string[] }> = {};
+        filteredVisits.forEach(v => {
+            const a = academies.find(ac => ac.id === v.academyId);
+            if (!a) return;
+            if (!map[v.academyId]) map[v.academyId] = { name: a.name, city: a.city || '', visits: 0, vouchers: 0, temps: [] };
+            map[v.academyId].visits++;
+            if (v.temperature) map[v.academyId].temps.push(v.temperature);
         });
+        filteredVouchers.forEach(v => { if (map[v.academyId]) map[v.academyId].vouchers++; });
+        return Object.entries(map).map(([id, d]) => ({ id, ...d })).sort((a, b) => b.vouchers - a.vouchers);
+    }, [filteredVisits, filteredVouchers, academies]);
 
-        return sorted;
-    }, [filteredVouchers, sortBy, sortOrder, academies, events, visits, vendedores]);
+    const eventRanking = useMemo(() => {
+        const map: Record<string, { name: string; visits: number; vouchers: number; durations: number[] }> = {};
+        nonTestEvents.forEach(e => { map[e.id] = { name: e.name, visits: 0, vouchers: 0, durations: [] }; });
+        filteredVisits.forEach(v => { if (map[v.eventId]) { map[v.eventId].visits++; if (v.startedAt && v.finishedAt) { const d = calculateTrueVisitDuration(v.startedAt, v.finishedAt); if (d) map[v.eventId].durations.push(d); } } });
+        filteredVouchers.forEach(v => { if (map[v.eventId]) map[v.eventId].vouchers++; });
+        return Object.entries(map).map(([id, d]) => ({ id, ...d, avgDuration: d.durations.length > 0 ? Math.round(d.durations.reduce((a, b) => a + b, 0) / d.durations.length) : 0 })).filter(e => e.visits > 0).sort((a, b) => b.vouchers - a.vouchers);
+    }, [nonTestEvents, filteredVisits, filteredVouchers]);
 
-    // Basic KPIs Summary
-    const uniqueAcademies = new Set(filteredVouchers.map(v => v.academyId)).size;
-    const uniqueEvents = new Set(filteredVouchers.map(v => v.eventId)).size;
-    const uniqueSellers = new Set(filteredVouchers.map(v => {
-        const visit = visits.find(vis => vis.id === v.visitId);
-        const event = events.find(e => e.id === v.eventId);
-        return visit?.salespersonId || event?.salespersonIds?.[0];
-    })).size;
+    const sellerRanking = useMemo(() => {
+        const map: Record<string, { name: string; visits: number; vouchers: number; durations: number[] }> = {};
+        vendedores.forEach(v => { map[v.id] = { name: v.name, visits: 0, vouchers: 0, durations: [] }; });
+        filteredVisits.forEach(v => { if (map[v.salespersonId]) { map[v.salespersonId].visits++; if (v.startedAt && v.finishedAt) { const d = calculateTrueVisitDuration(v.startedAt, v.finishedAt); if (d) map[v.salespersonId].durations.push(d); } } });
+        filteredVouchers.forEach(v => { const vis = visits.find(x => x.id === v.visitId); if (vis && map[vis.salespersonId]) map[vis.salespersonId].vouchers++; });
+        return Object.entries(map).map(([id, d]) => ({ id, ...d, avgDuration: d.durations.length > 0 ? Math.round(d.durations.reduce((a, b) => a + b, 0) / d.durations.length) : 0 })).filter(s => s.visits > 0).sort((a, b) => b.vouchers - a.vouchers);
+    }, [vendedores, filteredVisits, filteredVouchers, visits]);
 
-    // Export PDF function
+    const financeByVendor = useMemo(() => {
+        const map: Record<string, { name: string; total: number; paid: number; pending: number; received: number; records: (FinanceRecord & { eventName: string })[] }> = {};
+        filteredFinance.forEach(f => {
+            const v = vendedores.find(x => x.id === f.salespersonId);
+            const key = f.salespersonId;
+            if (!map[key]) map[key] = { name: v?.name || 'N/A', total: 0, paid: 0, pending: 0, received: 0, records: [] };
+            map[key].total += f.amount;
+            if (f.status === FinanceStatus.PAID) map[key].paid += f.amount;
+            else if (f.status === FinanceStatus.PENDING) map[key].pending += f.amount;
+            else if (f.status === FinanceStatus.RECEIVED) map[key].received += f.amount;
+            map[key].records.push({ ...f, eventName: events.find(e => e.id === f.eventId)?.name || 'N/A' });
+        });
+        return Object.values(map).sort((a, b) => b.total - a.total);
+    }, [filteredFinance, vendedores, events]);
+
+    // === FOLLOW-UP DATA ===
+    const filteredFollowUps = useMemo(() => followUps.filter(f => {
+        if (salesFilter && f.createdBy !== salesFilter) return false;
+        if (!inDateRange(f.createdAt)) return false;
+        return true;
+    }), [followUps, salesFilter, dateFrom, dateTo]);
+
+    const followUpByStatus = useMemo(() => {
+        const map: Record<string, number> = {};
+        Object.values(FollowUpStatus).forEach(s => { map[s] = 0; });
+        filteredFollowUps.forEach(f => { map[f.status] = (map[f.status] || 0) + 1; });
+        return map;
+    }, [filteredFollowUps]);
+
+    const followUpStatusChartData = useMemo(() =>
+        Object.values(FollowUpStatus).map(s => ({
+            name: FU_STATUS_META[s].label,
+            value: followUpByStatus[s] || 0,
+            color: FU_STATUS_META[s].chartColor,
+        })).filter(d => d.value > 0),
+    [followUpByStatus]);
+
+    const followUpChannelChartData = useMemo(() =>
+        Object.values(ContactChannel).map(c => ({
+            name: FU_CHANNEL_META[c].label,
+            value: filteredFollowUps.filter(f => f.contactChannel === c).length,
+            color: FU_CHANNEL_META[c].chartColor,
+        })).filter(d => d.value > 0),
+    [filteredFollowUps]);
+
+    const followUpByCreator = useMemo(() =>
+        vendedores
+            .map(v => ({
+                name: v.name.split(' ')[0],
+                fullName: v.name,
+                total: filteredFollowUps.filter(f => f.createdBy === v.id).length,
+                closed: filteredFollowUps.filter(f => f.createdBy === v.id && f.status === FollowUpStatus.CLOSED).length,
+                high: filteredFollowUps.filter(f => f.createdBy === v.id && f.status === FollowUpStatus.HIGH).length,
+            }))
+            .filter(v => v.total > 0)
+            .sort((a, b) => b.total - a.total),
+    [filteredFollowUps, vendedores]);
+
+    const followUpTimeline = useMemo(() => {
+        const months: Record<string, { date: string; created: number; closed: number }> = {};
+        filteredFollowUps.forEach(f => {
+            const key = new Date(f.createdAt).toLocaleDateString('pt-BR', { month: '2-digit', year: '2-digit' });
+            if (!months[key]) months[key] = { date: key, created: 0, closed: 0 };
+            months[key].created++;
+            if (f.status === FollowUpStatus.CLOSED) months[key].closed++;
+        });
+        return Object.values(months).sort((a, b) => {
+            const [ma, ya] = a.date.split('/').map(Number);
+            const [mb, yb] = b.date.split('/').map(Number);
+            return new Date(ya, ma - 1, 1).getTime() - new Date(yb, mb - 1, 1).getTime();
+        });
+    }, [filteredFollowUps]);
+
+    const followUpKPIs = useMemo(() => {
+        const total = filteredFollowUps.length;
+        const overdue = filteredFollowUps.filter(f => {
+            if (!f.nextContactAt) return false;
+            if (f.status === FollowUpStatus.CLOSED || f.status === FollowUpStatus.NO_INTEREST) return false;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const contactDate = new Date(f.nextContactAt);
+            contactDate.setHours(0, 0, 0, 0);
+            return contactDate < today;
+        }).length;
+        const closed = filteredFollowUps.filter(f => f.status === FollowUpStatus.CLOSED).length;
+        const highInterest = filteredFollowUps.filter(f => f.status === FollowUpStatus.HIGH).length;
+        const closingRate = total > 0 ? Math.round((closed / total) * 100) : 0;
+        return { total, overdue, closed, highInterest, closingRate };
+    }, [filteredFollowUps]);
+
+    // === EXPORT FUNCTIONS ===
+    const getTabTitle = () => TABS.find(t => t.key === activeTab)?.label || 'Relatório';
+
+    const exportCSV = async () => {
+        await withLoading(async () => {
+            try {
+                let headers: string[] = [];
+                let rows: string[][] = [];
+                const title = getTabTitle();
+
+                if (activeTab === 'overview' || activeTab === 'vouchers') {
+                    headers = ['Código', 'Data', 'Academia', 'Evento', 'Vendedor', 'Duração (min)'];
+                    rows = filteredVouchers.map(v => {
+                        const visit = visits.find(vis => vis.id === v.visitId);
+                        const academy = academies.find(a => a.id === v.academyId);
+                        const event = events.find(e => e.id === v.eventId);
+                        const seller = vendedores.find(u => u.id === visit?.salespersonId);
+                        const dur = visit?.startedAt && visit?.finishedAt ? calculateTrueVisitDuration(visit.startedAt, visit.finishedAt) : null;
+                        return [v.code, new Date(v.createdAt).toLocaleDateString('pt-BR'), academy?.name || '---', event?.name || '---', seller?.name || 'N/A', dur ? String(dur) : '---'];
+                    });
+                } else if (activeTab === 'academies') {
+                    headers = ['Academia', 'Cidade', 'Visitas', 'Vouchers'];
+                    rows = academyRanking.map(a => [a.name, a.city, String(a.visits), String(a.vouchers)]);
+                } else if (activeTab === 'events') {
+                    headers = ['Evento', 'Visitas', 'Vouchers', 'Duração Média (min)'];
+                    rows = eventRanking.map(e => [e.name, String(e.visits), String(e.vouchers), String(e.avgDuration)]);
+                } else if (activeTab === 'sellers') {
+                    headers = ['Vendedor', 'Visitas', 'Vouchers', 'Duração Média (min)'];
+                    rows = sellerRanking.map(s => [s.name, String(s.visits), String(s.vouchers), String(s.avgDuration)]);
+                } else if (activeTab === 'financial') {
+                    headers = ['Vendedor', 'Evento', 'Valor', 'Status', 'Data'];
+                    rows = filteredFinance.map(f => {
+                        const v = vendedores.find(x => x.id === f.salespersonId);
+                        const e = events.find(x => x.id === f.eventId);
+                        return [v?.name || 'N/A', e?.name || 'N/A', f.amount.toFixed(2), f.status, new Date(f.updatedAt).toLocaleDateString('pt-BR')];
+                    });
+                } else if (activeTab === 'followup') {
+                    headers = ['Academia', 'Status', 'Canal', 'Contato', 'Próx. Contato', 'Notas', 'Criado por', 'Data'];
+                    rows = filteredFollowUps.map(f => {
+                        const ac = academies.find(a => a.id === f.academyId);
+                        const cr = vendedores.find(v => v.id === f.createdBy);
+                        return [
+                            ac?.name || 'N/A',
+                            FU_STATUS_META[f.status]?.label || f.status,
+                            FU_CHANNEL_META[f.contactChannel]?.label || f.contactChannel,
+                            f.contactPerson || '',
+                            f.nextContactAt ? new Date(f.nextContactAt).toLocaleDateString('pt-BR') : '',
+                            f.notes || '',
+                            cr?.name || 'N/A',
+                            new Date(f.createdAt).toLocaleDateString('pt-BR'),
+                        ];
+                    });
+                }
+
+                const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `relatorio-${activeTab}-${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                setToast({ message: `CSV "${title}" gerado!`, type: 'success' });
+            } catch { setToast({ message: 'Erro ao gerar CSV', type: 'error' }); }
+        });
+    };
+
     const exportPDF = async () => {
         await withLoading(async () => {
             try {
                 const doc = new jsPDF();
+                const title = getTabTitle();
+                doc.setFontSize(18); doc.setTextColor(16, 185, 129); doc.text(`Relatório: ${title}`, 14, 20);
+                doc.setFontSize(9); doc.setTextColor(100, 100, 100); doc.text(`BJJ Visits | Gerado em ${new Date().toLocaleString('pt-BR')}`, 14, 27);
 
-                // Header
-                doc.setFontSize(20);
-                doc.setTextColor(16, 185, 129); // Emerald color
-                doc.text('Relatório de Vouchers', 14, 20);
-
-                doc.setFontSize(10);
-                doc.setTextColor(100, 100, 100);
-                doc.text('BJJ Visits - Sistema de Gerenciamento', 14, 27);
-
-                // Filters info
                 let yPos = 35;
-                doc.setFontSize(11);
-                doc.setTextColor(0, 0, 0);
-                doc.text('Filtros Aplicados:', 14, yPos);
-
-                yPos += 7;
-                doc.setFontSize(9);
-                doc.setTextColor(80, 80, 80);
-
-                if (searchTerm) {
-                    doc.text(`• Busca: ${searchTerm}`, 14, yPos);
-                    yPos += 5;
-                }
-                if (yearFilter) {
-                    doc.text(`• Ano: ${yearFilter}`, 14, yPos);
-                    yPos += 5;
-                }
-                if (eventFilter) {
-                    const eventName = events.find(e => e.id === eventFilter)?.name || 'N/A';
-                    doc.text(`• Evento: ${eventName}`, 14, yPos);
-                    yPos += 5;
-                }
-                if (salesFilter) {
-                    const sellerName = vendedores.find(v => v.id === salesFilter)?.name || 'N/A';
-                    doc.text(`• Vendedor: ${sellerName}`, 14, yPos);
-                    yPos += 5;
-                }
-
-                if (!searchTerm && !yearFilter && !eventFilter && !salesFilter) {
-                    doc.text('• Nenhum filtro aplicado (todos os registros)', 14, yPos);
-                    yPos += 5;
-                }
-
+                doc.setFontSize(9); doc.setTextColor(80, 80, 80);
+                if (eventFilter) { doc.text(`Evento: ${events.find(e => e.id === eventFilter)?.name}`, 14, yPos); yPos += 5; }
+                if (salesFilter) { doc.text(`Vendedor: ${vendedores.find(v => v.id === salesFilter)?.name}`, 14, yPos); yPos += 5; }
+                if (dateFrom || dateTo) { doc.text(`Período: ${dateFrom || '---'} a ${dateTo || '---'}`, 14, yPos); yPos += 5; }
                 yPos += 5;
 
-                // KPIs Summary - Operational Row
-                doc.setFontSize(10); // Reset font size for the operational row if needed, or keep previous logic flow
-                doc.setTextColor(0, 0, 0); // Reset color
+                let head: string[][] = [];
+                let body: string[][] = [];
+                const hStyle = { fillColor: [16, 185, 129] as [number, number, number], textColor: 255 as number, fontStyle: 'bold' as const, fontSize: 8 };
 
-                doc.text(`Total de Vouchers: ${filteredVouchers.length}`, 14, yPos);
-                doc.text(`Academias: ${uniqueAcademies}`, 60, yPos);
-                doc.text(`Eventos: ${uniqueEvents}`, 110, yPos);
-                doc.text(`Vendedores: ${uniqueSellers}`, 160, yPos);
+                if (activeTab === 'overview' || activeTab === 'vouchers') {
+                    head = [['Código', 'Data', 'Academia', 'Evento', 'Vendedor']];
+                    body = filteredVouchers.slice(0, 200).map(v => {
+                        const vis = visits.find(x => x.id === v.visitId); const ac = academies.find(a => a.id === v.academyId);
+                        const ev = events.find(e => e.id === v.eventId); const se = vendedores.find(u => u.id === vis?.salespersonId);
+                        return [v.code, new Date(v.createdAt).toLocaleDateString('pt-BR'), ac?.name || '---', ev?.name || '---', se?.name || 'N/A'];
+                    });
+                } else if (activeTab === 'academies') {
+                    head = [['Academia', 'Cidade', 'Visitas', 'Vouchers']];
+                    body = academyRanking.map(a => [a.name, a.city, String(a.visits), String(a.vouchers)]);
+                } else if (activeTab === 'events') {
+                    head = [['Evento', 'Visitas', 'Vouchers', 'Duração Média']];
+                    body = eventRanking.map(e => [e.name, String(e.visits), String(e.vouchers), `${e.avgDuration} min`]);
+                } else if (activeTab === 'sellers') {
+                    head = [['Vendedor', 'Visitas', 'Vouchers', 'Duração Média']];
+                    body = sellerRanking.map(s => [s.name, String(s.visits), String(s.vouchers), `${s.avgDuration} min`]);
+                } else if (activeTab === 'financial') {
+                    head = [['Vendedor', 'Evento', 'Valor', 'Status']];
+                    body = filteredFinance.map(f => [vendedores.find(x => x.id === f.salespersonId)?.name || 'N/A', events.find(x => x.id === f.eventId)?.name || 'N/A', `$ ${f.amount.toFixed(2)}`, f.status]);
+                } else if (activeTab === 'followup') {
+                    head = [['Academia', 'Status', 'Canal', 'Contato', 'Próx. Contato', 'Criado por']];
+                    body = filteredFollowUps.map(f => {
+                        const ac = academies.find(a => a.id === f.academyId);
+                        const cr = vendedores.find(v => v.id === f.createdBy);
+                        return [
+                            ac?.name || 'N/A',
+                            FU_STATUS_META[f.status]?.label || f.status,
+                            FU_CHANNEL_META[f.contactChannel]?.label || f.contactChannel,
+                            f.contactPerson || '---',
+                            f.nextContactAt ? new Date(f.nextContactAt).toLocaleDateString('pt-BR') : '---',
+                            cr?.name || 'N/A',
+                        ];
+                    });
+                }
 
-                yPos += 10;
-
-                // Group vouchers by visit session to avoid redundancy
-                const groups: Map<string, { codes: string[], data: Voucher }> = new Map();
-
-                sortedVouchers.forEach(v => {
-                    const key = v.visitId || `orphan-${v.academyId}-${v.eventId}-${new Date(v.createdAt).toLocaleDateString()}`;
-                    if (!groups.has(key)) {
-                        groups.set(key, { codes: [], data: v });
-                    }
-                    groups.get(key)!.codes.push(v.code);
-                });
-
-                // Table data
-                const tableData = Array.from(groups.values()).map(({ codes, data: v }) => {
-                    const visit = visits.find(vis => vis.id === v.visitId);
-                    const academy = academies.find(a => a.id === v.academyId);
-                    const event = events.find(e => e.id === v.eventId);
-                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]));
-
-                    let durationStr = '---';
-                    if (visit?.startedAt && visit?.finishedAt) {
-                        const start = new Date(visit.startedAt).getTime();
-                        const end = new Date(visit.finishedAt).getTime();
-                        let diffMin = Math.round((end - start) / (1000 * 60));
-
-                        // Rules: 0 -> 30, Max -> 60
-                        if (diffMin <= 0) diffMin = 30;
-                        if (diffMin > 60) diffMin = 60;
-
-                        durationStr = `${diffMin} min`;
-                    }
-
-                    return [
-                        codes.join(', '),
-                        new Date(v.createdAt).toLocaleDateString('pt-BR'),
-                        academy?.name || '---',
-                        `${academy?.city || ''} - ${academy?.state || ''}`,
-                        event?.name || '---',
-                        seller?.name || 'Sistêmico',
-                        durationStr
-                    ];
-                });
-
-                // Generate table
-                autoTable(doc, {
-                    startY: yPos,
-                    head: [['Código', 'Data', 'Academia', 'Localização', 'Evento', 'Vendedor', 'Duração']],
-                    body: tableData,
-                    theme: 'striped',
-                    headStyles: {
-                        fillColor: [16, 185, 129], // Emerald
-                        textColor: 255,
-                        fontStyle: 'bold',
-                        fontSize: 9
-                    },
-                    bodyStyles: {
-                        fontSize: 8,
-                        textColor: 50
-                    },
-                    alternateRowStyles: {
-                        fillColor: [245, 245, 250]
-                    },
-                    columnStyles: {
-                        0: { cellWidth: 25, fontStyle: 'bold' }, // Código
-                        1: { cellWidth: 22 }, // Data
-                        2: { cellWidth: 35 }, // Academia
-                        3: { cellWidth: 30 }, // Localização
-                        4: { cellWidth: 30 }, // Evento
-                        5: { cellWidth: 25 }, // Vendedor
-                        6: { cellWidth: 20 }  // Duração
-                    },
-                    margin: { left: 14, right: 14 },
-                    didDrawPage: function (data) {
-                        // Footer
-                        const pageCount = doc.getNumberOfPages();
-                        doc.setFontSize(8);
-                        doc.setTextColor(150, 150, 150);
-
-                        for (let i = 1; i <= pageCount; i++) {
-                            doc.setPage(i);
-                            const pageHeight = doc.internal.pageSize.height;
-                            doc.text(
-                                `Gerado em: ${new Date().toLocaleString('pt-BR')}`,
-                                14,
-                                pageHeight - 10
-                            );
-                            doc.text(
-                                `Página ${i} de ${pageCount}`,
-                                doc.internal.pageSize.width - 40,
-                                pageHeight - 10
-                            );
-                        }
-                    }
-                });
-
-                // Save PDF
-                const fileName = `relatorio-vouchers-${new Date().toISOString().split('T')[0]}.pdf`;
-                doc.save(fileName);
-
-                setToast({ message: 'PDF gerado com sucesso!', type: 'success' });
-            } catch (error) {
-                console.error('Error generating PDF:', error);
-                setToast({ message: 'Erro ao gerar PDF', type: 'error' });
-            }
+                autoTable(doc, { startY: yPos, head, body, theme: 'striped', headStyles: hStyle, bodyStyles: { fontSize: 7 }, margin: { left: 14, right: 14 } });
+                doc.save(`relatorio-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`);
+                setToast({ message: `PDF "${title}" gerado!`, type: 'success' });
+            } catch { setToast({ message: 'Erro ao gerar PDF', type: 'error' }); }
         });
     };
 
-    // Export CSV function
-    const exportCSV = async () => {
-        await withLoading(async () => {
-            try {
-                const headers = ['Código', 'Data', 'Academia', 'Evento', 'Vendedor', 'Duração (min)'];
-                // Group vouchers by visit session for a more intelligent CSV
-                const groups: Map<string, { codes: string[], data: Voucher }> = new Map();
-                sortedVouchers.forEach(v => {
-                    const key = v.visitId || `orphan-${v.academyId}-${v.eventId}-${new Date(v.createdAt).toLocaleDateString()}`;
-                    if (!groups.has(key)) {
-                        groups.set(key, { codes: [], data: v });
-                    }
-                    groups.get(key)!.codes.push(v.code);
-                });
 
-                const rows = Array.from(groups.values()).map(({ codes, data: v }) => {
-                    const visit = visits.find(vis => vis.id === v.visitId);
-                    const academy = academies.find(a => a.id === v.academyId);
-                    const event = events.find(e => e.id === v.eventId);
-                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]));
+    // === RENDER HELPERS ===
+    const KPICard = ({ label, value, sub, color = 'emerald' }: { label: string; value: string | number; sub?: string; color?: string }) => (
+        <div className="group relative overflow-hidden bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 hover:border-white/20 transition-all duration-300 hover:-translate-y-0.5">
+            <h3 className="text-2xl font-black text-white tracking-tight">{value}</h3>
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">{label}</p>
+            {sub && <p className="text-[10px] text-white/25 mt-1">{sub}</p>}
+        </div>
+    );
 
-                    let duration = 0;
-                    if (visit?.startedAt && visit?.finishedAt) {
-                        duration = calculateTrueVisitDuration(visit.startedAt, visit.finishedAt) || 0;
-                    }
+    const SortableHeader = ({ field, label }: { field: string; label: string }) => (
+        <th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider cursor-pointer hover:text-white/70 transition-colors select-none" onClick={() => { if (sortBy === field) setSortOrder(o => o === 'asc' ? 'desc' : 'asc'); else { setSortBy(field); setSortOrder('asc'); } }}>
+            <span>{label}</span>{sortBy === field ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : ''}
+        </th>
+    );
 
-                    return [
-                        `"${codes.join(', ')}"`, // Quote the codes in case they contain commas (though they don't usually)
-                        new Date(v.createdAt).toLocaleDateString('pt-BR'),
-                        academy?.name || '---',
-                        event?.name || '---',
-                        seller?.name || 'Sistêmico',
-                        duration
-                    ];
-                });
+    const ChartCard = ({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) => (
+        <div className={`bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 ${className}`}>
+            <h3 className="text-[11px] font-black text-white/50 uppercase tracking-widest mb-4">{title}</h3>
+            {children}
+        </div>
+    );
 
-                const csvContent = [
-                    headers.join(','),
-                    ...rows.map(row => row.join(','))
-                ].join('\n');
-
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `relatorio-vouchers-${new Date().toISOString().split('T')[0]}.csv`;
-                link.click();
-
-                setToast({ message: 'CSV gerado com sucesso!', type: 'success' });
-            } catch (error) {
-                console.error('Error generating CSV:', error);
-                setToast({ message: 'Erro ao gerar CSV', type: 'error' });
-            }
-        });
-    };
+    const tooltipStyle = { backgroundColor: 'rgba(10, 10, 10, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', fontSize: '11px' };
 
     return (
-        <div className="space-y-6 p-4">
-            {/* Toast Notification */}
+        <div className="space-y-5 p-4">
             {toast && (
-                <div className="fixed top-20 right-8 z-[200] bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 text-white px-6 py-4 rounded-2xl shadow-2xl animate-in slide-in-from-right flex items-center space-x-3">
-                    {toast.type === 'success' ? (
-                        <div className="p-2 bg-emerald-500/20 rounded-xl">
-                            <CheckCircle2 size={20} className="text-emerald-400" strokeWidth={2} />
-                        </div>
-                    ) : (
-                        <div className="p-2 bg-red-500/20 rounded-xl">
-                            <AlertCircle size={20} className="text-red-400" strokeWidth={2} />
-                        </div>
-                    )}
-                    <span className="font-bold text-sm">{toast.message}</span>
-                    <button
-                        onClick={() => setToast(null)}
-                        className="ml-2 p-1 hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                        <X size={16} strokeWidth={2} />
-                    </button>
+                <div className="fixed top-20 right-8 z-[200] bg-neutral-900 border border-white/20 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center justify-between min-w-[200px] animate-in slide-in-from-right">
+                    <span className={`font-bold text-sm ${toast.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>{toast.message}</span>
+                    <button onClick={() => setToast(null)} className="ml-2 p-1 hover:bg-white/10 rounded-lg text-white/50 hover:text-white font-black text-xs">X</button>
                 </div>
             )}
 
-            {/* Header with Gradient */}
-            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl print:hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-sm"></div>
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
-
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            {/* HEADER */}
+            <div className="bg-neutral-900 border border-white/[0.08] p-5 rounded-2xl">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                     <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
-                                Relatórios e KPIs
-                            </h1>
-                            {activeFiltersCount > 0 && (
-                                <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 rounded-full text-xs font-black text-white">
-                                    {activeFiltersCount} {activeFiltersCount === 1 ? 'filtro' : 'filtros'}
-                                </span>
-                            )}
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl font-black text-white tracking-tight">Central de Relatórios</h1>
+                            {activeFiltersCount > 0 && <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/30 rounded-full text-[10px] font-black text-emerald-400">{activeFiltersCount} filtros</span>}
                         </div>
-                        <p className="text-white/80 text-sm font-medium">
-                            Análise de vouchers gerados e performance
-                        </p>
+                        <p className="text-white/40 text-xs mt-0.5">Análise completa do sistema BJJ Visits</p>
                     </div>
-
                     <div className="flex items-center space-x-2">
-                        <button
-                            onClick={exportCSV}
-                            className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-xl font-bold flex items-center space-x-2 hover:bg-white/20 transition-all"
-                        >
-                            <Download size={16} strokeWidth={2} />
-                            <span className="hidden sm:inline">CSV</span>
-                        </button>
-                        <button
-                            onClick={exportPDF}
-                            className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-xl font-bold flex items-center space-x-2 hover:bg-white/20 transition-all"
-                        >
-                            <Printer size={16} strokeWidth={2} />
-                            <span className="hidden sm:inline">PDF</span>
-                        </button>
+                        <button onClick={exportCSV} className="bg-white/[0.06] border border-white/[0.12] text-white px-3 py-2 rounded-xl font-bold hover:bg-white/10 transition-all text-xs">CSV</button>
+                        <button onClick={exportPDF} className="bg-white/[0.06] border border-white/[0.12] text-white px-3 py-2 rounded-xl font-bold hover:bg-white/10 transition-all text-xs">PDF</button>
                     </div>
                 </div>
             </div>
 
-            {/* Command Center - Premium KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 print:hidden">
-                {[
-                    {
-                        label: 'Vouchers Gerados',
-                        value: filteredVouchers.length,
-                        subValue: `${filteredVisits.length} visitas`,
-                        iconBg: 'bg-emerald-500/20',
-                        iconColor: 'text-emerald-400'
-                    },
-                    {
-                        label: 'Lead Time Médio',
-                        value: `${efficiencyMetrics.avgDuration} min`,
-                        subValue: 'Duração Visita',
-                        bgGlow: 'bg-rose-500/20',
-                        iconBg: 'bg-rose-500/20',
-                        iconColor: 'text-rose-400'
-                    }
-                ].map((kpi, i) => (
-                    <div
-                        key={i}
-                        className="group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
-                    >
-                        <div className={`absolute -top-24 -right-24 w-48 h-48 ${kpi.bgGlow} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
-
-                        <div className="relative z-10">
-
-
-                            <div>
-                                <h3 className="text-xl font-black text-white mb-0.5 tracking-tight group-hover:text-emerald-400 transition-colors">
-                                    {kpi.value}
-                                </h3>
-                                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2 font-mono">
-                                    {kpi.label}
-                                </p>
-                                <div className="text-[10px] font-medium text-white/30 truncate">
-                                    {kpi.subValue}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            {/* TAB BAR */}
+            <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+                {TABS.map(tab => (
+                    <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${activeTab === tab.key ? 'bg-white text-neutral-900' : 'bg-white/[0.04] text-white/50 hover:bg-white/[0.08] hover:text-white/70'}`}>
+                        {tab.label}
+                    </button>
                 ))}
             </div>
 
-            {/* Charts Row 1 - Timeline Evolution */}
-            <div className="grid grid-cols-1 gap-6 print:hidden">
-                {/* Timeline Area Chart */}
-                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center space-x-2">
-                            <h3 className="text-sm font-black text-white uppercase tracking-wider">Evolução Temporal</h3>
-                        </div>
-                    </div>
-
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={timelineData}>
-                                <defs>
-                                    <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="colorVouchers" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                <XAxis
-                                    dataKey="date"
-                                    stroke="rgba(255,255,255,0.3)"
-                                    fontSize={10}
-                                    tickLine={false}
-                                    axisLine={false}
-                                />
-                                <YAxis
-                                    stroke="rgba(255,255,255,0.3)"
-                                    fontSize={10}
-                                    tickLine={false}
-                                    axisLine={false}
-                                />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                                />
-                                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontWeight: 'bold' }} />
-                                <Area
-                                    name="Visitas"
-                                    type="monotone"
-                                    dataKey="visits"
-                                    stroke="#10b981"
-                                    strokeWidth={3}
-                                    fillOpacity={1}
-                                    fill="url(#colorVisits)"
-                                />
-                                <Area
-                                    name="Vouchers"
-                                    type="monotone"
-                                    dataKey="vouchers"
-                                    stroke="#0ea5e9"
-                                    strokeWidth={3}
-                                    fillOpacity={1}
-                                    fill="url(#colorVouchers)"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
+            {/* FILTERS */}
+            <div className="grid grid-cols-2 md:grid-cols-12 gap-3">
+                <div className="col-span-2 md:col-span-3">
+                    <input type="text" placeholder="Buscar..." className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/20 text-xs" value={searchInput} onChange={e => setSearchInput(e.target.value)} />
                 </div>
+                <input type="date" className="col-span-1 md:col-span-2 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-white/20" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                <input type="date" className="col-span-1 md:col-span-2 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-white/20" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                <select className="col-span-1 md:col-span-2 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-white/20" value={eventFilter} onChange={e => setEventFilter(e.target.value)}>
+                    <option value="" className="bg-neutral-900">Todos Eventos</option>
+                    {nonTestEvents.map(e => <option key={e.id} value={e.id} className="bg-neutral-900">{e.name}</option>)}
+                </select>
+                <select className="col-span-1 md:col-span-2 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-white/20" value={salesFilter} onChange={e => setSalesFilter(e.target.value)}>
+                    <option value="" className="bg-neutral-900">Todos Vendedores</option>
+                    {vendedores.map(v => <option key={v.id} value={v.id} className="bg-neutral-900">{v.name}</option>)}
+                </select>
+                <button onClick={clearAllFilters} disabled={activeFiltersCount === 0} className="col-span-2 md:col-span-1 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white/50 px-3 py-2 hover:bg-white/[0.08] transition-all disabled:opacity-30 text-xs font-bold">Limpar</button>
             </div>
 
-            {/* Charts Row 2 - Sentiment Analysis */}
-            <div className="grid grid-cols-1 gap-6 print:hidden">
-                {/* Sentiment Pie Chart */}
-                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center space-x-2">
-                            <h3 className="text-sm font-black text-white uppercase tracking-wider">Sentimento de Mercado</h3>
-                        </div>
+            {/* TAB CONTENT */}
+            {activeTab === 'overview' && (
+                <div className="space-y-5">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <KPICard label="Vouchers" value={filteredVouchers.length} sub={`${filteredVisits.length} visitas`} />
+                        <KPICard label="Visitas" value={filteredVisits.length} />
+                        <KPICard label="Duração Média" value={`${efficiencyMetrics.avgDuration} min`} />
+                        <KPICard label="Academias" value={uniqueAcademies} sub="Com voucher gerado" />
+                        <KPICard label="Saldo Financeiro" value={`$ ${financialSummary.balance.toFixed(0)}`} sub={`Recebido - Pago`} />
                     </div>
-
-                    <div className="h-[250px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={temperatureData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={8}
-                                    dataKey="value"
-                                >
-                                    {temperatureData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                    itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 gap-2">
-                        {temperatureData.map((item, i) => (
-                            <div key={i} className="flex items-center justify-between text-[11px]">
-                                <div className="flex items-center space-x-2">
-                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>
-                                    <span className="text-white/60">{item.name}</span>
-                                </div>
-                                <span className="text-white font-black">{item.value}</span>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                        <ChartCard title="Evolução Temporal" className="lg:col-span-2">
+                            <div className="h-[280px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={timelineData}>
+                                        <defs>
+                                            <linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.3} /><stop offset="95%" stopColor="#10b981" stopOpacity={0} /></linearGradient>
+                                            <linearGradient id="gU" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} /><stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} /></linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                                        <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} />
+                                        <Tooltip contentStyle={tooltipStyle} />
+                                        <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                        <Area name="Visitas" type="monotone" dataKey="visits" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#gV)" />
+                                        <Area name="Vouchers" type="monotone" dataKey="vouchers" stroke="#0ea5e9" strokeWidth={2} fillOpacity={1} fill="url(#gU)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
                             </div>
-                        ))}
+                        </ChartCard>
+                        <ChartCard title="Sentimento de Mercado">
+                            <div className="h-[200px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie data={temperatureData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={6} dataKey="value">{temperatureData.map((e, i) => <Cell key={i} fill={e.color} />)}</Pie>
+                                        <Tooltip contentStyle={tooltipStyle} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="mt-2 space-y-1.5">{temperatureData.map((item, i) => (<div key={i} className="flex items-center justify-between text-[10px]"><div className="flex items-center space-x-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div><span className="text-white/50">{item.name}</span></div><span className="text-white font-black">{item.value}</span></div>))}</div>
+                        </ChartCard>
+                    </div>
+
+                </div>
+            )}
+
+            {activeTab === 'academies' && (
+                <div className="space-y-5">
+
+                    <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden">
+                        <div className="p-4 border-b border-white/[0.06]"><h3 className="text-sm font-black text-white">Todas as Academias ({academyRanking.length})</h3></div>
+                        <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-white/[0.03] border-b border-white/[0.06]"><tr><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Academia</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Cidade</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Visitas</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Vouchers</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Temperatura</th></tr></thead><tbody className="divide-y divide-white/[0.04]">{academyRanking.map((a, i) => (<tr key={a.id} className="hover:bg-white/[0.03] transition-colors"><td className="px-4 py-3"><div className="flex items-center space-x-2"><span className="text-[10px] font-mono font-bold text-white/30 w-5">{i + 1}</span><span className="text-sm font-bold text-white">{a.name}</span></div></td><td className="px-4 py-3 text-xs text-white/50">{a.city}</td><td className="px-4 py-3 text-sm font-bold text-white">{a.visits}</td><td className="px-4 py-3 text-sm font-black text-emerald-400">{a.vouchers}</td><td className="px-4 py-3"><div className="flex gap-1">{a.temps.length > 0 ? (() => { const hot = a.temps.filter(t => t === AcademyTemperature.HOT).length; const warm = a.temps.filter(t => t === AcademyTemperature.WARM).length; const cold = a.temps.filter(t => t === AcademyTemperature.COLD).length; const dominant = hot >= warm && hot >= cold ? 'Quente' : warm >= cold ? 'Morno' : 'Frio'; const color = dominant === 'Quente' ? 'text-red-400 bg-red-500/10' : dominant === 'Morno' ? 'text-amber-400 bg-amber-500/10' : 'text-blue-400 bg-blue-500/10'; return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${color}`}>{dominant}</span>; })() : <span className="text-[10px] text-white/20">---</span>}</div></td></tr>))}</tbody></table></div>
                     </div>
                 </div>
-            </div>
+            )}
 
-            {/* Filters & Grouping */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 print:hidden">
-                <div className="md:col-span-4 relative group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-white/60 transition-colors" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Buscar código ou academia..."
-                        className="w-full pl-10 pr-4 py-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
-                    />
-                </div>
-
-                <div className="md:col-span-8 flex flex-wrap gap-4">
-                    <select
-                        className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white px-4 py-2 outline-none focus:ring-2 focus:ring-white/30 text-sm font-bold flex-1"
-                        value={groupBy}
-                        onChange={(e) => setGroupBy(e.target.value as any)}
-                    >
-                        <option value="none" className="bg-[hsl(222,47%,15%)]">Sem Agrupamento</option>
-                        <option value="seller" className="bg-[hsl(222,47%,15%)]">Agrupar por Vendedor</option>
-                        <option value="event" className="bg-[hsl(222,47%,15%)]">Agrupar por Evento</option>
-                    </select>
-
-                    <select
-                        className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white px-4 py-2 outline-none focus:ring-2 focus:ring-white/30 text-sm font-bold flex-1"
-                        value={yearFilter}
-                        onChange={(e) => setYearFilter(e.target.value)}
-                    >
-                        <option value="" className="bg-[hsl(222,47%,15%)]">Todos os Anos</option>
-                        {years.map(y => <option key={y} value={y.toString()} className="bg-[hsl(222,47%,15%)]">{y}</option>)}
-                    </select>
-
-                    <select
-                        className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white px-4 py-2 outline-none focus:ring-2 focus:ring-white/30 text-sm font-bold flex-1"
-                        value={eventFilter}
-                        onChange={(e) => setEventFilter(e.target.value)}
-                    >
-                        <option value="" className="bg-[hsl(222,47%,15%)]">Todos os Eventos</option>
-                        {events.map(e => <option key={e.id} value={e.id} className="bg-[hsl(222,47%,15%)]">{e.name}</option>)}
-                    </select>
-
-                    <button
-                        onClick={clearAllFilters}
-                        disabled={activeFiltersCount === 0}
-                        className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white px-4 py-2 font-bold flex items-center justify-center space-x-2 hover:bg-white/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm"
-                    >
-                        <Eraser size={16} strokeWidth={2} />
-                        <span className="hidden lg:inline">Limpar</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* Table */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-                <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                        <h3 className="text-lg font-black text-white">
-                            Explorador de Dados ({sortedVouchers.length})
-                        </h3>
+            {activeTab === 'events' && (
+                <div className="space-y-5">
+                    <ChartCard title="Performance por Evento">
+                        <div className="h-[300px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={eventRanking.slice(0, 10)}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} /><XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} angle={-15} textAnchor="end" height={60} /><YAxis stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} /><Tooltip contentStyle={tooltipStyle} /><Legend wrapperStyle={{ fontSize: '10px' }} /><Bar dataKey="visits" fill="#0ea5e9" name="Visitas" radius={[4, 4, 0, 0]} /><Bar dataKey="vouchers" fill="#10b981" name="Vouchers" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
+                    </ChartCard>
+                    <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden">
+                        <div className="p-4 border-b border-white/[0.06]"><h3 className="text-sm font-black text-white">Detalhamento por Evento ({eventRanking.length})</h3></div>
+                        <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-white/[0.03] border-b border-white/[0.06]"><tr><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Evento</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Visitas</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Vouchers</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Duração Média</th></tr></thead><tbody className="divide-y divide-white/[0.04]">{eventRanking.map(e => (<tr key={e.id} className="hover:bg-white/[0.03] transition-colors"><td className="px-4 py-3 text-sm font-bold text-white">{e.name}</td><td className="px-4 py-3 text-sm text-white/70">{e.visits}</td><td className="px-4 py-3 text-sm font-black text-emerald-400">{e.vouchers}</td><td className="px-4 py-3 text-sm text-white/50">{e.avgDuration} min</td></tr>))}</tbody></table></div>
                     </div>
-                    {groupBy !== 'none' && (
-                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/10">
-                            Modo de Agrupamento Ativo
+                </div>
+            )}
+
+            {activeTab === 'sellers' && (
+                <div className="space-y-5">
+                    <ChartCard title="Ranking de Vendedores">
+                        <div className="h-[300px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={sellerRanking} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} /><XAxis type="number" stroke="rgba(255,255,255,0.2)" fontSize={9} /><YAxis type="category" dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} width={100} /><Tooltip contentStyle={tooltipStyle} /><Legend wrapperStyle={{ fontSize: '10px' }} /><Bar dataKey="vouchers" fill="#10b981" name="Vouchers" radius={[0, 6, 6, 0]} /><Bar dataKey="visits" fill="#0ea5e9" name="Visitas" radius={[0, 6, 6, 0]} /></BarChart></ResponsiveContainer></div>
+                    </ChartCard>
+                    <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden">
+                        <div className="p-4 border-b border-white/[0.06]"><h3 className="text-sm font-black text-white">Detalhamento por Vendedor ({sellerRanking.length})</h3></div>
+                        <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-white/[0.03] border-b border-white/[0.06]"><tr><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Vendedor</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Visitas</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Vouchers</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Duração Média</th></tr></thead><tbody className="divide-y divide-white/[0.04]">{sellerRanking.map((s, i) => (<tr key={s.id} className="hover:bg-white/[0.03] transition-colors"><td className="px-4 py-3"><div className="flex items-center space-x-2"><div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-black text-white/50">{s.name.charAt(0)}</div><span className="text-sm font-bold text-white">{s.name}</span></div></td><td className="px-4 py-3 text-sm text-white/70">{s.visits}</td><td className="px-4 py-3 text-sm font-black text-emerald-400">{s.vouchers}</td><td className="px-4 py-3 text-sm text-white/50">{s.avgDuration} min</td></tr>))}</tbody></table></div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'financial' && (
+                <div className="space-y-5">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <KPICard label="Total Lançado" value={`$ ${financialSummary.total.toFixed(2)}`} />
+                        <KPICard label="Pago" value={`$ ${financialSummary.paid.toFixed(2)}`} color="blue" />
+                        <KPICard label="Pendente" value={`$ ${financialSummary.pending.toFixed(2)}`} color="amber" />
+                        <KPICard label="Recebido" value={`$ ${financialSummary.received.toFixed(2)}`} color="emerald" />
+                    </div>
+                    {financeByVendor.map(vendor => (
+                        <div key={vendor.name} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden">
+                            <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
+                                <div className="flex items-center space-x-2"><div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-black text-white/50">{vendor.name.charAt(0)}</div><span className="text-sm font-black text-white">{vendor.name}</span></div>
+                                <span className="text-xs font-black text-emerald-400">$ {vendor.total.toFixed(2)}</span>
+                            </div>
+                            <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-white/[0.02]"><tr><th className="px-4 py-2 text-[10px] font-black text-white/40 uppercase">Evento</th><th className="px-4 py-2 text-[10px] font-black text-white/40 uppercase">Valor</th><th className="px-4 py-2 text-[10px] font-black text-white/40 uppercase">Status</th><th className="px-4 py-2 text-[10px] font-black text-white/40 uppercase">Data</th></tr></thead><tbody className="divide-y divide-white/[0.03]">{vendor.records.map(r => (<tr key={r.id} className="hover:bg-white/[0.02]"><td className="px-4 py-2.5 text-xs text-white/70">{r.eventName}</td><td className="px-4 py-2.5 text-xs font-bold text-white">$ {r.amount.toFixed(2)}</td><td className="px-4 py-2.5"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.status === FinanceStatus.PAID ? 'bg-blue-500/10 text-blue-400' : r.status === FinanceStatus.RECEIVED ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>{r.status}</span></td><td className="px-4 py-2.5 text-xs text-white/40">{new Date(r.updatedAt).toLocaleDateString('pt-BR')}</td></tr>))}</tbody></table></div>
+                        </div>
+                    ))}
+                    {financeByVendor.length === 0 && <div className="text-center py-16 text-white/30 text-sm">Nenhum registro financeiro encontrado.</div>}
+                </div>
+            )}
+
+            {activeTab === 'followup' && (
+                <div className="space-y-5">
+                    {/* Loading state */}
+                    {followUpsLoading && (
+                        <div className="flex items-center justify-center py-20">
+                            <div className="w-8 h-8 border-2 border-indigo-500/50 border-t-indigo-500 rounded-full animate-spin" />
                         </div>
                     )}
-                </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-white/5 border-b border-white/10">
-                            <tr>
-                                <th
-                                    className="px-4 py-3 text-xs font-black text-white/60 uppercase tracking-wider cursor-pointer hover:text-white/80 transition-colors select-none"
-                                    onClick={() => {
-                                        if (sortBy === 'code') {
-                                            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                                        } else {
-                                            setSortBy('code');
-                                            setSortOrder('asc');
-                                        }
-                                    }}
-                                >
-                                    <div className="flex items-center space-x-1">
-                                        <span>Código</span>
-                                        {sortBy === 'code' ? (
-                                            sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
-                                        ) : (
-                                            <ArrowUpDown size={14} className="opacity-40" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-xs font-black text-white/60 uppercase tracking-wider cursor-pointer hover:text-white/80 transition-colors select-none"
-                                    onClick={() => {
-                                        if (sortBy === 'date') {
-                                            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                                        } else {
-                                            setSortBy('date');
-                                            setSortOrder('desc');
-                                        }
-                                    }}
-                                >
-                                    <div className="flex items-center space-x-1">
-                                        <span>Data</span>
-                                        {sortBy === 'date' ? (
-                                            sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
-                                        ) : (
-                                            <ArrowUpDown size={14} className="opacity-40" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-xs font-black text-white/60 uppercase tracking-wider cursor-pointer hover:text-white/80 transition-colors select-none"
-                                    onClick={() => {
-                                        if (sortBy === 'academy') {
-                                            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                                        } else {
-                                            setSortBy('academy');
-                                            setSortOrder('asc');
-                                        }
-                                    }}
-                                >
-                                    <div className="flex items-center space-x-1">
-                                        <span>Academia</span>
-                                        {sortBy === 'academy' ? (
-                                            sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
-                                        ) : (
-                                            <ArrowUpDown size={14} className="opacity-40" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-xs font-black text-white/60 uppercase tracking-wider cursor-pointer hover:text-white/80 transition-colors select-none"
-                                    onClick={() => {
-                                        if (sortBy === 'event') {
-                                            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                                        } else {
-                                            setSortBy('event');
-                                            setSortOrder('asc');
-                                        }
-                                    }}
-                                >
-                                    <div className="flex items-center space-x-1">
-                                        <span>Evento</span>
-                                        {sortBy === 'event' ? (
-                                            sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
-                                        ) : (
-                                            <ArrowUpDown size={14} className="opacity-40" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-xs font-black text-white/60 uppercase tracking-wider cursor-pointer hover:text-white/80 transition-colors select-none"
-                                    onClick={() => {
-                                        if (sortBy === 'seller') {
-                                            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                                        } else {
-                                            setSortBy('seller');
-                                            setSortOrder('asc');
-                                        }
-                                    }}
-                                >
-                                    <div className="flex items-center space-x-1">
-                                        <span>Vendedor</span>
-                                        {sortBy === 'seller' ? (
-                                            sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
-                                        ) : (
-                                            <ArrowUpDown size={14} className="opacity-40" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th className="px-4 py-3 text-xs font-black text-white/60 uppercase tracking-wider">
-                                    Duração
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {sortedVouchers.length > 0 ? (
-                                groupBy === 'none' ? (
-                                    sortedVouchers.map(v => {
-                                        const visit = visits.find(vis => vis.id === v.visitId);
-                                        const academy = academies.find(a => a.id === v.academyId);
-                                        const event = events.find(e => e.id === v.eventId);
-                                        const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]));
+                    {!followUpsLoading && (
+                        <>
+                            {/* KPIs */}
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                <KPICard label="Total Follow-Ups" value={followUpKPIs.total} />
+                                <KPICard label="Interesse Alto" value={followUpKPIs.highInterest} sub="Quentes no funil" />
+                                <KPICard label="Fechados" value={followUpKPIs.closed} sub="Convertidos" />
+                                <KPICard label="Taxa de Fechamento" value={`${followUpKPIs.closingRate}%`} sub="Fechados / Total" />
+                                <KPICard label="Vencidos" value={followUpKPIs.overdue} sub="Próx. contato expirado" />
+                            </div>
 
-                                        return (
-                                            <tr key={v.code} className="hover:bg-white/5 transition-colors group">
-                                                <td className="px-4 py-3">
-                                                    <span className="font-mono font-black text-sm text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 group-hover:border-emerald-500/40 transition-all">
-                                                        {v.code}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-white/60 font-medium">
-                                                    {new Date(v.createdAt).toLocaleDateString('pt-BR')}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="font-bold text-white text-sm">{academy?.name || '---'}</div>
-                                                    <div className="text-xs text-white/40">{academy?.city}</div>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-white/80 font-medium">
-                                                    {event?.name || '---'}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center space-x-2">
-                                                        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white/60">
-                                                            {seller?.name.charAt(0) || 'S'}
+                            {/* Charts row 1: Status + Canal */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                                <ChartCard title="Distribuição por Status">
+                                    {followUpStatusChartData.length > 0 ? (
+                                        <>
+                                            <div className="h-[200px]">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie data={followUpStatusChartData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value">
+                                                            {followUpStatusChartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                                                        </Pie>
+                                                        <Tooltip contentStyle={tooltipStyle} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            <div className="mt-3 space-y-1.5">
+                                                {followUpStatusChartData.map((item, i) => (
+                                                    <div key={i} className="flex items-center justify-between text-[10px]">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                                                            <span className="text-white/50">{item.name}</span>
                                                         </div>
-                                                        <span className="font-semibold text-sm text-white/80">{seller?.name || 'Sistêmico'}</span>
+                                                        <span className="text-white font-black">{item.value}</span>
                                                     </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-white/60 font-medium">
-                                                    {(() => {
-                                                        if (visit?.startedAt && visit?.finishedAt) {
-                                                            const duration = calculateTrueVisitDuration(visit.startedAt, visit.finishedAt);
-                                                            if (duration) return `${duration} min`;
-                                                        }
-                                                        return '---';
-                                                    })()}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                ) : (
-                                    // Grouped View
-                                    Object.entries(
-                                        sortedVouchers.reduce((acc, v) => {
-                                            let key = 'N/A';
-                                            if (groupBy === 'seller') {
-                                                const visit = visits.find(vis => vis.id === v.visitId);
-                                                const event = events.find(e => e.id === v.eventId);
-                                                key = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]))?.name || 'Sistêmico';
-                                            } else if (groupBy === 'event') {
-                                                key = events.find(e => e.id === v.eventId)?.name || 'Eventos Antigos';
-                                            }
-                                            if (!acc[key]) acc[key] = [];
-                                            acc[key].push(v);
-                                            return acc;
-                                        }, {} as Record<string, Voucher[]>)
-                                    ).map(([groupName, groupVouchers]) => {
-                                        const vouchersInGroup = groupVouchers as Voucher[];
-                                        return (
-                                            <React.Fragment key={groupName}>
-                                                <tr className="bg-white/5 border-l-4 border-emerald-500">
-                                                    <td colSpan={5} className="px-4 py-2">
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-xs font-black text-white uppercase tracking-widest">{groupName}</span>
-                                                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                                                                {vouchersInGroup.length} vouchers
-                                                            </span>
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="h-[200px] flex items-center justify-center text-white/20 text-sm">Sem dados</div>
+                                    )}
+                                </ChartCard>
+
+                                <ChartCard title="Canal de Contato">
+                                    {followUpChannelChartData.length > 0 ? (
+                                        <>
+                                            <div className="h-[200px]">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={followUpChannelChartData} layout="vertical">
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                                                        <XAxis type="number" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} />
+                                                        <YAxis type="category" dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} width={80} />
+                                                        <Tooltip contentStyle={tooltipStyle} />
+                                                        <Bar dataKey="value" radius={[0, 6, 6, 0]} name="Follow-Ups">
+                                                            {followUpChannelChartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            <div className="mt-3 space-y-1.5">
+                                                {followUpChannelChartData.map((item, i) => (
+                                                    <div key={i} className="flex items-center justify-between text-[10px]">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                                                            <span className="text-white/50">{item.name}</span>
                                                         </div>
-                                                    </td>
-                                                </tr>
-                                                {vouchersInGroup.map(v => {
-                                                    const visit = visits.find(vis => vis.id === v.visitId);
-                                                    const academy = academies.find(a => a.id === v.academyId);
-                                                    const event = events.find(e => e.id === v.eventId);
-                                                    const seller = vendedores.find(u => u.id === (visit?.salespersonId || event?.salespersonIds?.[0]));
-                                                    return (
-                                                        <tr key={v.code} className="hover:bg-white/5 transition-colors group">
-                                                            <td className="px-4 py-3">
-                                                                <span className="font-mono font-black text-xs text-white/40 group-hover:text-emerald-400 transition-all pl-4">
-                                                                    {v.code}
+                                                        <span className="text-white font-black">{item.value}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="h-[200px] flex items-center justify-center text-white/20 text-sm">Sem dados</div>
+                                    )}
+                                </ChartCard>
+                            </div>
+
+                            {/* Charts row 2: Por criador + Timeline */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                                <ChartCard title="Follow-Ups por Vendedor">
+                                    {followUpByCreator.length > 0 ? (
+                                        <div className="h-[260px]">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={followUpByCreator} layout="vertical">
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                                                    <XAxis type="number" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} />
+                                                    <YAxis type="category" dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} width={80} />
+                                                    <Tooltip contentStyle={tooltipStyle} formatter={(val, name) => [val, name === 'total' ? 'Total' : name === 'closed' ? 'Fechados' : 'Int. Alto']} />
+                                                    <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                                    <Bar dataKey="total" name="Total" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                                                    <Bar dataKey="closed" name="Fechados" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                                                    <Bar dataKey="high" name="Int. Alto" fill="#10b981" radius={[0, 4, 4, 0]} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    ) : (
+                                        <div className="h-[260px] flex items-center justify-center text-white/20 text-sm">Sem dados</div>
+                                    )}
+                                </ChartCard>
+
+                                <ChartCard title="Evolução Mensal">
+                                    {followUpTimeline.length > 0 ? (
+                                        <div className="h-[260px]">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={followUpTimeline}>
+                                                    <defs>
+                                                        <linearGradient id="gFuC" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} /><stop offset="95%" stopColor="#6366f1" stopOpacity={0} /></linearGradient>
+                                                        <linearGradient id="gFuF" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} /><stop offset="95%" stopColor="#3b82f6" stopOpacity={0} /></linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                                                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} />
+                                                    <YAxis stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} />
+                                                    <Tooltip contentStyle={tooltipStyle} />
+                                                    <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                                    <Area name="Criados" type="monotone" dataKey="created" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#gFuC)" />
+                                                    <Area name="Fechados" type="monotone" dataKey="closed" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#gFuF)" />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    ) : (
+                                        <div className="h-[260px] flex items-center justify-center text-white/20 text-sm">Sem dados</div>
+                                    )}
+                                </ChartCard>
+                            </div>
+
+                            {/* Status breakdown cards */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                                {Object.values(FollowUpStatus).map(s => {
+                                    const meta = FU_STATUS_META[s];
+                                    const count = followUpByStatus[s] || 0;
+                                    const pct = followUpKPIs.total > 0 ? Math.round((count / followUpKPIs.total) * 100) : 0;
+                                    return (
+                                        <div key={s} className={`${meta.bg} border border-white/5 rounded-2xl p-4 space-y-2`}>
+                                            <div className={`text-2xl font-black ${meta.color}`}>{count}</div>
+                                            <div className="text-[10px] font-black text-white/40 uppercase tracking-widest leading-tight">{meta.label}</div>
+                                            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: meta.chartColor }} />
+                                            </div>
+                                            <div className="text-[10px] text-white/25">{pct}% do total</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Detailed table */}
+                            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden">
+                                <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
+                                    <h3 className="text-sm font-black text-white">Lista de Follow-Ups ({filteredFollowUps.length})</h3>
+                                    {followUpKPIs.overdue > 0 && (
+                                        <span className="text-[10px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-lg">
+                                            {followUpKPIs.overdue} vencidos
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-white/[0.03] border-b border-white/[0.06]">
+                                            <tr>
+                                                <th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Academia</th>
+                                                <th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Status</th>
+                                                <th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Canal</th>
+                                                <th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Contato</th>
+                                                <th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Próx. Contato</th>
+                                                <th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Criado por</th>
+                                                <th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Data</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/[0.04]">
+                                            {filteredFollowUps.length === 0 ? (
+                                                <tr><td colSpan={7} className="px-4 py-16 text-center text-white/30 text-sm italic">Nenhum follow-up encontrado.</td></tr>
+                                            ) : filteredFollowUps.map(f => {
+                                                const ac = academies.find(a => a.id === f.academyId);
+                                                const cr = vendedores.find(v => v.id === f.createdBy);
+                                                const meta = FU_STATUS_META[f.status];
+                                                const chMeta = FU_CHANNEL_META[f.contactChannel];
+                                                const overdue = f.nextContactAt && new Date(f.nextContactAt) < new Date();
+                                                return (
+                                                    <tr key={f.id} className="hover:bg-white/[0.03] transition-colors">
+                                                        <td className="px-4 py-3">
+                                                            <div className="text-sm font-bold text-white">{ac?.name || '---'}</div>
+                                                            <div className="text-[10px] text-white/30">{ac?.city}, {ac?.state}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${meta?.bg} ${meta?.color}`}>
+                                                                {meta?.label || f.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-xs text-white/50">{chMeta?.label || f.contactChannel}</td>
+                                                        <td className="px-4 py-3 text-xs text-white/50">{f.contactPerson || '---'}</td>
+                                                        <td className="px-4 py-3">
+                                                            {f.nextContactAt ? (
+                                                                <span className={`text-[10px] font-bold ${overdue ? 'text-red-400' : 'text-white/50'}`}>
+                                                                    {overdue ? '⚠ ' : ''}{new Date(f.nextContactAt).toLocaleDateString('pt-BR')}
                                                                 </span>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-white/40 font-medium">
-                                                                {new Date(v.createdAt).toLocaleDateString('pt-BR')}
-                                                            </td>
-                                                            <td className="px-4 py-3">
-                                                                <div className="font-bold text-white/80 text-sm">{academy?.name || '---'}</div>
-                                                                <div className="text-[10px] text-white/20">{academy?.city}</div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-white/60 font-medium">
-                                                                {event?.name || '---'}
-                                                            </td>
-                                                            <td className="px-4 py-3">
-                                                                <div className="flex items-center space-x-2">
-                                                                    <span className="font-semibold text-xs text-white/60">{seller?.name || 'Sistêmico'}</span>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </React.Fragment>
-                                        );
-                                    })
-                                )
-                            ) : (
-                                <tr>
-                                    <td colSpan={5} className="px-4 py-20 text-center text-white/40 italic">
-                                        Nenhum voucher encontrado com os filtros aplicados.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                                            ) : <span className="text-[10px] text-white/20">---</span>}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50">{cr?.name?.charAt(0) || '?'}</div>
+                                                                <span className="text-xs text-white/50">{cr?.name || 'N/A'}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-xs text-white/30">{new Date(f.createdAt).toLocaleDateString('pt-BR')}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
-            </div>
-        </div >
+            )}
+
+            {activeTab === 'vouchers' && (
+                <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden">
+                    <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
+                        <h3 className="text-sm font-black text-white">Explorador de Vouchers ({filteredVouchers.length})</h3>
+                    </div>
+                    <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-white/[0.03] border-b border-white/[0.06]"><tr><SortableHeader field="code" label="Código" /><SortableHeader field="date" label="Data" /><SortableHeader field="academy" label="Academia" /><SortableHeader field="event" label="Evento" /><SortableHeader field="seller" label="Vendedor" /><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Duração</th></tr></thead>
+                    <tbody className="divide-y divide-white/[0.04]">{filteredVouchers.length > 0 ? [...filteredVouchers].sort((a, b) => {
+                        let cA: any, cB: any;
+                        if (sortBy === 'code') { cA = a.code; cB = b.code; }
+                        else if (sortBy === 'date') { cA = new Date(a.createdAt).getTime(); cB = new Date(b.createdAt).getTime(); }
+                        else if (sortBy === 'academy') { cA = academies.find(ac => ac.id === a.academyId)?.name || ''; cB = academies.find(ac => ac.id === b.academyId)?.name || ''; }
+                        else if (sortBy === 'event') { cA = events.find(e => e.id === a.eventId)?.name || ''; cB = events.find(e => e.id === b.eventId)?.name || ''; }
+                        else if (sortBy === 'seller') { const vA = visits.find(v => v.id === a.visitId); const vB = visits.find(v => v.id === b.visitId); cA = vendedores.find(u => u.id === vA?.salespersonId)?.name || ''; cB = vendedores.find(u => u.id === vB?.salespersonId)?.name || ''; }
+                        else { cA = new Date(a.createdAt).getTime(); cB = new Date(b.createdAt).getTime(); }
+                        if (cA < cB) return sortOrder === 'asc' ? -1 : 1;
+                        if (cA > cB) return sortOrder === 'asc' ? 1 : -1;
+                        return 0;
+                    }).map(v => {
+                        const visit = visits.find(vis => vis.id === v.visitId);
+                        const academy = academies.find(a => a.id === v.academyId);
+                        const event = events.find(e => e.id === v.eventId);
+                        const seller = vendedores.find(u => u.id === visit?.salespersonId);
+                        return (
+                            <tr key={v.code} className="hover:bg-white/[0.03] transition-colors group">
+                                <td className="px-4 py-3"><span className="font-mono font-black text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">{v.code}</span></td>
+                                <td className="px-4 py-3 text-xs text-white/50">{new Date(v.createdAt).toLocaleDateString('pt-BR')}</td>
+                                <td className="px-4 py-3"><div className="text-sm font-bold text-white">{academy?.name || '---'}</div><div className="text-[10px] text-white/30">{academy?.city}</div></td>
+                                <td className="px-4 py-3 text-xs text-white/60">{event?.name || '---'}</td>
+                                <td className="px-4 py-3"><div className="flex items-center space-x-1.5"><div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[9px] font-bold text-white/50">{seller?.name?.charAt(0) || 'S'}</div><span className="text-xs text-white/60">{seller?.name || 'N/A'}</span></div></td>
+                                <td className="px-4 py-3 text-xs text-white/40">{visit?.startedAt && visit?.finishedAt ? `${calculateTrueVisitDuration(visit.startedAt, visit.finishedAt) || '---'} min` : '---'}</td>
+                            </tr>
+                        );
+                    }) : <tr><td colSpan={6} className="px-4 py-16 text-center text-white/30 text-sm italic">Nenhum voucher encontrado.</td></tr>}</tbody></table></div>
+                </div>
+            )}
+        </div>
     );
 };
