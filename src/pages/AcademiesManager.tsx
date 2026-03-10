@@ -156,7 +156,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
         <div className="space-y-6 p-4">
             {/* Header */}
             <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-sm"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent backdrop-blur-sm"></div>
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
 
@@ -174,7 +174,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
                             <div className="flex flex-col items-center">
-                                <span className="text-2xl font-black text-emerald-400 leading-none">
+                                <span className="text-2xl font-black text-amber-400 leading-none">
                                     {academies.filter(a => a.status === 'ACTIVE' || !a.status).length}
                                 </span>
                                 <span className="text-[9px] font-black text-white/30 uppercase tracking-widest mt-0.5">Ativas</span>
@@ -221,7 +221,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                             className={`group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border ${academy.status === 'INACTIVE' ? 'border-amber-500/30' : 'border-white/10'} rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2`}
                         >
                             {/* Glow effect */}
-                            <div className={`absolute -top-24 -right-24 w-48 h-48 ${academy.status === 'INACTIVE' ? 'bg-amber-500/10' : 'bg-emerald-500/20'} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                            <div className={`absolute -top-24 -right-24 w-48 h-48 ${academy.status === 'INACTIVE' ? 'bg-amber-500/10' : 'bg-amber-500/20'} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
 
                             <div className="relative z-10">
                                 {/* Header */}
@@ -236,7 +236,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                             <button
                                                 aria-label="Restaurar Academia"
                                                 onClick={() => handleRestore(academy)}
-                                                className="p-1.5 text-white/40 hover:text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-all"
+                                                className="p-1.5 text-white/40 hover:text-amber-400 hover:bg-amber-500/20 rounded-lg transition-all"
                                                 title="Restaurar Academia"
                                             >
                                                 <Plus size={14} strokeWidth={2} />
@@ -401,7 +401,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
 
                                 <button
                                     type="submit"
-                                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-emerald-500/50"
+                                    className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-amber-500/50"
                                 >
                                     {editingAcademy ? 'Salvar Alterações' : 'Criar Academia'}
                                 </button>

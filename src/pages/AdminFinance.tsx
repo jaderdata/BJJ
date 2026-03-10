@@ -112,7 +112,7 @@ export const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any,
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <p className="text-neutral-400">Controle de comissões.</p>
-        <button onClick={() => { setSelectedRecord(null); setFormRecord({ status: FinanceStatus.PENDING }); setShowModal(true); }} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 shadow-lg hover:bg-emerald-700 transition-colors">
+        <button onClick={() => { setSelectedRecord(null); setFormRecord({ status: FinanceStatus.PENDING }); setShowModal(true); }} className="bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 shadow-lg hover:bg-amber-700 transition-colors">
           <Plus size={18} strokeWidth={1.5} />
           <span>Lançar Pagamento</span>
         </button>
@@ -140,7 +140,7 @@ export const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any,
                 <td className="px-6 py-4 font-black text-white tabular-nums text-lg">$ {f.amount.toFixed(2)}</td>
                 <td className="px-6 py-4">
                   <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${f.status === FinanceStatus.PENDING ? 'bg-amber-900/30 text-amber-400' :
-                    f.status === FinanceStatus.PAID ? 'bg-neutral-900/30 text-neutral-400' : 'bg-emerald-900/30 text-emerald-400'
+                    f.status === FinanceStatus.PAID ? 'bg-neutral-900/30 text-neutral-400' : 'bg-amber-900/30 text-amber-400'
                     }`}>
                     {f.status}
                   </span>

@@ -146,7 +146,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                     </h2>
 
                     {message && (
-                        <div className={`mb-6 p-4 rounded-2xl text-sm font-bold flex items-start space-x-3 aniamte-in fade-in ${message.type === 'success' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-800/50' : 'bg-red-900/30 text-red-400 border border-red-800/50'}`}>
+                        <div className={`mb-6 p-4 rounded-2xl text-sm font-bold flex items-start space-x-3 aniamte-in fade-in ${message.type === 'success' ? 'bg-amber-900/30 text-amber-400 border border-amber-800/50' : 'bg-red-900/30 text-red-400 border border-red-800/50'}`}>
                             {message.type === 'success' ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" /> : <AlertCircle size={18} className="shrink-0 mt-0.5" />}
                             <span>{message.text}</span>
                         </div>

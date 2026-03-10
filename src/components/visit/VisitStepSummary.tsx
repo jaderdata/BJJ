@@ -19,9 +19,9 @@ export const VisitStepSummary: React.FC<VisitStepSummaryProps> = ({
         <div className="space-y-2 animate-in slide-in-from-bottom-10 duration-700">
             <div className="flex flex-col items-center justify-center space-y-1 text-center">
                 <div className="relative">
-                    <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full scale-150"></div>
-                    <div className="relative w-24 h-24 bg-emerald-500/10 text-emerald-500 rounded-[2rem] flex items-center justify-center border border-emerald-500/20 shadow-xl overflow-hidden group">
-                        <div className="absolute inset-0 bg-emerald-500 opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                    <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full scale-150"></div>
+                    <div className="relative w-24 h-24 bg-amber-500/10 text-amber-500 rounded-[2rem] flex items-center justify-center border border-amber-500/20 shadow-xl overflow-hidden group">
+                        <div className="absolute inset-0 bg-amber-500 opacity-0 group-hover:opacity-10 transition-opacity"></div>
                         <CheckCircle2 size={48} strokeWidth={2.5} className="animate-in zoom-in-50 duration-500" />
                     </div>
                 </div>
@@ -31,9 +31,9 @@ export const VisitStepSummary: React.FC<VisitStepSummaryProps> = ({
                 </div>
             </div>
 
-            <div className="space-y-4 pl-8 border-l-2 border-emerald-500/10 relative mx-2">
+            <div className="space-y-4 pl-8 border-l-2 border-amber-500/10 relative mx-2">
                 <div className="relative">
-                    <div className="absolute -left-[39px] top-1.5 w-4 h-4 bg-[#0a0a0a] border-4 border-emerald-500 rounded-full shadow-lg shadow-emerald-500/20"></div>
+                    <div className="absolute -left-[39px] top-1.5 w-4 h-4 bg-[#0a0a0a] border-4 border-amber-500 rounded-full shadow-lg shadow-amber-500/20"></div>
                     <div className="space-y-3">
                         <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Resumo da Atividade</span>
                         <div className="bg-white/5 rounded-[2rem] p-6 border border-white/10 space-y-4">
@@ -73,7 +73,7 @@ export const VisitStepSummary: React.FC<VisitStepSummaryProps> = ({
                     <div className="space-y-3">
                         <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Evidências & Marketing</span>
                         <div className="flex flex-wrap gap-2">
-                            {visit.leftBanner && <div className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-full text-[9px] font-black uppercase">Banner 🚩</div>}
+                            {visit.leftBanner && <div className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-full text-[9px] font-black uppercase">Banner 🚩</div>}
                             {visit.leftFlyers && <div className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-3 py-1.5 rounded-full text-[9px] font-black uppercase">Flyers 📄</div>}
                             {visit.photos?.map((p, i) => (
                                 <div key={i} className="w-12 h-12 rounded-xl overflow-hidden border border-white/10">
@@ -95,7 +95,7 @@ export const VisitStepSummary: React.FC<VisitStepSummaryProps> = ({
                     </button>
                     <button
                         onClick={() => { hapticFeedback('medium'); onCancel(); }}
-                        className="bg-emerald-600 text-white py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-2xl shadow-emerald-500/40"
+                        className="bg-amber-600 text-white py-5 rounded-[2.5rem] font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-2xl shadow-amber-500/40"
                     >
                         Fechar
                     </button>

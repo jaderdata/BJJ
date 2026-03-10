@@ -46,7 +46,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
                             onClick={() => setActiveTab(tab.id)}
                             className={cn(
                                 "flex flex-col items-center justify-center flex-1 h-16 rounded-2xl transition-all duration-500 relative z-10 group",
-                                isActive ? 'text-emerald-400' : 'text-neutral-500 hover:text-neutral-300'
+                                isActive ? 'text-amber-400' : 'text-neutral-500 hover:text-neutral-300'
                             )}
                         >
                             <Icon

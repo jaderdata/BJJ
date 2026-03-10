@@ -375,7 +375,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                     onClick={() => !isLinked && handleLinkAcademy(academy.id)}
                                     disabled={isLinked}
                                     className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${isLinked
-                                        ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 cursor-default'
+                                        ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 cursor-default'
                                         : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95 hover:shadow-indigo-500/40'
                                         }`}
                                 >

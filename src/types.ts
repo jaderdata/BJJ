@@ -171,3 +171,17 @@ export interface FollowUp {
   createdAt: string;
   updatedAt: string;
 }
+
+export type FollowUpLogAction = 'CRIADO' | 'STATUS_ALTERADO' | 'ATUALIZADO';
+
+export interface FollowUpLog {
+  id: string;
+  followUpId: string;
+  userId: string;
+  userName: string;
+  action: FollowUpLogAction;
+  fromStatus?: FollowUpStatus;
+  toStatus?: FollowUpStatus;
+  note?: string;
+  createdAt: string;
+}

@@ -43,7 +43,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-[#0a0a0a] z-[70] flex flex-col animate-in slide-in-from-bottom duration-300 antialiased selection:bg-emerald-500/30 select-none overflow-y-auto custom-scrollbar">
+        <div className="fixed inset-0 bg-[#0a0a0a] z-[70] flex flex-col animate-in slide-in-from-bottom duration-300 antialiased selection:bg-amber-500/30 select-none overflow-y-auto custom-scrollbar">
             {/* Header Fixo do Modo Edição */}
             <div className="sticky top-0 bg-black/60 backdrop-blur-2xl p-6 border-b border-white/5 z-50 flex items-center justify-between shadow-2xl">
                 <div className="flex items-center space-x-3">
@@ -73,8 +73,8 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                 <div className="space-y-8 max-w-xl mx-auto">
                     {/* Conversa com */}
                     <div className="space-y-3">
-                        <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                        <label className="text-sm font-bold text-amber-500 uppercase tracking-widest flex items-center">
+                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
                             Conversa com <span className="text-red-400 ml-1">*</span>
                         </label>
                         <div className="grid grid-cols-2 gap-3">
@@ -85,7 +85,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                                     className={cn(
                                         "py-4 rounded-2xl font-bold transition-all border text-sm active:scale-95",
                                         editedVisit.contactPerson === person
-                                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20'
+                                            ? 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-600/20'
                                             : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
                                     )}
                                 >
@@ -99,8 +99,8 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
 
                     {/* Temperatura */}
                     <div className="space-y-3">
-                        <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                        <label className="text-sm font-bold text-amber-500 uppercase tracking-widest flex items-center">
+                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
                             Temperatura <span className="text-red-400 ml-1">*</span>
                         </label>
                         <div className="grid grid-cols-3 gap-3">
@@ -129,8 +129,8 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
 
                     {/* Materiais */}
                     <div className="space-y-3">
-                        <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                        <label className="text-sm font-bold text-amber-500 uppercase tracking-widest flex items-center">
+                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
                             Materiais
                         </label>
                         <div className="grid grid-cols-2 gap-3">
@@ -139,7 +139,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                                 className={cn(
                                     "py-4 rounded-2xl font-bold transition-all border text-xs active:scale-95",
                                     editedVisit.leftBanner
-                                        ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30'
+                                        ? 'bg-amber-600/20 text-amber-400 border-amber-500/30'
                                         : 'bg-neutral-800/50 text-neutral-500 border-white/5'
                                 )}
                             >
@@ -161,8 +161,8 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
 
                     {/* Resumo */}
                     <div className="space-y-3 text-left">
-                        <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center">
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                        <label className="text-sm font-bold text-amber-500 uppercase tracking-widest flex items-center">
+                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
                             Resumo da Visita <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(opcional)</span>
                         </label>
                         <div className="relative group">
@@ -171,7 +171,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                                 onChange={(e) => setEditedVisit(p => ({ ...p, summary: e.target.value }))}
                                 maxLength={500}
                                 placeholder="Resumo geral da visita..."
-                                className="w-full bg-neutral-900 border border-white/10 rounded-2xl p-4 text-white text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 transition-all min-h-[120px] resize-none"
+                                className="w-full bg-neutral-900 border border-white/10 rounded-2xl p-4 text-white text-sm focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all min-h-[120px] resize-none"
                             />
                             <div className="absolute bottom-3 right-4 text-[10px] font-black text-white/20">
                                 {editedVisit.summary?.length || 0}/500
@@ -181,9 +181,9 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
 
                     {/* Fotos */}
                     <div className="space-y-3 text-left">
-                        <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest flex items-center justify-between">
+                        <label className="text-sm font-bold text-amber-500 uppercase tracking-widest flex items-center justify-between">
                             <span className="flex items-center">
-                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
                                 Fotos <span className="text-neutral-500 text-[10px] font-normal lowercase ml-1">(até 3)</span>
                             </span>
                             <span className="text-[10px] text-neutral-500">{(editedVisit.photos?.length || 0)}/3</span>
@@ -201,9 +201,9 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                                 </div>
                             ))}
                             {(editedVisit.photos?.length || 0) < 3 && (
-                                <label className="w-20 h-20 bg-neutral-800/50 border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-800 hover:border-emerald-500/30 transition-all">
+                                <label className="w-20 h-20 bg-neutral-800/50 border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-800 hover:border-amber-500/30 transition-all">
                                     <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={isUploading} />
-                                    {isUploading ? <Loader2 size={20} className="text-emerald-500 animate-spin" /> : <Camera size={20} className="text-neutral-600" />}
+                                    {isUploading ? <Loader2 size={20} className="text-amber-500 animate-spin" /> : <Camera size={20} className="text-neutral-600" />}
                                 </label>
                             )}
                         </div>
@@ -242,7 +242,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                         {(!visit.finishedAt || visit.status !== VisitStatus.VISITED) && (
                             <button
                                 onClick={() => { hapticFeedback('success'); handleFinishVisitFromModal(); }}
-                                className="flex-1 h-12 bg-emerald-600/10 text-emerald-400 rounded-2xl font-bold border border-emerald-500/20 text-xs uppercase tracking-widest active:scale-95"
+                                className="flex-1 h-12 bg-amber-600/10 text-amber-400 rounded-2xl font-bold border border-amber-500/20 text-xs uppercase tracking-widest active:scale-95"
                             >
                                 Finalizar Visita
                             </button>

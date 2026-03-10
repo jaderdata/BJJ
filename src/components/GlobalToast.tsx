@@ -15,13 +15,13 @@ export const GlobalToast: React.FC<GlobalToastProps> = ({ toast, onClose }) => {
         <div className="fixed top-20 right-4 left-4 md:left-auto md:w-96 z-[200] animate-in slide-in-from-top-4 duration-500">
             <div className={cn(
                 "p-4 rounded-[1.5rem] shadow-2xl border backdrop-blur-xl flex items-center space-x-3",
-                toast.type === 'success' ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" :
+                toast.type === 'success' ? "bg-amber-500/20 border-amber-500/30 text-amber-400" :
                     toast.type === 'error' ? "bg-red-500/20 border-red-500/30 text-red-400" :
                         "bg-zinc-800 border-white/10 text-white"
             )}>
                 <div className={cn(
                     "p-2 rounded-xl",
-                    toast.type === 'success' ? "bg-emerald-500/20" :
+                    toast.type === 'success' ? "bg-amber-500/20" :
                         toast.type === 'error' ? "bg-red-500/20" :
                             "bg-white/10"
                 )}>

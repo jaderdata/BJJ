@@ -96,19 +96,19 @@ export const SalespersonEvents: React.FC<{
             "relative overflow-hidden p-6 rounded-[2.5rem] border backdrop-blur-3xl cursor-pointer group transition-all duration-500 hover:-translate-y-1 active:scale-[0.98] shadow-2xl",
             isOverdue
               ? "bg-red-500/10 border-red-500/30 shadow-red-500/20"
-              : "bg-emerald-500/15 border-emerald-500/30 shadow-emerald-500/20"
+              : "bg-amber-500/15 border-amber-500/30 shadow-amber-500/20"
           )}
         >
           {/* Animated decorative glow */}
           <div className={cn(
             "absolute inset-0 bg-gradient-to-r transition-opacity duration-1000",
-            isOverdue ? "from-red-500/10 to-transparent" : "from-emerald-500/10 to-transparent"
+            isOverdue ? "from-red-500/10 to-transparent" : "from-amber-500/10 to-transparent"
           )} />
 
           <div className="flex items-center space-x-5 relative z-10">
             <div className={cn(
               "w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-2xl transition-transform duration-500 group-hover:scale-110",
-              isOverdue ? "bg-red-500 text-white" : "bg-emerald-500 text-white shadow-emerald-500/40"
+              isOverdue ? "bg-red-500 text-white" : "bg-amber-500 text-white shadow-amber-500/40"
             )}>
               {isOverdue ? <AlertCircle size={32} className="animate-pulse" /> : <Play size={32} fill="currentColor" className="ml-1" />}
             </div>
@@ -116,7 +116,7 @@ export const SalespersonEvents: React.FC<{
               <div className="flex items-center space-x-2">
                 <span className={cn(
                   "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em]",
-                  isOverdue ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
+                  isOverdue ? "bg-red-500 text-white" : "bg-amber-500 text-white"
                 )}>
                   {isOverdue ? "Crítico" : "Em Andamento"}
                 </span>
@@ -129,7 +129,7 @@ export const SalespersonEvents: React.FC<{
                 Toque para continuar o atendimento
               </p>
             </div>
-            <ChevronRight size={24} className={cn("transition-transform group-hover:translate-x-2", isOverdue ? "text-red-500/40" : "text-emerald-500/40")} />
+            <ChevronRight size={24} className={cn("transition-transform group-hover:translate-x-2", isOverdue ? "text-red-500/40" : "text-amber-500/40")} />
           </div>
         </div>
       )}
@@ -138,14 +138,14 @@ export const SalespersonEvents: React.FC<{
       <div className="space-y-4">
         <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-6 relative overflow-hidden group">
           {/* Decorative background flare */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[80px] rounded-full -mr-16 -mt-16 pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-1000"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-[80px] rounded-full -mr-16 -mt-16 pointer-events-none group-hover:bg-amber-500/20 transition-all duration-1000"></div>
 
           <div className="flex items-center justify-between mb-4 relative z-10">
             <div className="space-y-1">
               <h2 className="text-2xl font-black text-white tracking-tighter italic uppercase">Desempenho</h2>
             </div>
             <div className="text-right">
-              <span className="text-4xl font-black text-emerald-500 italic tracking-tighter drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+              <span className="text-4xl font-black text-amber-500 italic tracking-tighter drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                 {Math.round((completedVisitsCount / (totalAcademies || 1)) * 100)}%
               </span>
             </div>
@@ -155,7 +155,7 @@ export const SalespersonEvents: React.FC<{
             <div className="bg-black/40 rounded-2xl p-4 border border-white/5 backdrop-blur-sm">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Progresso de Visitas</span>
-                <span className="text-[10px] font-black text-emerald-500/60">{completedVisitsCount} / {totalAcademies}</span>
+                <span className="text-[10px] font-black text-amber-500/60">{completedVisitsCount} / {totalAcademies}</span>
               </div>
               <ProgressBar percentage={Math.round((completedVisitsCount / (totalAcademies || 1)) * 100)} height="h-3" />
             </div>
@@ -165,9 +165,9 @@ export const SalespersonEvents: React.FC<{
                 <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Total Alocado</p>
                 <p className="text-2xl font-black text-white mt-1 tracking-tighter italic">{totalAcademies}</p>
               </div>
-              <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 text-right transition-colors hover:bg-emerald-500/10">
-                <p className="text-[9px] font-black text-emerald-500/30 uppercase tracking-widest text-right">Concluídos</p>
-                <p className="text-2xl font-black text-emerald-500 mt-1 tracking-tighter italic">{completedVisitsCount}</p>
+              <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 text-right transition-colors hover:bg-amber-500/10">
+                <p className="text-[9px] font-black text-amber-500/30 uppercase tracking-widest text-right">Concluídos</p>
+                <p className="text-2xl font-black text-amber-500 mt-1 tracking-tighter italic">{completedVisitsCount}</p>
               </div>
             </div>
           </div>
@@ -221,7 +221,7 @@ export const SalespersonEvents: React.FC<{
                   <div className="mb-4 flex items-end justify-between px-2">
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                        <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                         <h3 className="text-lg font-black text-white italic uppercase tracking-tight">{e.name}</h3>
                       </div>
                       <p className="text-[9px] text-white/20 font-black uppercase tracking-[0.2em]">{e.city} • {e.state}</p>
@@ -229,10 +229,10 @@ export const SalespersonEvents: React.FC<{
                     <div className="text-right">
                       <div className="flex items-center justify-end space-x-2 mb-1">
                         <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Progresso</span>
-                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{progress}%</span>
+                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{progress}%</span>
                       </div>
                       <div className="h-1 w-24 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500" style={{ width: `${progress}%` }}></div>
+                        <div className="h-full bg-amber-500" style={{ width: `${progress}%` }}></div>
                       </div>
                     </div>
                   </div>
@@ -263,7 +263,7 @@ export const SalespersonEvents: React.FC<{
                             className={cn(
                               "relative group m-1 p-4 flex justify-between items-center rounded-2xl cursor-pointer transition-all duration-500 active:scale-[0.98]",
                               isActive
-                                ? "bg-emerald-500 text-white shadow-2xl shadow-emerald-500/20"
+                                ? "bg-amber-500 text-white shadow-2xl shadow-amber-500/20"
                                 : "bg-white/5 hover:bg-white/[0.08] text-white/90 border border-white/5"
                             )}
                           >
@@ -296,9 +296,9 @@ export const SalespersonEvents: React.FC<{
 
                       {pendingAcademies.length === 0 && (
                         <div className="py-6 flex items-center justify-center">
-                          <div className="px-4 py-1.5 bg-emerald-500/5 rounded-full border border-emerald-500/10 flex items-center space-x-2">
-                            <CheckCircle2 size={10} className="text-emerald-500/40" />
-                            <span className="text-[9px] font-black text-emerald-500/40 uppercase tracking-[0.2em]">Roteiro Concluído</span>
+                          <div className="px-4 py-1.5 bg-amber-500/5 rounded-full border border-amber-500/10 flex items-center space-x-2">
+                            <CheckCircle2 size={10} className="text-amber-500/40" />
+                            <span className="text-[9px] font-black text-amber-500/40 uppercase tracking-[0.2em]">Roteiro Concluído</span>
                           </div>
                         </div>
                       )}
@@ -308,7 +308,7 @@ export const SalespersonEvents: React.FC<{
                         <div className="m-1 pt-6 pb-2 border-t border-white/5">
                           <div className="flex items-center justify-between px-3 mb-4">
                             <h4 className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Visitas Realizadas</h4>
-                            <span className="text-[9px] font-black text-emerald-500/40 uppercase bg-emerald-500/5 px-2 py-0.5 rounded-full">
+                            <span className="text-[9px] font-black text-amber-500/40 uppercase bg-amber-500/5 px-2 py-0.5 rounded-full">
                               {finishedAcademies.length} Academias
                             </span>
                           </div>
@@ -324,7 +324,7 @@ export const SalespersonEvents: React.FC<{
                                 >
                                   <div className={cn(
                                     "w-1.5 h-1.5 rounded-full",
-                                    visit?.temperature === AcademyTemperature.HOT ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] animate-pulse' : 'bg-emerald-500/40'
+                                    visit?.temperature === AcademyTemperature.HOT ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] animate-pulse' : 'bg-amber-500/40'
                                   )}></div>
                                   <span className="text-[9px] font-black text-white/30 uppercase tracking-tighter truncate max-w-[100px] group-hover/done:text-white/60 transition-colors">{a.name}</span>
                                 </div>

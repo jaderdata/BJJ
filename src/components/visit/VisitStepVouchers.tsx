@@ -27,7 +27,7 @@ export const VisitStepVouchers: React.FC<VisitStepVouchersProps> = ({
             </div>
 
             <div className="relative group flex items-center justify-center space-x-12 py-10">
-                <div className="absolute inset-0 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none"></div>
+                <div className="absolute inset-0 bg-amber-500/10 blur-[80px] rounded-full pointer-events-none"></div>
 
                 <button
                     onClick={() => { hapticFeedback('light'); adjust(-1); }}
@@ -40,12 +40,12 @@ export const VisitStepVouchers: React.FC<VisitStepVouchersProps> = ({
                     <div className="text-8xl font-black text-white italic tracking-tighter tabular-nums drop-shadow-[0_10px_30px_rgba(16,185,129,0.3)]">
                         {vouchers.length}
                     </div>
-                    <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mt-2">Vouchers Ativos</div>
+                    <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] mt-2">Vouchers Ativos</div>
                 </div>
 
                 <button
                     onClick={() => { hapticFeedback('medium'); adjust(1); }}
-                    className="w-20 h-20 bg-emerald-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-emerald-500/40 hover:bg-emerald-400 transition-all active:scale-90"
+                    className="w-20 h-20 bg-amber-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-amber-500/40 hover:bg-amber-400 transition-all active:scale-90"
                 >
                     <Plus size={24} strokeWidth={3} />
                 </button>
@@ -55,7 +55,7 @@ export const VisitStepVouchers: React.FC<VisitStepVouchersProps> = ({
                 {vouchers.map((c, i) => (
                     <div
                         key={i}
-                        className="bg-white/5 border border-white/10 px-3 py-2 rounded-xl font-mono text-[10px] font-black text-emerald-400 animate-in zoom-in-95"
+                        className="bg-white/5 border border-white/10 px-3 py-2 rounded-xl font-mono text-[10px] font-black text-amber-400 animate-in zoom-in-95"
                         style={{ animationDelay: `${i * 50}ms` }}
                     >
                         {c}

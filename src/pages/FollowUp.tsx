@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom';
 import {
     Plus, X, Phone, MessageCircle, Users, Search, Calendar,
     Edit3, Trash2, ChevronDown, LayoutList, Columns, Clock,
-    TrendingUp, AlertCircle, CheckCircle, Loader2, Building2
+    TrendingUp, AlertCircle, CheckCircle, Loader2, Building2,
+    History, ArrowRight, Pencil, Sparkles
 } from 'lucide-react';
-import { Academy, User, Visit, FollowUp, FollowUpStatus, ContactChannel, UserRole } from '../types';
+import { Academy, User, Visit, FollowUp, FollowUpLog, FollowUpStatus, ContactChannel, UserRole } from '../types';
 import { DatabaseService } from '../lib/supabase';
 
 interface FollowUpPageProps {
@@ -19,7 +20,7 @@ interface FollowUpPageProps {
 
 const STATUS_CONFIG: Record<FollowUpStatus, { label: string; color: string; bg: string; border: string; dot: string }> = {
     [FollowUpStatus.WAITING]: { label: 'Aguardando', color: 'text-neutral-400', bg: 'bg-neutral-500/10', border: 'border-neutral-500/20', dot: 'bg-neutral-400' },
-    [FollowUpStatus.HIGH]: { label: 'Interesse Alto', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', dot: 'bg-emerald-400' },
+    [FollowUpStatus.HIGH]: { label: 'Interesse Alto', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', dot: 'bg-amber-400' },
     [FollowUpStatus.MEDIUM]: { label: 'Interesse Médio', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', dot: 'bg-yellow-400' },
     [FollowUpStatus.LOW]: { label: 'Interesse Baixo', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', dot: 'bg-orange-400' },
     [FollowUpStatus.NO_INTEREST]: { label: 'Sem Interesse', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', dot: 'bg-red-400' },
@@ -85,14 +86,14 @@ function StatBadge({ count, status }: { count: number; status: FollowUpStatus })
 // ─────────────────────────── FollowUp Card ───────────────────────────────
 
 function FollowUpCard({
-    followUp, academy, creator, onEdit, onDelete, isAdmin
+    followUp, academy, creator, onEdit, onDelete, onViewLog
 }: {
     followUp: FollowUp;
     academy?: Academy;
     creator?: User;
     onEdit: () => void;
     onDelete: () => void;
-    isAdmin: boolean;
+    onViewLog: () => void;
 }) {
     const cfg = STATUS_CONFIG[followUp.status];
     const channelCfg = CHANNEL_CONFIG[followUp.contactChannel];
@@ -122,8 +123,13 @@ function FollowUpCard({
                 {followUp.contactPerson && (
                     <span className="text-[10px] text-neutral-600 font-medium">{followUp.contactPerson}</span>
                 )}
-                {isAdmin && creator && (
-                    <span className="text-[10px] text-neutral-600">{creator.name}</span>
+                {creator && (
+                    <span className="text-[10px] text-neutral-600 flex items-center gap-1">
+                        <span className="w-3.5 h-3.5 rounded-full bg-indigo-500/30 text-indigo-400 flex items-center justify-center text-[8px] font-black shrink-0">
+                            {creator.name.charAt(0).toUpperCase()}
+                        </span>
+                        {creator.name.split(' ')[0]}
+                    </span>
                 )}
             </div>
 
@@ -152,6 +158,13 @@ function FollowUpCard({
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
+                        onClick={onViewLog}
+                        className="p-1.5 text-neutral-500 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all"
+                        title="Ver histórico de atividades"
+                    >
+                        <History size={12} />
+                    </button>
+                    <button
                         onClick={onEdit}
                         className="p-1.5 text-neutral-500 hover:text-white hover:bg-white/10 rounded-lg transition-all"
                     >
@@ -166,6 +179,124 @@ function FollowUpCard({
                 </div>
             </div>
         </div>
+    );
+}
+
+// ─────────────────────────── Log Modal ───────────────────────────────────
+
+function FollowUpLogModal({ followUp, academy, onClose }: {
+    followUp: FollowUp;
+    academy?: Academy;
+    onClose: () => void;
+}) {
+    const [logs, setLogs] = useState<FollowUpLog[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        DatabaseService.getFollowUpLogs(followUp.id)
+            .then(setLogs)
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, [followUp.id]);
+
+    function actionIcon(action: FollowUpLog['action']) {
+        if (action === 'CRIADO') return <Sparkles size={12} />;
+        if (action === 'STATUS_ALTERADO') return <ArrowRight size={12} />;
+        return <Pencil size={12} />;
+    }
+
+    function actionColor(action: FollowUpLog['action']) {
+        if (action === 'CRIADO') return 'text-amber-400 bg-amber-500/15 border-amber-500/20';
+        if (action === 'STATUS_ALTERADO') return 'text-indigo-400 bg-indigo-500/15 border-indigo-500/20';
+        return 'text-neutral-400 bg-white/5 border-white/10';
+    }
+
+    function actionLabel(log: FollowUpLog) {
+        if (log.action === 'CRIADO') {
+            const statusLabel = log.toStatus ? STATUS_CONFIG[log.toStatus as FollowUpStatus]?.label : '';
+            return `Criou o follow-up${statusLabel ? ` com status "${statusLabel}"` : ''}`;
+        }
+        if (log.action === 'STATUS_ALTERADO') {
+            const from = log.fromStatus ? STATUS_CONFIG[log.fromStatus as FollowUpStatus]?.label : log.fromStatus;
+            const to = log.toStatus ? STATUS_CONFIG[log.toStatus as FollowUpStatus]?.label : log.toStatus;
+            return `Alterou de "${from}" → "${to}"`;
+        }
+        return log.note || 'Atualizou informações';
+    }
+
+    return createPortal(
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-[130] animate-in fade-in duration-200">
+            <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="p-5 border-b border-white/5 flex justify-between items-start shrink-0">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                <History size={14} />
+                            </div>
+                            <h3 className="text-sm font-black text-white">Histórico de Atividades</h3>
+                        </div>
+                        <p className="text-xs text-neutral-500 pl-9">{academy?.name ?? 'Academia'}</p>
+                    </div>
+                    <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0">
+                        <X size={16} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="overflow-y-auto custom-scrollbar p-5">
+                    {loading && (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 size={24} className="animate-spin text-indigo-500/40" />
+                        </div>
+                    )}
+
+                    {!loading && logs.length === 0 && (
+                        <div className="text-center py-12 space-y-2">
+                            <History size={28} className="mx-auto text-white/10" />
+                            <p className="text-xs text-neutral-600">Nenhuma atividade registrada ainda.</p>
+                        </div>
+                    )}
+
+                    {!loading && logs.length > 0 && (
+                        <div className="relative">
+                            {/* Timeline line */}
+                            <div className="absolute left-[18px] top-4 bottom-4 w-px bg-white/5" />
+
+                            <div className="space-y-4">
+                                {logs.map((log) => (
+                                    <div key={log.id} className="flex gap-3 relative">
+                                        {/* Icon */}
+                                        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${actionColor(log.action)}`}>
+                                            {actionIcon(log.action)}
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="flex-1 min-w-0 pt-1">
+                                            <p className="text-xs text-white/80 leading-snug">{actionLabel(log)}</p>
+                                            {log.note && log.action !== 'ATUALIZADO' && (
+                                                <p className="text-[10px] text-neutral-500 mt-0.5 italic">{log.note}</p>
+                                            )}
+                                            <div className="flex items-center gap-2 mt-1.5">
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-400">
+                                                    <span className="w-3.5 h-3.5 rounded-full bg-indigo-500/30 flex items-center justify-center text-[8px] font-black">
+                                                        {log.userName.charAt(0).toUpperCase()}
+                                                    </span>
+                                                    {log.userName}
+                                                </span>
+                                                <span className="text-[10px] text-neutral-600">·</span>
+                                                <span className="text-[10px] text-neutral-600">{formatRelative(log.createdAt)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>,
+        document.body
     );
 }
 
@@ -416,6 +547,7 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
+    const [logModalFollowUp, setLogModalFollowUp] = useState<FollowUp | null>(null);
     const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<FollowUpStatus | ''>('');
@@ -426,7 +558,7 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
         setLoading(true);
         try {
             // ADMIN sees all; SALES/CALL_CENTER see only their own
-            const data = await DatabaseService.getFollowUps(isAdmin ? undefined : currentUser.id);
+            const data = await DatabaseService.getFollowUps();
             setFollowUps(data);
         } catch (err) {
             console.error('[FollowUp] Error loading:', err);
@@ -437,13 +569,46 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
 
     useEffect(() => { loadFollowUps(); }, [loadFollowUps]);
 
+    function buildUpdateNote(existing: FollowUp, data: Partial<FollowUp>): string {
+        const changes: string[] = [];
+        if (data.contactChannel && data.contactChannel !== existing.contactChannel)
+            changes.push(`canal → ${CHANNEL_CONFIG[data.contactChannel].label}`);
+        if (data.contactPerson !== undefined && data.contactPerson !== existing.contactPerson)
+            changes.push(`contato → ${data.contactPerson || 'sem nome'}`);
+        if (data.nextContactAt !== existing.nextContactAt)
+            changes.push(data.nextContactAt ? `próximo contato → ${formatDate(data.nextContactAt)}` : 'data de contato removida');
+        if (data.notes !== existing.notes)
+            changes.push('observações atualizadas');
+        return changes.join(', ') || 'informações atualizadas';
+    }
+
     const handleSave = async (data: Partial<FollowUp>) => {
         if (data.id) {
+            const existing = followUps.find(f => f.id === data.id);
             const updated = await DatabaseService.updateFollowUp(data.id, data);
             setFollowUps(prev => prev.map(f => f.id === updated.id ? updated : f));
+
+            const statusChanged = existing && data.status && data.status !== existing.status;
+            await DatabaseService.createFollowUpLog({
+                followUpId: data.id,
+                userId: currentUser.id,
+                userName: currentUser.name,
+                action: statusChanged ? 'STATUS_ALTERADO' : 'ATUALIZADO',
+                fromStatus: existing?.status,
+                toStatus: data.status as FollowUpStatus,
+                note: existing && !statusChanged ? buildUpdateNote(existing, data) : undefined,
+            });
         } else {
             const created = await DatabaseService.createFollowUp({ ...data, createdBy: currentUser.id });
             setFollowUps(prev => [created, ...prev]);
+
+            await DatabaseService.createFollowUpLog({
+                followUpId: created.id,
+                userId: currentUser.id,
+                userName: currentUser.name,
+                action: 'CRIADO',
+                toStatus: created.status,
+            });
         }
         setShowModal(false);
         setEditingFollowUp(null);
@@ -631,7 +796,7 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
                             creator={getCreator(fu)}
                             onEdit={() => openEdit(fu)}
                             onDelete={() => handleDelete(fu.id)}
-                            isAdmin={isAdmin}
+                            onViewLog={() => setLogModalFollowUp(fu)}
                         />
                     ))}
                 </div>
@@ -661,7 +826,7 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
                                             creator={getCreator(fu)}
                                             onEdit={() => openEdit(fu)}
                                             onDelete={() => handleDelete(fu.id)}
-                                            isAdmin={isAdmin}
+                                            onViewLog={() => setLogModalFollowUp(fu)}
                                         />
                                     ))}
                                     {items.length === 0 && (
@@ -677,7 +842,16 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
                 </div>
             )}
 
-            {/* ── Modal ── */}
+            {/* ── Log Modal ── */}
+            {logModalFollowUp && (
+                <FollowUpLogModal
+                    followUp={logModalFollowUp}
+                    academy={academies.find(a => a.id === logModalFollowUp.academyId)}
+                    onClose={() => setLogModalFollowUp(null)}
+                />
+            )}
+
+            {/* ── Edit/Create Modal ── */}
             {showModal && (
                 <FollowUpModal
                     academies={academies}

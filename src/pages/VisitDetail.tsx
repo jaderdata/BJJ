@@ -445,10 +445,10 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
 
 
   return (<div className="relative z-[100]">
-    <div className="fixed inset-0 z-[60] bg-[#0a0a0a] overflow-y-auto animate-in slide-in-from-right duration-300 antialiased selection:bg-emerald-500/30 custom-scrollbar">
+    <div className="fixed inset-0 z-[60] bg-[#0a0a0a] overflow-y-auto animate-in slide-in-from-right duration-300 antialiased selection:bg-amber-500/30 custom-scrollbar">
       {/* Background Decorative Gradient */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full"></div>
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[40%] bg-amber-500/5 blur-[120px] rounded-full"></div>
       </div>
 
       {/* Fixed Header */}
@@ -485,13 +485,13 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
             >
               <div className={cn(
                 "w-5 h-5 rounded-lg flex items-center justify-center transition-all duration-500 relative z-10 active:scale-90",
-                idx <= currentStepIndex ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-white/5 text-white/20 border border-white/5 group-hover/step:bg-white/10 group-hover/step:text-white/40"
+                idx <= currentStepIndex ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20" : "bg-white/5 text-white/20 border border-white/5 group-hover/step:bg-white/10 group-hover/step:text-white/40"
               )}>
                 {idx < currentStepIndex ? <CheckCircle2 size={10} strokeWidth={3} /> : s.icon}
               </div>
               <span className={cn(
                 "text-[7px] font-black uppercase tracking-tighter transition-colors duration-500",
-                idx <= currentStepIndex ? "text-emerald-500" : "text-white/10 group-hover/step:text-white/30"
+                idx <= currentStepIndex ? "text-amber-500" : "text-white/10 group-hover/step:text-white/30"
               )}>
                 {s.label}
               </span>
@@ -500,7 +500,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
                 <div className="absolute top-2.5 left-[50%] w-full h-[2px] -z-0">
                   <div className={cn(
                     "h-full transition-all duration-500",
-                    idx < currentStepIndex ? "bg-emerald-500" : "bg-white/5"
+                    idx < currentStepIndex ? "bg-amber-500" : "bg-white/5"
                   )}></div>
                 </div>
               )}

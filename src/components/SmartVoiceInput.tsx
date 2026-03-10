@@ -168,7 +168,7 @@ export const SmartVoiceInput: React.FC<SmartVoiceInputProps> = ({ onTranscript }
                         ? "bg-red-500 text-white hover:bg-red-600 shadow-red-500/30 scale-110"
                         : isProcessing
                             ? "bg-neutral-800 text-neutral-600 border border-white/5 cursor-wait"
-                            : "bg-gradient-to-br from-emerald-500 to-teal-600 text-white hover:scale-105 active:scale-95 shadow-emerald-500/20 border border-white/10"
+                            : "bg-gradient-to-br from-amber-500 to-teal-600 text-white hover:scale-105 active:scale-95 shadow-amber-500/20 border border-white/10"
                 )}
             >
                 {isRecording ? (

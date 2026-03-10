@@ -50,19 +50,19 @@ const AdminModeIndicator: React.FC<AdminModeIndicatorProps> = ({ expiresAt, onRe
     const getColorClass = (): string => {
         if (timeRemaining <= 300) return 'bg-red-500'; // Últimos 5 minutos
         if (timeRemaining <= 600) return 'bg-amber-500'; // Últimos 10 minutos
-        return 'bg-emerald-500'; // Normal
+        return 'bg-amber-500'; // Normal
     };
 
     const getTextColorClass = (): string => {
         if (timeRemaining <= 300) return 'text-red-400';
         if (timeRemaining <= 600) return 'text-amber-400';
-        return 'text-emerald-400';
+        return 'text-amber-400';
     };
 
     const getBgColorClass = (): string => {
         if (timeRemaining <= 300) return 'bg-red-500/10 border-red-500/30';
         if (timeRemaining <= 600) return 'bg-amber-500/10 border-amber-500/30';
-        return 'bg-emerald-500/10 border-emerald-500/30';
+        return 'bg-amber-500/10 border-amber-500/30';
     };
 
     return (

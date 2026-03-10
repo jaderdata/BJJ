@@ -257,7 +257,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Header with Gradient */}
             <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
                 {/* Glassmorphism overlay - Optimized for mobile */}
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent"></div>
 
                 {/* Decorative elements - Simplified blurs */}
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-2xl -mr-24 -mt-24"></div>
@@ -279,7 +279,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             onClick={handleToggleNotifications}
                             disabled={loadingNotifToggle}
                             className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${notificationsEnabled
-                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                ? 'bg-amber-600 hover:bg-amber-500 text-white'
                                 : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
                                 }`}
                             title={notificationsEnabled ? 'Notificações Ativadas' : 'Notificações Desativadas'}
@@ -321,10 +321,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {
                         label: 'Visitas Realizadas',
                         value: filteredVisits.length,
-                        gradient: 'from-emerald-500 to-teal-500',
-                        bgGlow: 'bg-emerald-500/20',
-                        iconBg: 'bg-emerald-500/20',
-                        iconColor: 'text-emerald-400'
+                        gradient: 'from-amber-500 to-teal-500',
+                        bgGlow: 'bg-amber-500/20',
+                        iconBg: 'bg-amber-500/20',
+                        iconColor: 'text-amber-400'
                     },
                     {
                         label: 'Visitas Pendentes',
@@ -337,10 +337,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {
                         label: 'Vouchers Gerados',
                         value: filteredVouchers.length,
-                        gradient: 'from-emerald-500 to-blue-500',
-                        bgGlow: 'bg-emerald-500/20',
-                        iconBg: 'bg-emerald-500/20',
-                        iconColor: 'text-emerald-400',
+                        gradient: 'from-amber-500 to-blue-500',
+                        bgGlow: 'bg-amber-500/20',
+                        iconBg: 'bg-amber-500/20',
+                        iconColor: 'text-amber-400',
                         hasAction: true
                     }
                 ].map((kpi, i) => (
@@ -369,7 +369,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <button
                                     onClick={handleSyncSheet}
                                     disabled={syncingSheet}
-                                    className="mt-4 w-full flex items-center justify-center space-x-2 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg hover:shadow-emerald-500/50"
+                                    className="mt-4 w-full flex items-center justify-center space-x-2 py-3 bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg hover:shadow-amber-500/50"
                                 >
                                     <RefreshCw size={14} strokeWidth={2.5} className={syncingSheet ? 'animate-spin' : ''} />
                                     <span>{syncingSheet ? 'Sincronizando...' : 'Atualizar Planilha'}</span>
@@ -383,7 +383,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Performance Card - Premium Design */}
             <div className="relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
                 {/* Background decoration */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/10 rounded-full blur-[80px] -ml-24 -mb-24"></div>
 
                 <div className="relative z-10">
@@ -400,17 +400,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         {/* Completed */}
-                        <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 backdrop-blur-sm border border-emerald-500/20 rounded-2xl p-4 hover:border-emerald-500/40 transition-all duration-300">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="group relative overflow-hidden bg-gradient-to-br from-amber-500/10 to-amber-500/5 backdrop-blur-sm border border-amber-500/20 rounded-2xl p-4 hover:border-amber-500/40 transition-all duration-300">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
 
                             <div className="relative z-10">
                                 <div className="flex items-center justify-between mb-4">
-                                    <span className="text-xs font-black text-emerald-400 uppercase tracking-widest">Concluídas</span>
+                                    <span className="text-xs font-black text-amber-400 uppercase tracking-widest">Concluídas</span>
                                 </div>
 
                                 <div className="flex items-baseline space-x-2">
                                     <span className="text-4xl font-black text-white">{performanceData.completed}</span>
-                                    <span className="text-xl font-black text-emerald-400">{performanceData.percent}%</span>
+                                    <span className="text-xl font-black text-amber-400">{performanceData.percent}%</span>
                                 </div>
 
                                 <p className="text-xs text-white/50 font-medium mt-2">
@@ -448,7 +448,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                         <div className="h-4 bg-white/5 rounded-full overflow-hidden border border-white/10 p-0.5">
                             <div
-                                className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full transition-all duration-1000 shadow-lg shadow-emerald-500/50"
+                                className="h-full bg-gradient-to-r from-amber-500 via-teal-500 to-cyan-500 rounded-full transition-all duration-1000 shadow-lg shadow-amber-500/50"
                                 style={{ width: `${performanceData.percent}%` }}
                             ></div>
                         </div>
@@ -505,8 +505,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Top Sellers */}
                 <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-sm"></div>
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent backdrop-blur-sm"></div>
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
 
                     <div className="relative z-10">
                         <div className="flex items-center space-x-2 mb-4">
@@ -541,7 +541,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 {/* Recent Finance */}
                 <div className="relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
 
                     <div className="relative z-10">
                         <div className="flex items-center space-x-2 mb-4">
@@ -571,7 +571,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <p className="text-base font-black text-white">${f.amount.toFixed(2)}</p>
                                             <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase ${f.status === FinanceStatus.PENDING ? 'bg-amber-500/20 text-amber-400' :
                                                 f.status === FinanceStatus.PAID ? 'bg-white/10 text-white/50' :
-                                                    'bg-emerald-500/20 text-emerald-400'
+                                                    'bg-amber-500/20 text-amber-400'
                                                 }`}>
                                                 {f.status}
                                             </span>

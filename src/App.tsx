@@ -467,7 +467,7 @@ const AppContent: React.FC = () => {
   if (!currentUser) {
     return (
       <Suspense fallback={<div className="h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
       </div>}>
         <CustomAuth onLogin={handleLogin} />
       </Suspense>
@@ -517,7 +517,7 @@ const AppContent: React.FC = () => {
         {/* Background Decorative Gradient - Mobile Only */}
         {currentUser.role === UserRole.SALES && (
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full"></div>
+            <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[40%] bg-amber-500/5 blur-[120px] rounded-full"></div>
             <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[40%] bg-zinc-500/5 blur-[120px] rounded-full"></div>
           </div>
         )}
@@ -548,7 +548,7 @@ const AppContent: React.FC = () => {
 
           <Suspense fallback={
             <div className="flex items-center justify-center p-20">
-              <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
             </div>
           }>
 

@@ -183,7 +183,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                     <div>
                         <h1 className="text-xl font-bold text-white flex items-center gap-2">
                             {vendor.name}
-                            <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Ativo</span>
+                            <span className="text-xs bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Ativo</span>
                         </h1>
                         <p className="text-xs text-neutral-400 font-mono">{vendor.email}</p>
                     </div>
@@ -245,7 +245,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
 
                 <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Financeiro</p>
-                    <p className="text-3xl font-black text-emerald-400">$ {totalReceived.toFixed(0)}</p>
+                    <p className="text-3xl font-black text-amber-400">$ {totalReceived.toFixed(0)}</p>
                     <p className="text-xs text-neutral-500 mt-2">total recebido/lançado</p>
                 </div>
             </div>
@@ -286,7 +286,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                             </div>
                             <div className="space-y-3">
                                 {[
-                                    { label: 'Dono/Responsável', val: contactStats[ContactPerson.OWNER], color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+                                    { label: 'Dono/Responsável', val: contactStats[ContactPerson.OWNER], color: 'text-amber-400', bg: 'bg-amber-500/10' },
                                     { label: 'Professor', val: contactStats[ContactPerson.TEACHER], color: 'text-blue-400', bg: 'bg-blue-500/10' },
                                     { label: 'Staff/Recepção', val: contactStats[ContactPerson.STAFF], color: 'text-purple-400', bg: 'bg-purple-500/10' },
                                     { label: 'Ninguém Disponível', val: contactStats[ContactPerson.NOBODY], color: 'text-red-400', bg: 'bg-red-500/10' }
@@ -351,7 +351,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                                                 </span>
                                             )}
                                             {visit.vouchersGenerated && visit.vouchersGenerated.length > 0 && (
-                                                <span className="text-[10px] px-2 py-1 rounded-md font-bold uppercase bg-emerald-500/10 text-emerald-500 flex items-center gap-1">
+                                                <span className="text-[10px] px-2 py-1 rounded-md font-bold uppercase bg-amber-500/10 text-amber-500 flex items-center gap-1">
                                                     {visit.vouchersGenerated.length} Vouchers
                                                 </span>
                                             )}

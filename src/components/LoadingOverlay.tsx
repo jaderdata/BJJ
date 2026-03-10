@@ -12,11 +12,11 @@ export const LoadingOverlay: React.FC = () => {
             <div className="flex flex-col items-center space-y-4">
                 <div className="relative">
                     {/* Outer Glow */}
-                    <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full scale-150 animate-pulse"></div>
+                    <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-150 animate-pulse"></div>
 
                     {/* Spinner */}
                     <Loader2
-                        className="w-12 h-12 text-emerald-500 animate-spin relative z-10"
+                        className="w-12 h-12 text-amber-500 animate-spin relative z-10"
                         strokeWidth={3}
                     />
                 </div>
@@ -26,9 +26,9 @@ export const LoadingOverlay: React.FC = () => {
                         Processando
                     </span>
                     <div className="flex space-x-1 mt-1">
-                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"></div>
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce"></div>
                     </div>
                 </div>
             </div>

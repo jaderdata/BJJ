@@ -470,7 +470,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                                                 {visit && (
                                                                     <div className="flex items-center space-x-2">
                                                                         <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${visit.temperature === AcademyTemperature.HOT ? 'bg-red-900/30 text-red-400' : 'bg-neutral-900/30 text-neutral-400'}`}>{visit.temperature}</span>
-                                                                        <span className="bg-emerald-900/30 text-emerald-400 p-1 rounded-full px-2 py-1 font-bold text-[10px]">OK</span>
+                                                                        <span className="bg-amber-900/30 text-amber-400 p-1 rounded-full px-2 py-1 font-bold text-[10px]">OK</span>
                                                                     </div>
                                                                 )}
                                                                 {isLinked && (
@@ -730,7 +730,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-700/50">
                                     <p className="text-[10px] font-bold text-neutral-500 uppercase mb-1">Status</p>
-                                    <span className="text-sm font-bold text-emerald-400 flex items-center">
+                                    <span className="text-sm font-bold text-amber-400 flex items-center">
                                         {selectedVisit.status}
                                     </span>
                                 </div>
@@ -753,7 +753,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                             <div className="space-y-3">
                                 <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Materiais Deixados</p>
                                 <div className="flex gap-3">
-                                    <div className={`flex-1 p-3 rounded-xl border flex items-center space-x-2 ${selectedVisit.leftBanner ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-neutral-900/30 border-neutral-800 text-neutral-600'}`}>
+                                    <div className={`flex-1 p-3 rounded-xl border flex items-center space-x-2 ${selectedVisit.leftBanner ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-neutral-900/30 border-neutral-800 text-neutral-600'}`}>
                                         <span>??</span>
                                         <span className="text-xs font-bold uppercase tracking-widest">Banner</span>
                                     </div>
@@ -811,7 +811,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     {selectedVisit.status !== VisitStatus.VISITED && (
                                         <button
                                             onClick={() => handleFinishVisitFromAdmin(selectedVisit)}
-                                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold transition-colors shadow-lg"
+                                            className="bg-amber-600 hover:bg-amber-500 text-white px-6 py-2 rounded-xl font-bold transition-colors shadow-lg"
                                         >
                                             Finalizar Visita
                                         </button>

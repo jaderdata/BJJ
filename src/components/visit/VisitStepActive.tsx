@@ -60,7 +60,7 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
             {/* Card Conversa */}
             <div className="space-y-4">
                 <div className="flex items-center space-x-2 px-1">
-                    <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                    <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
                     <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Pessoa de Contato <span className="text-red-500">*</span></label>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -76,11 +76,11 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
                             className={cn(
                                 "group relative overflow-hidden py-5 px-4 rounded-[2rem] border transition-all duration-300 flex flex-col items-center justify-center space-y-2 active:scale-95",
                                 visit.contactPerson === p.val
-                                    ? "bg-emerald-500/10 border-emerald-500/30 shadow-lg shadow-emerald-500/10"
+                                    ? "bg-amber-500/10 border-amber-500/30 shadow-lg shadow-amber-500/10"
                                     : "bg-white/5 border-white/5 text-white/40 hover:border-white/10"
                             )}
                         >
-                            <span className={cn("text-[11px] font-black uppercase tracking-wider", visit.contactPerson === p.val ? "text-emerald-400" : "text-white/20")}>{p.label}</span>
+                            <span className={cn("text-[11px] font-black uppercase tracking-wider", visit.contactPerson === p.val ? "text-amber-400" : "text-white/20")}>{p.label}</span>
                         </button>
                     ))}
                 </div>
@@ -89,7 +89,7 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
             {/* Card Temperatura */}
             <div className="space-y-4">
                 <div className="flex items-center space-x-2 px-1">
-                    <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                    <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
                     <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Temperatura da Oportunidade <span className="text-red-500">*</span></label>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -125,11 +125,11 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
             {/* Card Resumo */}
             <div className="space-y-4">
                 <div className="flex items-center space-x-2 px-1 mb-2">
-                    <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                    <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
                     <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Resumo Executivo <span className="text-white/20 text-[9px] font-medium lowercase ml-1">(opcional)</span></label>
                 </div>
                 <div className="relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-[2rem] blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
+                    <div className="absolute -inset-0.5 bg-gradient-to-br from-amber-500/20 to-transparent rounded-[2rem] blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
                     <textarea
                         ref={(el) => {
                             if (el) {
@@ -138,7 +138,7 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
                             }
                         }}
                         placeholder="Quais os pontos principais desta visita? Algo importante para o futuro?"
-                        className="relative w-full min-h-[9rem] bg-white/[0.03] text-white p-6 rounded-[2rem] text-sm outline-none transition-all placeholder:text-white/10 border border-white/5 focus:border-emerald-500/30 focus:bg-white/[0.05] overflow-hidden resize-none"
+                        className="relative w-full min-h-[9rem] bg-white/[0.03] text-white p-6 rounded-[2rem] text-sm outline-none transition-all placeholder:text-white/10 border border-white/5 focus:border-amber-500/30 focus:bg-white/[0.05] overflow-hidden resize-none"
                         value={visit.summary}
                         maxLength={500}
                         onChange={e => {
@@ -204,7 +204,7 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
             {userRole !== UserRole.CALL_CENTER && (
                 <div className="space-y-4">
                     <div className="flex items-center space-x-2 px-1">
-                        <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                        <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
                         <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Entrega de Marketing <span className="text-red-500">*</span></label>
                     </div>
                     <div className="flex flex-wrap gap-4">
@@ -218,12 +218,12 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
                                 className={cn(
                                     "flex-1 group relative overflow-hidden py-6 rounded-[2rem] border transition-all duration-500 flex flex-col items-center justify-center space-y-2 active:scale-95",
                                     visit[m.key]
-                                        ? "bg-emerald-500/10 border-emerald-500/30"
+                                        ? "bg-amber-500/10 border-amber-500/30"
                                         : "bg-white/5 border-white/5 text-white/40"
                                 )}
                             >
                                 <span className={cn("text-2xl transition-transform duration-500 group-hover:scale-110", visit[m.key] ? "opacity-100" : "opacity-30")}>{m.icon}</span>
-                                <span className={cn("text-[10px] font-black uppercase tracking-wider", visit[m.key] ? "text-emerald-400" : "text-white/20")}>{m.label}</span>
+                                <span className={cn("text-[10px] font-black uppercase tracking-wider", visit[m.key] ? "text-amber-400" : "text-white/20")}>{m.label}</span>
                             </button>
                         ))}
 
@@ -254,7 +254,7 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
                         </button>
                         <button
                             onClick={() => { hapticFeedback('success'); handleGenerateVoucher(); }}
-                            className="flex-[2] bg-emerald-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl flex items-center justify-center"
+                            className="flex-[2] bg-amber-600 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all shadow-xl flex items-center justify-center"
                         >
                             <span>Gerar Vouchers</span>
                         </button>

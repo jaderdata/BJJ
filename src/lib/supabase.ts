@@ -1,4 +1,4 @@
-import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus, VendorDetails, FollowUp, ContactChannel, FollowUpStatus } from '../types';
+import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus, VendorDetails, FollowUp, FollowUpLog, FollowUpLogAction, ContactChannel, FollowUpStatus } from '../types';
 import { supabase } from './supabase-client';
 
 export { supabase };
@@ -924,7 +924,49 @@ export const DatabaseService = {
     async deleteFollowUp(id: string) {
         const { error } = await supabase.from('follow_ups').delete().eq('id', id);
         if (error) throw error;
-    }
+    },
+
+    async createFollowUpLog(data: {
+        followUpId: string;
+        userId: string;
+        userName: string;
+        action: FollowUpLogAction;
+        fromStatus?: string;
+        toStatus?: string;
+        note?: string;
+    }) {
+        const { error } = await supabase.from('follow_up_logs').insert({
+            follow_up_id: data.followUpId,
+            user_id: data.userId,
+            user_name: data.userName,
+            action: data.action,
+            from_status: data.fromStatus ?? null,
+            to_status: data.toStatus ?? null,
+            note: data.note ?? null,
+        });
+        // Log é não-crítico: falha silenciosa para não bloquear o fluxo principal
+        if (error) console.warn('[FollowUpLog] Falha ao registrar log:', error.message);
+    },
+
+    async getFollowUpLogs(followUpId: string): Promise<FollowUpLog[]> {
+        const { data, error } = await supabase
+            .from('follow_up_logs')
+            .select('*')
+            .eq('follow_up_id', followUpId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return (data || []).map((l: any) => ({
+            id: l.id,
+            followUpId: l.follow_up_id,
+            userId: l.user_id,
+            userName: l.user_name,
+            action: l.action as FollowUpLogAction,
+            fromStatus: l.from_status ?? undefined,
+            toStatus: l.to_status ?? undefined,
+            note: l.note ?? undefined,
+            createdAt: l.created_at,
+        } as FollowUpLog));
+    },
 
 };
 

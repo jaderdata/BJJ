@@ -22,10 +22,10 @@ export const SystemAlerts: React.FC<SystemAlertsProps> = ({ notifications, curre
             </div>
             {alerts.map((n) => (
                 <div key={n.id} className="group relative overflow-hidden bg-gradient-to-r from-neutral-800 to-neutral-800/50 backdrop-blur-xl border border-white/10 rounded-[1.5rem] p-4 flex justify-between items-center shadow-xl animate-in slide-in-from-left-4 duration-500 hover:border-white/20 transition-all">
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                     <div className="flex items-center space-x-4 relative z-10">
-                        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-emerald-400 border border-white/5 group-hover:scale-110 transition-transform">
+                        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-amber-400 border border-white/5 group-hover:scale-110 transition-transform">
                             <Bell size={18} strokeWidth={2} />
                         </div>
                         <div>

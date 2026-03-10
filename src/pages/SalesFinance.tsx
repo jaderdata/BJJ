@@ -23,7 +23,7 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
     const getStatusBadge = (status: FinanceStatus) => {
         switch (status) {
             case FinanceStatus.RECEIVED:
-                return { bg: 'bg-emerald-500/10', text: 'text-emerald-400', label: 'Concluído', icon: <CheckCircle2 size={12} /> };
+                return { bg: 'bg-amber-500/10', text: 'text-amber-400', label: 'Concluído', icon: <CheckCircle2 size={12} /> };
             case FinanceStatus.PAID:
                 return { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Pago', icon: <Clock size={12} /> };
             case FinanceStatus.PENDING:
@@ -42,12 +42,12 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700">
             {/* Header - Premium Monochrome/Emerald */}
             <div className="relative group overflow-hidden bg-neutral-900 border border-white/10 p-8 rounded-[2.5rem] shadow-2xl transition-all duration-500">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent"></div>
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
 
                 <div className="relative z-10 space-y-2">
                     <div className="flex items-center space-x-2">
-                        <span className="text-[10px] font-black text-emerald-500/60 uppercase tracking-[0.3em]">Finanças Pessoais</span>
+                        <span className="text-[10px] font-black text-amber-500/60 uppercase tracking-[0.3em]">Finanças Pessoais</span>
                     </div>
                     <div>
                         <h1 className="text-3xl font-black text-white tracking-tighter italic uppercase">Controle de Verbas</h1>
@@ -63,8 +63,8 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
-                    <div className="relative group overflow-hidden bg-neutral-900/50 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-xl transition-all duration-500 hover:border-emerald-500/20">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-emerald-500/10 transition-colors"></div>
+                    <div className="relative group overflow-hidden bg-neutral-900/50 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-xl transition-all duration-500 hover:border-amber-500/20">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-amber-500/10 transition-colors"></div>
                         <div className="flex items-end justify-between relative z-10">
                             <div className="space-y-1">
                                 <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Total Acumulado</p>
@@ -75,7 +75,7 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white/5 border border-white/5 rounded-[1.5rem] p-5 space-y-1">
-                            <p className="text-[9px] font-black text-emerald-500/40 uppercase tracking-[0.15em]">Confirmado</p>
+                            <p className="text-[9px] font-black text-amber-500/40 uppercase tracking-[0.15em]">Confirmado</p>
                             <p className="text-xl font-black text-white tracking-tighter">${receivedAmount.toFixed(2)}</p>
                         </div>
                         <div className="bg-white/5 border border-white/5 rounded-[1.5rem] p-5 space-y-1 text-right">
@@ -115,7 +115,7 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
                                         <div className="flex justify-between items-start">
                                             <div className="space-y-1 max-w-[70%]">
                                                 <div className="flex items-center space-x-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                                     <h4 className="text-sm font-black text-white uppercase tracking-tight truncate">
                                                         {event?.name || 'Evento não encontrado'}
                                                     </h4>
@@ -153,7 +153,7 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
                                         {f.status === FinanceStatus.PAID && (
                                             <button
                                                 onClick={() => onConfirm(f.id)}
-                                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center space-x-3 active:scale-[0.98]"
+                                                className="w-full bg-amber-600 hover:bg-amber-500 text-white h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-amber-600/20 flex items-center justify-center space-x-3 active:scale-[0.98]"
                                             >
                                                 <CheckCircle2 size={18} strokeWidth={3} />
                                                 <span>Confirmar Recebimento</span>

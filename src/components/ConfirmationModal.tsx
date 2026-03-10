@@ -47,19 +47,19 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             {/* Modal Content */}
             <div className={cn(
                 "relative w-full max-w-sm bg-neutral-900 border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300",
-                type === 'danger' ? 'ring-1 ring-red-500/20' : type === 'warning' ? 'ring-1 ring-amber-500/20' : 'ring-1 ring-emerald-500/20'
+                type === 'danger' ? 'ring-1 ring-red-500/20' : type === 'warning' ? 'ring-1 ring-amber-500/20' : 'ring-1 ring-amber-500/20'
             )}>
                 {/* Decorative background flare */}
                 <div className={cn(
                     "absolute top-0 right-0 w-32 h-32 blur-[60px] rounded-full -mr-16 -mt-16 pointer-events-none opacity-20",
-                    type === 'danger' ? 'bg-red-500' : type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
+                    type === 'danger' ? 'bg-red-500' : type === 'warning' ? 'bg-amber-500' : 'bg-amber-500'
                 )}></div>
 
                 <div className="p-8 space-y-6">
                     <div className="flex flex-col items-center text-center space-y-4">
                         <div className={cn(
                             "w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-xl",
-                            type === 'danger' ? 'bg-red-500/10 text-red-500' : type === 'warning' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
+                            type === 'danger' ? 'bg-red-500/10 text-red-500' : type === 'warning' ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-500/10 text-amber-500'
                         )}>
                             <AlertCircle size={32} />
                         </div>
@@ -75,7 +75,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                             onClick={handleConfirm}
                             className={cn(
                                 "w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-95 shadow-lg",
-                                type === 'danger' ? 'bg-red-600 text-white' : type === 'warning' ? 'bg-amber-600 text-white' : 'bg-emerald-600 text-white'
+                                type === 'danger' ? 'bg-red-600 text-white' : type === 'warning' ? 'bg-amber-600 text-white' : 'bg-amber-600 text-white'
                             )}
                         >
                             {confirmLabel}

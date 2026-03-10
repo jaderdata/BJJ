@@ -183,7 +183,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
         <div className="space-y-6 p-4">
             {/* Header */}
             <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent backdrop-blur-sm"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent backdrop-blur-sm"></div>
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
 
@@ -218,7 +218,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                         onChange={(e) => setHideFinished(e.target.checked)}
                                         className="sr-only"
                                     />
-                                    <div className={`w-8 h-4 bg-white/10 rounded-full transition-colors ${hideFinished ? 'bg-emerald-500/50' : ''}`}></div>
+                                    <div className={`w-8 h-4 bg-white/10 rounded-full transition-colors ${hideFinished ? 'bg-amber-500/50' : ''}`}></div>
                                     <div className={`absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${hideFinished ? 'translate-x-4' : ''}`}></div>
                                 </div>
                                 <span className="text-white/80 text-xs font-bold uppercase tracking-wider group-hover:text-white transition-colors select-none">
@@ -299,7 +299,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                 {/* Top Badges - Always visible */}
                                 <div className="absolute top-0 left-0 right-0 z-20 p-5 flex justify-between items-start">
                                     <span className={`text-xs font-black px-3 py-1.5 rounded-lg uppercase backdrop-blur-md ${isExpired ? 'bg-white/10 text-white/60 border border-white/20' :
-                                        isOngoing ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/50' :
+                                        isOngoing ? 'bg-amber-500/30 text-amber-300 border border-amber-400/50' :
                                             'bg-blue-500/30 text-blue-300 border border-blue-400/50'
                                         }`}>
                                         {isExpired ? 'Encerrado' : isOngoing ? 'Em Andamento' : diffDays === 0 ? 'Hoje' : diffDays === 1 ? 'Amanhã' : `${diffDays} dias`}
@@ -356,7 +356,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                     <div className="h-2.5 bg-black/40 backdrop-blur-sm rounded-full overflow-hidden border border-white/20 shadow-lg">
                                         <div
                                             className={`h-full rounded-full transition-all duration-1000 shadow-lg ${progress === 100
-                                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                                                ? 'bg-gradient-to-r from-amber-500 to-teal-500'
                                                 : 'bg-gradient-to-r from-blue-500 to-cyan-500'
                                                 }`}
                                             style={{ width: `${progress}%` }}
@@ -492,7 +492,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                 {!photoPreview ? (
                                     <label className="w-full flex flex-col items-center justify-center px-4 py-8 bg-white/5 backdrop-blur-md border-2 border-dashed border-white/20 rounded-xl cursor-pointer hover:bg-white/10 hover:border-white/30 transition-all group">
                                         <div className="flex flex-col items-center space-y-2">
-                                            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl group-hover:scale-110 transition-transform">
+                                            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-amber-500/20 rounded-xl group-hover:scale-110 transition-transform">
                                                 <ImageIcon size={32} className="text-blue-400" strokeWidth={2} />
                                             </div>
                                             <div className="flex items-center space-x-2">
@@ -532,7 +532,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                             <button
                                 type="submit"
                                 disabled={isUploading}
-                                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                                className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                             >
                                 {isUploading ? (
                                     <>
@@ -573,13 +573,13 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                         key={v.id}
                                         type="button"
                                         onClick={() => handleAddVendor(v.id)}
-                                        className="w-full p-4 flex justify-between items-center bg-neutral-800/50 border border-neutral-700 hover:border-emerald-500 transition-all rounded-2xl group text-left"
+                                        className="w-full p-4 flex justify-between items-center bg-neutral-800/50 border border-neutral-700 hover:border-amber-500 transition-all rounded-2xl group text-left"
                                     >
                                         <div>
                                             <p className="font-bold text-white">{v.name}</p>
                                             <p className="text-[10px] text-neutral-400 mt-1">{v.city ? `${v.city} - ` : ''}{v.email}</p>
                                         </div>
-                                        <div className="bg-neutral-900 p-2 rounded-xl text-neutral-500 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                        <div className="bg-neutral-900 p-2 rounded-xl text-neutral-500 group-hover:bg-amber-600 group-hover:text-white transition-colors">
                                             <Plus size={16} strokeWidth={2} />
                                         </div>
                                     </button>

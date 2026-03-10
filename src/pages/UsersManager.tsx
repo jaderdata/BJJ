@@ -235,7 +235,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
     const getRoleBadge = (role: UserRole) => {
         switch (role) {
             case UserRole.ADMIN:
-                return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Admin' };
+                return { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Admin' };
             case UserRole.SALES:
                 return { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Vendedor' };
             case UserRole.CALL_CENTER:
@@ -250,7 +250,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
             {/* Header */}
             <div className="relative overflow-hidden bg-gradient-to-br from-neutral-800 to-neutral-900 p-8 md:p-10 rounded-[2.5rem] border border-neutral-700 shadow-2xl">
                 {/* Background Decoration */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] -mr-32 -mt-32 rounded-full"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 blur-[100px] -mr-32 -mt-32 rounded-full"></div>
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
@@ -295,7 +295,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                     <select
                         value={phoneCountry}
                         onChange={(e) => handleCountryChange(e.target.value as 'BR' | 'US' | 'PT')}
-                        className="bg-neutral-800 border border-neutral-700 text-white px-3 py-3 rounded-xl text-sm outline-none focus:border-emerald-500 transition-colors cursor-pointer"
+                        className="bg-neutral-800 border border-neutral-700 text-white px-3 py-3 rounded-xl text-sm outline-none focus:border-amber-500 transition-colors cursor-pointer"
                     >
                         {Object.entries(COUNTRY_CONFIG).map(([key, cfg]) => (
                             <option key={key} value={key}>{cfg.label}</option>
@@ -307,7 +307,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                             value={redemptionPhone}
                             onChange={handlePhoneChange}
                             placeholder={COUNTRY_CONFIG[phoneCountry].mask}
-                            className="w-full bg-neutral-800 border border-neutral-700 text-white px-4 py-3 rounded-xl font-mono text-lg outline-none focus:border-emerald-500 transition-colors pl-10"
+                            className="w-full bg-neutral-800 border border-neutral-700 text-white px-4 py-3 rounded-xl font-mono text-lg outline-none focus:border-amber-500 transition-colors pl-10"
                         />
                         <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
                     </div>
@@ -372,7 +372,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                                 {badge.label}
                                             </span>
                                             {user.id === currentUser.id && (
-                                                <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg uppercase tracking-wider">
+                                                <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 px-2 py-1 rounded-lg uppercase tracking-wider">
                                                     Sessão Atual
                                                 </span>
                                             )}
@@ -492,7 +492,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-emerald-900/20 active:scale-95 disabled:opacity-50"
+                                    className="w-full bg-amber-600 hover:bg-amber-500 text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-amber-900/20 active:scale-95 disabled:opacity-50"
                                 >
                                     {loading ? <RefreshCw className="animate-spin mx-auto" size={20} /> : 'Gerar Link de Convite'}
                                 </button>
@@ -503,8 +503,8 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                             </form>
                         ) : (
                             <div className="p-8 space-y-6 text-center animate-in slide-in-from-bottom-4">
-                                <div className="bg-emerald-500/10 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
-                                    <CheckCircle2 className="text-emerald-500" size={40} />
+                                <div className="bg-amber-500/10 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
+                                    <CheckCircle2 className="text-amber-500" size={40} />
                                 </div>
                                 <div>
                                     <h4 className="text-xl font-bold text-white mb-2">Convite Criado!</h4>
@@ -517,7 +517,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
 
                                 <button
                                     onClick={copyToClipboard}
-                                    className={`w-full flex items-center justify-center space-x-2 py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 ${copied ? 'bg-emerald-600 text-white' : 'bg-white text-neutral-900 hover:bg-neutral-200'}`}
+                                    className={`w-full flex items-center justify-center space-x-2 py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 ${copied ? 'bg-amber-600 text-white' : 'bg-white text-neutral-900 hover:bg-neutral-200'}`}
                                 >
                                     {copied ? <CheckCircle2 size={20} /> : <Copy size={20} />}
                                     <span>{copied ? 'Link Copiado!' : 'Copiar Link'}</span>

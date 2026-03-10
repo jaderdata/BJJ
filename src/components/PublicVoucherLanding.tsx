@@ -78,7 +78,7 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
         return (
             <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-6 text-center animate-in fade-in duration-500">
                 <div className="bg-neutral-800 border border-neutral-700 max-w-md w-full p-10 rounded-[2rem] space-y-4 shadow-2xl">
-                    <div className="text-emerald-500 font-black text-4xl mb-4 animate-bounce">OSS!</div>
+                    <div className="text-amber-500 font-black text-4xl mb-4 animate-bounce">OSS!</div>
                     <h1 className="text-2xl font-black text-white">Vouchers Saved!</h1>
                     <p className="text-neutral-400">You can now close this screen.</p>
                 </div>
@@ -143,7 +143,7 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <button
                                 onClick={handleWhatsApp}
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-[0.98] transition-all"
+                                className="bg-amber-600 hover:bg-amber-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-900/20 active:scale-[0.98] transition-all"
                             >
                                 <div className="flex items-center gap-2">
                                     <MessageCircle size={24} fill="currentColor" className="text-white/20" />

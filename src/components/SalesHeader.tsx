@@ -38,7 +38,7 @@ export const SalesHeader: React.FC<SalesHeaderProps> = ({ user, activeTab, onNav
                     <h1 className="text-lg font-black text-white tracking-tight leading-none bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
                         {user.role === UserRole.CALL_CENTER ? 'Call-Center' : 'Vendedor'}
                     </h1>
-                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mt-0.5">
+                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mt-0.5">
                         {user.role === UserRole.CALL_CENTER ? 'Painel de Atendimento' : 'Painel de Vendas'}
                     </p>
                 </div>
@@ -52,7 +52,7 @@ export const SalesHeader: React.FC<SalesHeaderProps> = ({ user, activeTab, onNav
                             <div className={cn(
                                 "w-2 h-2 rounded-full ring-4 ring-offset-0 transition-all duration-500",
                                 isOnline
-                                    ? "bg-emerald-500 ring-emerald-500/20 animate-pulse"
+                                    ? "bg-amber-500 ring-amber-500/20 animate-pulse"
                                     : "bg-red-500 ring-red-500/20"
                             )}></div>
                         </div>

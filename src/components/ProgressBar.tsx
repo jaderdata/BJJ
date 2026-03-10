@@ -10,7 +10,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ percentage, className 
     return (
         <div className={`relative w-full ${height} bg-white/5 rounded-full overflow-hidden border border-white/5 ${className}`}>
             <div
-                className="h-full bg-gradient-to-r from-emerald-600 via-emerald-400 to-teal-400 transition-all duration-1000 ease-out relative"
+                className="h-full bg-gradient-to-r from-amber-600 via-amber-400 to-teal-400 transition-all duration-1000 ease-out relative"
                 style={{ width: `${percentage}%` }}
             >
                 {/* Glossy overlay */}
