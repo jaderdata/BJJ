@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -l \"CREATE TABLE.*academies\" \"c:/Users/hp user/Documents/Dev/Visits/scripts/\"*.sql)"
+    ]
+  }
+}

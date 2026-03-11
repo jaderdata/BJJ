@@ -5,6 +5,7 @@ import {
     X,
     MapPin,
     Phone,
+    Mail,
     User as UserIcon,
     Building2,
     Search,
@@ -367,6 +368,13 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                             <span className="font-medium">{academy.phone}</span>
                                         </div>
                                     )}
+
+                                    {academy.email && (
+                                        <div className="flex items-center space-x-3 text-xs text-neutral-400">
+                                            <Mail size={14} className="shrink-0 text-neutral-500" />
+                                            <span className="font-medium">{academy.email}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -524,6 +532,16 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                                 const val = applyPhoneMask(e.target.value, selectedCountry);
                                                 setFormData({ ...formData, phone: val });
                                             }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-white/30 uppercase tracking-widest ml-1 mb-1.5 block">E-mail</label>
+                                        <input
+                                            type="email"
+                                            placeholder="contato@academia.com"
+                                            value={formData.email || ''}
+                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-indigo-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            onChange={e => setFormData({ ...formData, email: e.target.value })}
                                         />
                                     </div>
                                 </div>

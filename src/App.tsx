@@ -799,6 +799,7 @@ const AppContent: React.FC = () => {
                 visits={visits}
                 vendedores={sellers}
                 currentUser={currentUser}
+                onAcademyCreated={() => queryClient.invalidateQueries({ queryKey: ['academies'] })}
               />
             )}
 

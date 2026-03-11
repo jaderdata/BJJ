@@ -26,6 +26,7 @@ export interface Academy {
   state: string;
   responsible: string;
   phone: string;
+  email?: string;
   createdAt: string;
   createdBy?: string;
   status?: 'ACTIVE' | 'INACTIVE';

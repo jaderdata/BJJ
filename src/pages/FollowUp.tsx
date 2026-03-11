@@ -4,7 +4,7 @@ import {
     Plus, X, Phone, MessageCircle, Users, Search, Calendar,
     Edit3, Trash2, ChevronDown, LayoutList, Columns, Clock,
     TrendingUp, AlertCircle, CheckCircle, Loader2, Building2,
-    History, ArrowRight, Pencil, Sparkles
+    History, ArrowRight, Pencil, Sparkles, Mail
 } from 'lucide-react';
 import { Academy, User, Visit, FollowUp, FollowUpLog, FollowUpStatus, ContactChannel, UserRole } from '../types';
 import { DatabaseService } from '../lib/supabase';
@@ -15,6 +15,7 @@ interface FollowUpPageProps {
     visits: Visit[];
     vendedores: User[];
     currentUser: User;
+    onAcademyCreated?: () => void;
 }
 
 // ─────────────────────────────── constants ───────────────────────────────
@@ -312,9 +313,10 @@ interface ModalProps {
     onClose: () => void;
     isAdmin: boolean;
     vendedores: User[];
+    onAcademyCreated?: (academy: Academy) => void;
 }
 
-function FollowUpModal({ academies, visits, currentUser, editing, onSave, onClose, isAdmin, vendedores }: ModalProps) {
+function FollowUpModal({ academies, visits, currentUser, editing, onSave, onClose, isAdmin, vendedores, onAcademyCreated }: ModalProps) {
     const [academySearch, setAcademySearch] = useState('');
     const [selectedAcademyId, setSelectedAcademyId] = useState(editing?.academyId ?? '');
     const [status, setStatus] = useState<FollowUpStatus>(editing?.status ?? FollowUpStatus.WAITING);
@@ -325,15 +327,48 @@ function FollowUpModal({ academies, visits, currentUser, editing, onSave, onClos
     const [visitId, setVisitId] = useState(editing?.visitId ?? '');
     const [saving, setSaving] = useState(false);
 
+    // Nova Academia sub-form
+    const [showNewAcademy, setShowNewAcademy] = useState(false);
+    const [newAcademyData, setNewAcademyData] = useState<Partial<Academy>>({});
+    const [savingAcademy, setSavingAcademy] = useState(false);
+    const [localAcademies, setLocalAcademies] = useState<Academy[]>([]);
+
+    const allAcademies = useMemo(() => {
+        const combined = [...academies, ...localAcademies];
+        const seen = new Set<string>();
+        return combined.filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
+    }, [academies, localAcademies]);
+
     const filteredAcademies = useMemo(() =>
-        academies
+        allAcademies
             .filter(a => a.status === 'ACTIVE' || !a.status)
             .filter(a => a.name.toLowerCase().includes(academySearch.toLowerCase()))
             .slice(0, 8),
-        [academies, academySearch]
+        [allAcademies, academySearch]
     );
 
-    const selectedAcademy = academies.find(a => a.id === selectedAcademyId);
+    const selectedAcademy = allAcademies.find(a => a.id === selectedAcademyId);
+
+    const handleCreateAcademy = async () => {
+        if (!newAcademyData.name || !newAcademyData.city || !newAcademyData.state) {
+            alert('Preencha Nome, Cidade e Estado.');
+            return;
+        }
+        setSavingAcademy(true);
+        try {
+            const created = await DatabaseService.createAcademy({ ...newAcademyData, address: newAcademyData.address || '' });
+            setLocalAcademies(prev => [created, ...prev]);
+            setSelectedAcademyId(created.id);
+            setAcademySearch('');
+            setShowNewAcademy(false);
+            setNewAcademyData({});
+            onAcademyCreated?.(created);
+        } catch (err: any) {
+            alert(`Erro ao cadastrar academia: ${err.message}`);
+        } finally {
+            setSavingAcademy(false);
+        }
+    };
 
     // Visits related to this academy for linking
     const relatedVisits = visits.filter(v => v.academyId === selectedAcademyId);
@@ -377,47 +412,145 @@ function FollowUpModal({ academies, visits, currentUser, editing, onSave, onClos
                 <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
                     {/* Academy Search */}
                     <div>
-                        <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1.5 block">Academia *</label>
-                        {selectedAcademy ? (
-                            <div className="flex items-center justify-between px-4 py-3 bg-white/5 border border-indigo-500/30 rounded-xl">
-                                <div>
-                                    <p className="text-sm font-bold text-white">{selectedAcademy.name}</p>
-                                    <p className="text-xs text-neutral-500">{selectedAcademy.city}, {selectedAcademy.state}</p>
-                                </div>
-                                <button type="button" onClick={() => { setSelectedAcademyId(''); setVisitId(''); }} className="text-neutral-500 hover:text-red-400 transition-colors">
-                                    <X size={16} />
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Academia *</label>
+                            {!showNewAcademy && !selectedAcademy && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowNewAcademy(true); setAcademySearch(''); }}
+                                    className="flex items-center gap-1 text-[10px] font-bold text-amber-400 hover:text-amber-300 transition-colors"
+                                >
+                                    <Plus size={12} />
+                                    Nova Academia
                                 </button>
-                            </div>
-                        ) : (
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" size={16} />
+                            )}
+                        </div>
+
+                        {/* Nova Academia sub-form */}
+                        {showNewAcademy && (
+                            <div className="bg-white/[0.03] border border-amber-500/20 rounded-xl p-4 space-y-3">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                                        <Building2 size={13} />
+                                        Cadastrar Nova Academia
+                                    </span>
+                                    <button type="button" onClick={() => { setShowNewAcademy(false); setNewAcademyData({}); }} className="text-neutral-600 hover:text-white transition-colors">
+                                        <X size={14} />
+                                    </button>
+                                </div>
                                 <input
                                     type="text"
-                                    placeholder="Buscar academia..."
-                                    className="w-full pl-10 pr-4 h-12 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:border-indigo-500/50 focus:outline-none transition-all placeholder:text-white/20"
-                                    value={academySearch}
-                                    onChange={e => setAcademySearch(e.target.value)}
-                                    autoFocus
+                                    placeholder="Nome da Academia *"
+                                    required
+                                    value={newAcademyData.name || ''}
+                                    onChange={e => setNewAcademyData(p => ({ ...p, name: e.target.value }))}
+                                    className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/20"
                                 />
-                                {academySearch && (
-                                    <div className="absolute top-full mt-1 w-full bg-neutral-900 border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
-                                        {filteredAcademies.length === 0 && (
-                                            <div className="px-4 py-3 text-xs text-neutral-500">Nenhuma academia encontrada</div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Cidade *"
+                                        required
+                                        value={newAcademyData.city || ''}
+                                        onChange={e => setNewAcademyData(p => ({ ...p, city: e.target.value }))}
+                                        className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/20"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Estado *"
+                                        required
+                                        maxLength={2}
+                                        value={newAcademyData.state || ''}
+                                        onChange={e => setNewAcademyData(p => ({ ...p, state: e.target.value.toUpperCase() }))}
+                                        className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/20"
+                                    />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Endereço"
+                                    value={newAcademyData.address || ''}
+                                    onChange={e => setNewAcademyData(p => ({ ...p, address: e.target.value }))}
+                                    className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/20"
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Responsável"
+                                    value={newAcademyData.responsible || ''}
+                                    onChange={e => setNewAcademyData(p => ({ ...p, responsible: e.target.value }))}
+                                    className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/20"
+                                />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Telefone"
+                                        value={newAcademyData.phone || ''}
+                                        onChange={e => setNewAcademyData(p => ({ ...p, phone: e.target.value }))}
+                                        className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/20"
+                                    />
+                                    <input
+                                        type="email"
+                                        placeholder="E-mail"
+                                        value={newAcademyData.email || ''}
+                                        onChange={e => setNewAcademyData(p => ({ ...p, email: e.target.value }))}
+                                        className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/20"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    disabled={savingAcademy}
+                                    onClick={handleCreateAcademy}
+                                    className="w-full h-10 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                                >
+                                    {savingAcademy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                                    {savingAcademy ? 'Cadastrando...' : 'Cadastrar e Selecionar'}
+                                </button>
+                            </div>
+                        )}
+
+                        {!showNewAcademy && (
+                            <>
+                                {selectedAcademy ? (
+                                    <div className="flex items-center justify-between px-4 py-3 bg-white/5 border border-indigo-500/30 rounded-xl">
+                                        <div>
+                                            <p className="text-sm font-bold text-white">{selectedAcademy.name}</p>
+                                            <p className="text-xs text-neutral-500">{selectedAcademy.city}, {selectedAcademy.state}</p>
+                                        </div>
+                                        <button type="button" onClick={() => { setSelectedAcademyId(''); setVisitId(''); }} className="text-neutral-500 hover:text-red-400 transition-colors">
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" size={16} />
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar academia..."
+                                            className="w-full pl-10 pr-4 h-12 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:border-indigo-500/50 focus:outline-none transition-all placeholder:text-white/20"
+                                            value={academySearch}
+                                            onChange={e => setAcademySearch(e.target.value)}
+                                            autoFocus
+                                        />
+                                        {academySearch && (
+                                            <div className="absolute top-full mt-1 w-full bg-neutral-900 border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
+                                                {filteredAcademies.length === 0 && (
+                                                    <div className="px-4 py-3 text-xs text-neutral-500">Nenhuma academia encontrada</div>
+                                                )}
+                                                {filteredAcademies.map(a => (
+                                                    <button
+                                                        key={a.id}
+                                                        type="button"
+                                                        onClick={() => { setSelectedAcademyId(a.id); setAcademySearch(''); }}
+                                                        className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                                                    >
+                                                        <p className="text-sm font-bold text-white">{a.name}</p>
+                                                        <p className="text-xs text-neutral-500">{a.city}, {a.state}</p>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         )}
-                                        {filteredAcademies.map(a => (
-                                            <button
-                                                key={a.id}
-                                                type="button"
-                                                onClick={() => { setSelectedAcademyId(a.id); setAcademySearch(''); }}
-                                                className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                                            >
-                                                <p className="text-sm font-bold text-white">{a.name}</p>
-                                                <p className="text-xs text-neutral-500">{a.city}, {a.state}</p>
-                                            </button>
-                                        ))}
                                     </div>
                                 )}
-                            </div>
+                            </>
                         )}
                     </div>
 
@@ -574,7 +707,7 @@ function DeleteConfirmModal({ onConfirm, onCancel }: { onConfirm: () => void; on
 
 // ─────────────────────────── Main Page ───────────────────────────────────
 
-export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, vendedores, currentUser }) => {
+export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, vendedores, currentUser, onAcademyCreated }) => {
     const isAdmin = currentUser.role === UserRole.ADMIN;
 
     const [followUps, setFollowUps] = useState<FollowUp[]>([]);
@@ -927,6 +1060,7 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
                     onClose={() => { setShowModal(false); setEditingFollowUp(null); }}
                     isAdmin={isAdmin}
                     vendedores={vendedores}
+                    onAcademyCreated={onAcademyCreated}
                 />
             )}
         </div>

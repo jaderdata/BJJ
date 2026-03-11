@@ -22,7 +22,8 @@ export const DatabaseService = {
             city: a.city,
             state: a.state,
             responsible: a.responsible,
-            phone: a.phone
+            phone: a.phone,
+            email: a.email || null
         }));
         const { data, error } = await supabase.from('academies').insert(payload).select();
         if (error) throw error;
@@ -37,6 +38,7 @@ export const DatabaseService = {
             state: academy.state,
             responsible: academy.responsible,
             phone: academy.phone,
+            email: academy.email || null,
             status: 'ACTIVE'
         }).select().single();
         if (error) throw error;
@@ -55,7 +57,8 @@ export const DatabaseService = {
             city: academy.city,
             state: academy.state,
             responsible: academy.responsible,
-            phone: academy.phone
+            phone: academy.phone,
+            email: academy.email ?? null
         };
 
         if (academy.status) {

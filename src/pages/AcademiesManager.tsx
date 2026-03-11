@@ -285,6 +285,12 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                             <span className="font-bold">{academy.phone}</span>
                                         </div>
                                     )}
+
+                                    {academy.email && (
+                                        <div className="flex items-center space-x-2 text-xs text-white/60">
+                                            <span className="font-bold">{academy.email}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -363,6 +369,17 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                         value={formData.responsible || ''}
                                         className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                         onChange={e => setFormData({ ...formData, responsible: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">E-mail</label>
+                                    <input
+                                        type="email"
+                                        placeholder="contato@academia.com"
+                                        value={formData.email || ''}
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
                                     />
                                 </div>
 
