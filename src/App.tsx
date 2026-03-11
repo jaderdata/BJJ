@@ -13,6 +13,7 @@ import {
   ContactPerson,
   FinanceRecord,
   FinanceStatus,
+  FollowUpStatus,
   Voucher,
   Notification,
 } from './types';
@@ -78,6 +79,7 @@ const AppContent: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [sellers, setSellers] = useState<User[]>([]);
   const [admins, setAdmins] = useState<User[]>([]);
+  const [followUpOverdueCount, setFollowUpOverdueCount] = useState(0);
 
   const [selectedAcademyId, setSelectedAcademyId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -107,7 +109,6 @@ const AppContent: React.FC = () => {
 
     // Só limpamos se não estivermos indo para uma tela de detalhes
     if (!detailTabs.includes(activeTab)) {
-      setSelectedEventId(null);
       setSelectedEventId(null);
       setSelectedAcademyId(null);
       setSelectedVendorId(null);
@@ -183,6 +184,20 @@ const AppContent: React.FC = () => {
     });
   }, [currentUser, queryClient, withLoading]);
 
+  // Carregar overdue follow-ups no login
+  useEffect(() => {
+    if (!currentUser) return;
+    DatabaseService.getFollowUps().then(fus => {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      setFollowUpOverdueCount(fus.filter(f => {
+        if (!f.nextContactAt) return false;
+        if (f.status === FollowUpStatus.NO_INTEREST || f.status === FollowUpStatus.CLOSED) return false;
+        const d = new Date(f.nextContactAt); d.setHours(0, 0, 0, 0);
+        return d < today;
+      }).length);
+    }).catch(() => {});
+  }, [currentUser?.id]);
+
   // Real-time Notifications Subscription
   useEffect(() => {
     if (!currentUser) return;
@@ -247,6 +262,17 @@ const AppContent: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'finance_records' }, (p: any) => {
         console.log('?? [DataSync] finance_records changed:', p.eventType);
         loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'follow_ups' }, () => {
+        DatabaseService.getFollowUps().then(fus => {
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          setFollowUpOverdueCount(fus.filter(f => {
+            if (!f.nextContactAt) return false;
+            if (f.status === FollowUpStatus.NO_INTEREST || f.status === FollowUpStatus.CLOSED) return false;
+            const d = new Date(f.nextContactAt); d.setHours(0, 0, 0, 0);
+            return d < today;
+          }).length);
+        });
       })
       .subscribe((status: string) => {
         console.log('?? [DataSync] Subscription status:', status);
@@ -504,6 +530,7 @@ const AppContent: React.FC = () => {
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
             logout={logout}
+            followUpOverdueCount={followUpOverdueCount}
           />
         )
       }
@@ -787,6 +814,7 @@ const AppContent: React.FC = () => {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             userRole={currentUser.role}
+            followUpOverdueCount={followUpOverdueCount}
           />
         )
       }

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLoading } from '../contexts/LoadingContext';
 import {
-  CalendarDays, X, CheckCircle2, Clock, Plus, Minus, AlertCircle, ChevronRight, ChevronLeft,
+  CalendarDays, X, CheckCircle2, Clock, Plus, Minus, AlertCircle, ChevronRight, ChevronLeft, ChevronDown,
   Ticket, Info, Bell, Search, Edit3, Camera, Trash2, RefreshCw, QrCode, Copy, ExternalLink,
   History, TrendingUp, MessageCircle, Phone, Save, Loader2, Play, Image as ImageIcon,
   Upload, Mic, Send, Lock
@@ -69,6 +69,17 @@ export const SalespersonEvents: React.FC<{
     }).length;
     return acc + validVisitedCount;
   }, 0);
+
+  const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({});
+  const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
+
+  const toggleEventExpansion = (eventId: string) => {
+    setExpandedEvents(prev => ({ ...prev, [eventId]: !prev[eventId] }));
+  };
+
+  const handleSearchChange = (eventId: string, term: string) => {
+    setSearchTerms(prev => ({ ...prev, [eventId]: term }));
+  };
 
   const activeVisit = visits.find(v => v.salespersonId === currentUserId && v.status === VisitStatus.PENDING);
   const isOverdue = activeVisit && activeVisit.startedAt && (Date.now() - new Date(activeVisit.startedAt).getTime() > 3600000);
@@ -211,6 +222,13 @@ export const SalespersonEvents: React.FC<{
               const finishedAcademies = allAcademies.filter(a => completedIds.includes(a.id));
               const progress = Math.round((validVisitedCount / (allAcademies.length || 1)) * 100);
 
+              const isExpanded = !!expandedEvents[e.id];
+              const searchTerm = searchTerms[e.id] || '';
+              
+              const filteredFinishedAcademies = finishedAcademies.filter(a => 
+                a.name.toLowerCase().includes(searchTerm.toLowerCase())
+              );
+
               return (
                 <div
                   key={e.id}
@@ -305,32 +323,63 @@ export const SalespersonEvents: React.FC<{
 
                       {/* Concluídas (Simplified list with better styling) */}
                       {finishedAcademies.length > 0 && (
-                        <div className="m-1 pt-6 pb-2 border-t border-white/5">
-                          <div className="flex items-center justify-between px-3 mb-4">
-                            <h4 className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Visitas Realizadas</h4>
-                            <span className="text-[9px] font-black text-amber-500/40 uppercase bg-amber-500/5 px-2 py-0.5 rounded-full">
-                              {finishedAcademies.length} Academias
-                            </span>
-                          </div>
+                        <div className="m-1 pt-4 pb-2 border-t border-white/5">
+                          <button 
+                            onClick={() => toggleEventExpansion(e.id)}
+                            className="w-full flex items-center justify-between px-3 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-xl transition-colors group/expand"
+                          >
+                            <h4 className="text-[9px] font-black text-white/40 group-hover/expand:text-white/60 uppercase tracking-[0.2em] transition-colors"> Visitas Realizadas </h4>
+                            <div className="flex items-center gap-3">
+                              <span className="text-[9px] font-black text-amber-500/60 uppercase bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                                {finishedAcademies.length} Academias
+                              </span>
+                              <ChevronDown 
+                                size={14} 
+                                className={cn("text-white/40 transition-transform duration-300", isExpanded && "rotate-180")} 
+                              />
+                            </div>
+                          </button>
 
-                          <div className="flex flex-wrap gap-2 px-2">
-                            {finishedAcademies.map(a => {
-                              const visit = visits.find(v => v.eventId === e.id && v.academyId === a.id);
-                              return (
-                                <div
-                                  key={a.id}
-                                  onClick={() => handleAcademyClick(e.id, a.id)}
-                                  className="px-4 py-2 bg-white/[0.03] border border-white/5 rounded-full flex items-center space-x-2 active:scale-95 transition-all group/done hover:bg-white/5"
-                                >
-                                  <div className={cn(
-                                    "w-1.5 h-1.5 rounded-full",
-                                    visit?.temperature === AcademyTemperature.HOT ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] animate-pulse' : 'bg-amber-500/40'
-                                  )}></div>
-                                  <span className="text-[9px] font-black text-white/30 uppercase tracking-tighter truncate max-w-[100px] group-hover/done:text-white/60 transition-colors">{a.name}</span>
+                          {isExpanded && (
+                            <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <div className="px-2">
+                                <div className="relative">
+                                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" size={14} />
+                                  <input
+                                    type="text"
+                                    placeholder="Buscar academia..."
+                                    value={searchTerm}
+                                    onChange={(ev) => handleSearchChange(e.id, ev.target.value)}
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl py-2 pl-9 pr-4 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/50 transition-colors"
+                                  />
                                 </div>
-                              );
-                            })}
-                          </div>
+                              </div>
+                              <div className="flex flex-wrap gap-2 px-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-1 pb-1">
+                                {filteredFinishedAcademies.length > 0 ? (
+                                    filteredFinishedAcademies.map(a => {
+                                      const visit = visits.find(v => v.eventId === e.id && v.academyId === a.id);
+                                      return (
+                                        <div
+                                          key={a.id}
+                                          onClick={() => handleAcademyClick(e.id, a.id)}
+                                          className="px-4 py-2 bg-white/[0.03] border border-white/5 rounded-full flex items-center space-x-2 active:scale-95 transition-all group/done hover:bg-white/10 hover:border-white/10 cursor-pointer"
+                                        >
+                                          <div className={cn(
+                                            "w-1.5 h-1.5 rounded-full",
+                                            visit?.temperature === AcademyTemperature.HOT ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] animate-pulse' : 'bg-amber-500/40'
+                                          )}></div>
+                                          <span className="text-[9px] font-black text-white/40 uppercase tracking-tighter truncate max-w-[120px] group-hover/done:text-white/80 transition-colors">{a.name}</span>
+                                        </div>
+                                      );
+                                    })
+                                ) : (
+                                    <div className="w-full text-center py-4 text-xs text-white/30 italic">
+                                        Nenhuma academia encontrada.
+                                    </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

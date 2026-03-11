@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Academy, User, Visit, FollowUp, FollowUpLog, FollowUpStatus, ContactChannel, UserRole } from '../types';
 import { DatabaseService } from '../lib/supabase';
+import { supabase } from '../lib/supabase-client';
 
 interface FollowUpPageProps {
     academies: Academy[];
@@ -538,6 +539,39 @@ function FollowUpModal({ academies, visits, currentUser, editing, onSave, onClos
     );
 }
 
+// ─────────────────────────── Delete Confirm Modal ────────────────────────
+
+function DeleteConfirmModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+    return createPortal(
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[140] animate-in fade-in duration-150">
+            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-xs shadow-2xl animate-in zoom-in-95 duration-150 overflow-hidden">
+                <div className="p-6 space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400 mx-auto">
+                        <Trash2 size={18} />
+                    </div>
+                    <h3 className="text-sm font-black text-white text-center">Remover Follow-Up?</h3>
+                    <p className="text-xs text-neutral-500 text-center leading-relaxed">Esta ação não pode ser desfeita. O histórico de atividades também será apagado.</p>
+                </div>
+                <div className="grid grid-cols-2 border-t border-white/5">
+                    <button
+                        onClick={onCancel}
+                        className="py-4 text-xs font-black text-neutral-400 hover:text-white hover:bg-white/5 transition-all border-r border-white/5"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="py-4 text-xs font-black text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all active:scale-95"
+                    >
+                        Remover
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+}
+
 // ─────────────────────────── Main Page ───────────────────────────────────
 
 export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, vendedores, currentUser }) => {
@@ -548,6 +582,7 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
     const [showModal, setShowModal] = useState(false);
     const [editingFollowUp, setEditingFollowUp] = useState<FollowUp | null>(null);
     const [logModalFollowUp, setLogModalFollowUp] = useState<FollowUp | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<FollowUpStatus | ''>('');
@@ -557,7 +592,6 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
     const loadFollowUps = useCallback(async () => {
         setLoading(true);
         try {
-            // ADMIN sees all; SALES/CALL_CENTER see only their own
             const data = await DatabaseService.getFollowUps();
             setFollowUps(data);
         } catch (err) {
@@ -565,9 +599,29 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
         } finally {
             setLoading(false);
         }
-    }, [isAdmin, currentUser.id]);
+    }, []);
 
     useEffect(() => { loadFollowUps(); }, [loadFollowUps]);
+
+    // Realtime: sincroniza follow-ups entre todos os membros da equipe
+    useEffect(() => {
+        const channel = supabase
+            .channel('follow-ups-realtime')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'follow_ups' }, async () => {
+                // Re-fetch para obter o registro completo com todos os campos mapeados
+                const data = await DatabaseService.getFollowUps();
+                setFollowUps(data);
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'follow_ups' }, async () => {
+                const data = await DatabaseService.getFollowUps();
+                setFollowUps(data);
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'follow_ups' }, (payload: any) => {
+                setFollowUps(prev => prev.filter(f => f.id !== payload.old?.id));
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, []);
 
     function buildUpdateNote(existing: FollowUp, data: Partial<FollowUp>): string {
         const changes: string[] = [];
@@ -614,10 +668,13 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
         setEditingFollowUp(null);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Remover este follow-up?')) return;
-        await DatabaseService.deleteFollowUp(id);
-        setFollowUps(prev => prev.filter(f => f.id !== id));
+    const handleDelete = (id: string) => setDeleteConfirmId(id);
+
+    const confirmDelete = async () => {
+        if (!deleteConfirmId) return;
+        await DatabaseService.deleteFollowUp(deleteConfirmId);
+        setFollowUps(prev => prev.filter(f => f.id !== deleteConfirmId));
+        setDeleteConfirmId(null);
     };
 
     // ── Filtering ──
@@ -840,6 +897,14 @@ export const FollowUpPage: React.FC<FollowUpPageProps> = ({ academies, visits, v
                         );
                     })}
                 </div>
+            )}
+
+            {/* ── Delete Confirm ── */}
+            {deleteConfirmId && (
+                <DeleteConfirmModal
+                    onConfirm={confirmDelete}
+                    onCancel={() => setDeleteConfirmId(null)}
+                />
             )}
 
             {/* ── Log Modal ── */}

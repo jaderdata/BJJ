@@ -12,6 +12,7 @@ interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   logout: () => void;
+  followUpOverdueCount?: number;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -20,26 +21,27 @@ const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   sidebarOpen,
   setSidebarOpen,
-  logout
+  logout,
+  followUpOverdueCount = 0
 }) => {
 
-  const SidebarItem = ({ id, label }: { id: string, label: string }) => {
-    // Logic for 'events' highlighting when in detail view moved here or kept simple
-    // Original: const isActive = activeTab === id || (id === 'events' && activeTab === 'event_detail_admin');
-    // We will pass the exact activeTab, so we can keep the logic simple or duplicate it.
-    // Let's replicate the logic from App.tsx loosely or expect the parent to manage 'active' state purely on id.
-    // HACK: To maintain the "events" highlighing when inside "event_detail_admin", we check it here.
+  const SidebarItem = ({ id, label, badge }: { id: string, label: string, badge?: number }) => {
     const isActive = activeTab === id || (id === 'events' && activeTab === 'event_detail_admin');
 
     return (
       <button
         onClick={() => { setActiveTab(id); setSidebarOpen(false); }}
-        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${isActive
           ? 'bg-white text-neutral-900 shadow-lg'
           : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
           }`}
       >
         <span className="text-sm font-medium">{label}</span>
+        {badge != null && badge > 0 && (
+          <span className="min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center leading-none">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
       </button>
     );
   };
@@ -62,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <SidebarItem id="events" label="Eventos" />
               <SidebarItem id="admin_finance" label="Financeiro" />
               <SidebarItem id="reports" label="Relatórios" />
-              <SidebarItem id="follow_up" label="Follow-Up" />
+              <SidebarItem id="follow_up" label="Follow-Up" badge={followUpOverdueCount} />
               <SidebarItem id="vendors" label="Vendedores" />
               <SidebarItem id="access_control" label="Gestão de Acessos" />
             </>

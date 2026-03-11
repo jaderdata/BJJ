@@ -7,15 +7,16 @@ interface MobileBottomNavProps {
     activeTab: string;
     setActiveTab: (tab: string) => void;
     userRole: UserRole;
+    followUpOverdueCount?: number;
 }
 
-export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, setActiveTab, userRole }) => {
+export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, setActiveTab, userRole, followUpOverdueCount = 0 }) => {
     const tabs = [
-        { id: 'my_events', label: 'Eventos', icon: CalendarDays, activeIds: ['my_events', 'visit_detail'] },
-        ...(userRole === UserRole.CALL_CENTER ? [{ id: 'academies', label: 'Academias', icon: Building2, activeIds: ['academies'] }] : []),
-        { id: 'follow_up', label: 'Follow-Up', icon: TrendingUp, activeIds: ['follow_up'] },
-        { id: 'sales_finance', label: 'Finanças', icon: Wallet, activeIds: ['sales_finance'] },
-        { id: 'profile', label: 'Perfil', icon: UserIcon, activeIds: ['profile'] },
+        { id: 'my_events', label: 'Eventos', icon: CalendarDays, activeIds: ['my_events', 'visit_detail'], badge: 0 },
+        ...(userRole === UserRole.CALL_CENTER ? [{ id: 'academies', label: 'Academias', icon: Building2, activeIds: ['academies'], badge: 0 }] : []),
+        { id: 'follow_up', label: 'Follow-Up', icon: TrendingUp, activeIds: ['follow_up'], badge: followUpOverdueCount },
+        { id: 'sales_finance', label: 'Finanças', icon: Wallet, activeIds: ['sales_finance'], badge: 0 },
+        { id: 'profile', label: 'Perfil', icon: UserIcon, activeIds: ['profile'], badge: 0 },
     ];
 
     const activeIndex = tabs.findIndex(tab => tab.activeIds.includes(activeTab));
@@ -37,7 +38,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
                     />
                 )}
 
-                {tabs.map((tab, idx) => {
+                {tabs.map((tab) => {
                     const isActive = tab.activeIds.includes(activeTab);
                     const Icon = tab.icon;
                     return (
@@ -49,14 +50,21 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
                                 isActive ? 'text-amber-400' : 'text-neutral-500 hover:text-neutral-300'
                             )}
                         >
-                            <Icon
-                                size={22}
-                                strokeWidth={isActive ? 2.5 : 1.5}
-                                className={cn(
-                                    "transition-all duration-500",
-                                    isActive ? "scale-110 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]" : "scale-100"
+                            <div className="relative">
+                                <Icon
+                                    size={22}
+                                    strokeWidth={isActive ? 2.5 : 1.5}
+                                    className={cn(
+                                        "transition-all duration-500",
+                                        isActive ? "scale-110 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]" : "scale-100"
+                                    )}
+                                />
+                                {tab.badge > 0 && (
+                                    <span className="absolute -top-1.5 -right-2.5 min-w-[14px] h-[14px] px-0.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none">
+                                        {tab.badge > 99 ? '99+' : tab.badge}
+                                    </span>
                                 )}
-                            />
+                            </div>
                             <span className={cn(
                                 "text-[9px] font-black uppercase tracking-[0.15em] mt-1.5 transition-all duration-500",
                                 isActive ? "opacity-100 translate-y-0" : "opacity-40"

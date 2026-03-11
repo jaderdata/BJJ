@@ -53,13 +53,15 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
     const [activeTab, setActiveTab] = useState<ReportTab>('overview');
     const [followUps, setFollowUps] = useState<FollowUp[]>([]);
     const [followUpsLoading, setFollowUpsLoading] = useState(false);
+    const [followUpsError, setFollowUpsError] = useState(false);
 
     useEffect(() => {
         if (activeTab === 'followup' && followUps.length === 0 && !followUpsLoading) {
             setFollowUpsLoading(true);
+            setFollowUpsError(false);
             DatabaseService.getFollowUps()
                 .then(data => setFollowUps(data))
-                .catch(console.error)
+                .catch(() => setFollowUpsError(true))
                 .finally(() => setFollowUpsLoading(false));
         }
     }, [activeTab]);
@@ -581,7 +583,22 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
                         </div>
                     )}
 
-                    {!followUpsLoading && (
+                    {/* Error state */}
+                    {!followUpsLoading && followUpsError && (
+                        <div className="flex flex-col items-center justify-center py-16 gap-3">
+                            <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-400 text-xl">✕</div>
+                            <p className="text-sm font-bold text-white/60">Falha ao carregar dados de Follow-Up</p>
+                            <p className="text-xs text-white/30">Verifique sua conexão ou as permissões da tabela.</p>
+                            <button
+                                onClick={() => { setFollowUpsError(false); setFollowUpsLoading(true); DatabaseService.getFollowUps().then(d => setFollowUps(d)).catch(() => setFollowUpsError(true)).finally(() => setFollowUpsLoading(false)); }}
+                                className="mt-1 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-white/50 hover:text-white transition-all"
+                            >
+                                Tentar novamente
+                            </button>
+                        </div>
+                    )}
+
+                    {!followUpsLoading && !followUpsError && (
                         <>
                             {/* KPIs */}
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
