@@ -39,7 +39,7 @@ export const SystemAlerts: React.FC<SystemAlertsProps> = ({ notifications, curre
                             setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
                             DatabaseService.markNotificationAsRead(n.id).catch(err => console.error("Error marking read:", err));
                         }}
-                        className="relative z-10 p-2 text-white/20 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                        className="relative z-10 p-2 text-white/20 hover:text-white hover:bg-white/5 rounded-sm transition-all"
                     >
                         <X size={18} />
                     </button>

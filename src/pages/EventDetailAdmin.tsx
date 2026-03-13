@@ -230,7 +230,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                 {!isEditing && (
                     <button
                         onClick={() => { setEditForm({ ...event }); setIsEditing(true); }}
-                        className="flex items-center space-x-2 bg-neutral-700 hover:bg-neutral-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                        className="flex items-center space-x-2 bg-neutral-700 hover:bg-neutral-600 text-white px-4 py-2 rounded-sm text-sm font-bold transition-all"
                     >
                         <Edit3 size={16} strokeWidth={1.5} />
                         <span>Editar Informações</span>
@@ -240,41 +240,41 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-neutral-800 p-8 rounded-3xl border border-neutral-700 shadow-sm">
+                    <div className="bg-neutral-800 p-8 rounded-md border border-neutral-700 shadow-sm">
                         {isEditing ? (
                             <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="md:col-span-2">
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Nome do Evento</label>
-                                    <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-xl text-white outline-none focus:border-white" />
+                                    <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-sm text-white outline-none focus:border-white" />
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Endereço</label>
-                                    <input type="text" value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-xl text-white outline-none focus:border-white" />
+                                    <input type="text" value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-sm text-white outline-none focus:border-white" />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Cidade</label>
-                                    <input type="text" value={editForm.city} onChange={e => setEditForm({ ...editForm, city: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-xl text-white outline-none focus:border-white" />
+                                    <input type="text" value={editForm.city} onChange={e => setEditForm({ ...editForm, city: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-sm text-white outline-none focus:border-white" />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">UF</label>
-                                    <input type="text" maxLength={2} value={editForm.state} onChange={e => setEditForm({ ...editForm, state: e.target.value.toUpperCase() })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-xl text-white outline-none focus:border-white" />
+                                    <input type="text" maxLength={2} value={editForm.state} onChange={e => setEditForm({ ...editForm, state: e.target.value.toUpperCase() })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-sm text-white outline-none focus:border-white" />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Data Início</label>
-                                    <input type="date" value={editForm.startDate} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-xl text-white outline-none focus:border-white" />
+                                    <input type="date" value={editForm.startDate} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-sm text-white outline-none focus:border-white" />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Data Fim</label>
-                                    <input type="date" value={editForm.endDate} onChange={e => setEditForm({ ...editForm, endDate: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-xl text-white outline-none focus:border-white" />
+                                    <input type="date" value={editForm.endDate} onChange={e => setEditForm({ ...editForm, endDate: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-sm text-white outline-none focus:border-white" />
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Status</label>
-                                    <select value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value as EventStatus })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-xl text-white outline-none focus:border-white">
+                                    <select value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value as EventStatus })} className="w-full bg-neutral-900 border border-neutral-700 p-3 rounded-sm text-white outline-none focus:border-white">
                                         {Object.values(EventStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>
 
-                                <div className="md:col-span-2 flex items-center bg-neutral-900 border border-neutral-700 p-4 rounded-xl mt-2">
+                                <div className="md:col-span-2 flex items-center bg-neutral-900 border border-neutral-700 p-4 rounded-sm mt-2">
                                     <input
                                         type="checkbox"
                                         id="isTest"
@@ -299,14 +299,14 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     </label>
 
                                     {photoPreview ? (
-                                        <div className="relative w-full h-64 bg-neutral-900 border border-neutral-700 rounded-xl overflow-hidden group">
+                                        <div className="relative w-full h-64 bg-neutral-900 border border-neutral-700 rounded-sm overflow-hidden group">
                                             <img
                                                 src={photoPreview}
                                                 alt="Preview"
                                                 className="w-full h-full object-cover"
                                             />
                                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                                <label className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold flex items-center space-x-2 transition-all cursor-pointer">
+                                                <label className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-sm font-bold flex items-center space-x-2 transition-all cursor-pointer">
                                                     <Upload size={16} />
                                                     <span>Alterar Foto</span>
                                                     <input
@@ -319,7 +319,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                                 <button
                                                     type="button"
                                                     onClick={handleRemovePhoto}
-                                                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold flex items-center space-x-2 transition-all"
+                                                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-sm font-bold flex items-center space-x-2 transition-all"
                                                 >
                                                     <Trash2 size={16} />
                                                     <span>Remover</span>
@@ -327,9 +327,9 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                             </div>
                                         </div>
                                     ) : (
-                                        <label className="w-full flex flex-col items-center justify-center px-4 py-12 bg-neutral-900 border-2 border-dashed border-neutral-700 rounded-xl cursor-pointer hover:bg-neutral-800 hover:border-neutral-600 transition-all group">
+                                        <label className="w-full flex flex-col items-center justify-center px-4 py-12 bg-neutral-900 border-2 border-dashed border-neutral-700 rounded-sm cursor-pointer hover:bg-neutral-800 hover:border-neutral-600 transition-all group">
                                             <div className="flex flex-col items-center space-y-2">
-                                                <div className="p-3 bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                                                <div className="p-3 bg-blue-900/30 rounded-sm group-hover:scale-110 transition-transform">
                                                     <ImageIcon size={32} className="text-blue-400" strokeWidth={2} />
                                                 </div>
                                                 <div className="flex items-center space-x-2">
@@ -352,7 +352,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     <button
                                         type="submit"
                                         disabled={isUploading}
-                                        className="flex-1 bg-white hover:bg-neutral-200 text-neutral-900 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                                        className="flex-1 bg-white hover:bg-neutral-200 text-neutral-900 py-3 rounded-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                                     >
                                         {isUploading ? (
                                             <>
@@ -363,7 +363,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                             <span>Salvar Alterações</span>
                                         )}
                                     </button>
-                                    <button type="button" onClick={() => { setIsEditing(false); setSelectedPhoto(null); setPhotoPreview(event.photoUrl || null); }} className="flex-1 bg-neutral-700 hover:bg-neutral-600 text-white py-3 rounded-xl font-bold transition-all">Cancelar</button>
+                                    <button type="button" onClick={() => { setIsEditing(false); setSelectedPhoto(null); setPhotoPreview(event.photoUrl || null); }} className="flex-1 bg-neutral-700 hover:bg-neutral-600 text-white py-3 rounded-sm font-bold transition-all">Cancelar</button>
                                 </div>
                             </form>
                         ) : (
@@ -388,7 +388,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                         {event.city} - {event.state}
                                     </p>
                                 </div>
-                                <div className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 text-center">
+                                <div className="bg-neutral-900 p-4 rounded-md border border-neutral-800 text-center">
                                     <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">Academias</p>
                                     <p className="text-2xl font-black text-white tabular-nums">{event.academiesIds.length}</p>
                                 </div>
@@ -400,7 +400,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Academias Vinculadas</h4>
                                 <button
                                     onClick={() => { setSelectedIds([]); setShowAddModal(true); }}
-                                    className="bg-white hover:bg-neutral-200 text-neutral-900 text-[10px] font-bold uppercase px-3 py-1.5 rounded-lg flex items-center transition-all shadow-lg active:scale-95"
+                                    className="bg-white hover:bg-neutral-200 text-neutral-900 text-[10px] font-bold uppercase px-3 py-1.5 rounded-sm flex items-center transition-all shadow-lg active:scale-95"
                                 >
                                     <Plus size={14} strokeWidth={1.5} className="mr-1.5" /> Adicionar Academia
                                 </button>
@@ -411,7 +411,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 flex items-center">
                                         Academias Pendentes ({pendingAcademies.length})
                                     </h4>
-                                    <div className="bg-neutral-900 rounded-2xl border border-neutral-700 overflow-hidden">
+                                    <div className="bg-neutral-900 rounded-md border border-neutral-700 overflow-hidden">
                                         <div className="divide-y divide-neutral-800">
                                             {pendingAcademies.length > 0 ? pendingAcademies.map(a => (
                                                 <div
@@ -426,7 +426,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                                         <span className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest">Pendente</span>
                                                         <button
                                                             onClick={() => handleRemoveAcademy(a.id)}
-                                                            className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
+                                                            className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-sm transition-colors"
                                                             title="Remover Vinculo"
                                                         >
                                                             <Trash2 size={14} strokeWidth={1.5} />
@@ -446,7 +446,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                         <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3 flex items-center">
                                             Academias Concluídas ({finishedAcademies.length})
                                         </h4>
-                                        <div className="bg-neutral-900 rounded-2xl border border-neutral-700 overflow-hidden">
+                                        <div className="bg-neutral-900 rounded-md border border-neutral-700 overflow-hidden">
                                             <div className="divide-y divide-neutral-800">
                                                 {finishedAcademies.map(a => {
                                                     const visit = visits.find(v => v.academyId === a.id && v.eventId === event.id);
@@ -476,7 +476,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                                                 {isLinked && (
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); handleRemoveAcademy(a.id); }}
-                                                                        className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
+                                                                        className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-sm transition-colors"
                                                                         title="Remover Vinculo"
                                                                     >
                                                                         <Trash2 size={14} strokeWidth={1.5} />
@@ -496,7 +496,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                 </div>
 
                 <div className="space-y-6">
-                    <div className="bg-neutral-800 p-6 rounded-3xl border border-neutral-700 shadow-sm space-y-6">
+                    <div className="bg-neutral-800 p-6 rounded-md border border-neutral-700 shadow-sm space-y-6">
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest flex items-center">
@@ -504,13 +504,13 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                 </h4>
                                 <button
                                     onClick={() => setShowAddVendorModal(true)}
-                                    className="bg-white hover:bg-neutral-200 text-neutral-900 text-[10px] font-bold uppercase px-3 py-1.5 rounded-lg flex items-center transition-all shadow-lg active:scale-95"
+                                    className="bg-white hover:bg-neutral-200 text-neutral-900 text-[10px] font-bold uppercase px-3 py-1.5 rounded-sm flex items-center transition-all shadow-lg active:scale-95"
                                 >
                                     <Plus size={14} strokeWidth={1.5} className="mr-1.5" /> Adicionar Vendedor
                                 </button>
                             </div>
 
-                            <div className="bg-neutral-900 rounded-2xl border border-neutral-700 overflow-hidden">
+                            <div className="bg-neutral-900 rounded-md border border-neutral-700 overflow-hidden">
                                 <div className="divide-y divide-neutral-800">
                                     {event.salespersonIds && event.salespersonIds.length > 0 ? (
                                         event.salespersonIds.map(id => {
@@ -523,7 +523,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                                     </div>
                                                     <button
                                                         onClick={() => handleRemoveVendor(id)}
-                                                        className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
+                                                        className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-900/30 rounded-sm transition-colors"
                                                         title="Remover Vendedor"
                                                     >
                                                         <Trash2 size={14} strokeWidth={1.5} />
@@ -537,7 +537,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                 </div>
                             </div>
 
-                            <div className="p-3 bg-neutral-900/30 border border-neutral-800/50 rounded-xl">
+                            <div className="p-3 bg-neutral-900/30 border border-neutral-800/50 rounded-sm">
                                 <div className="flex items-start space-x-2">
                                     <Info size={14} strokeWidth={1.5} className="text-neutral-400 mt-0.5" />
                                     <p className="text-[10px] text-neutral-300 leading-relaxed font-medium">
@@ -552,7 +552,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
 
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
-                    <div className="bg-neutral-800 rounded-3xl w-full max-w-2xl shadow-2xl border border-neutral-700 overflow-hidden flex flex-col h-[85vh]">
+                    <div className="bg-neutral-800 rounded-md w-full max-w-2xl shadow-2xl border border-neutral-700 overflow-hidden flex flex-col h-[85vh]">
                         <div className="p-6 border-b border-neutral-700 flex justify-between items-center bg-neutral-800/50">
                             <div>
                                 <h3 className="text-xl font-bold text-white">Vincular Academias</h3>
@@ -562,7 +562,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                             </div>
                             <button
                                 onClick={() => setShowAddModal(false)}
-                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-xl transition-colors"
+                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-sm transition-colors"
                             >
                                 <X size={18} strokeWidth={1.5} />
                             </button>
@@ -575,7 +575,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                 <input
                                     type="text"
                                     placeholder="Buscar por nome, responsável ou telefone..."
-                                    className="w-full pl-11 pr-4 py-3 bg-neutral-900 border border-neutral-700 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all font-medium text-sm"
+                                    className="w-full pl-11 pr-4 py-3 bg-neutral-900 border border-neutral-700 rounded-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all font-medium text-sm"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     autoFocus
@@ -583,7 +583,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <select
-                                    className="bg-neutral-900 border border-neutral-700 rounded-xl text-white px-3 py-2 outline-none focus:ring-2 focus:ring-white/50 text-xs font-semibold"
+                                    className="bg-neutral-900 border border-neutral-700 rounded-sm text-white px-3 py-2 outline-none focus:ring-2 focus:ring-white/50 text-xs font-semibold"
                                     value={cityFilter}
                                     onChange={(e) => setCityFilter(e.target.value)}
                                 >
@@ -591,7 +591,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     {modalCities.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                                 <select
-                                    className="bg-neutral-900 border border-neutral-700 rounded-xl text-white px-3 py-2 outline-none focus:ring-2 focus:ring-white/50 text-xs font-semibold"
+                                    className="bg-neutral-900 border border-neutral-700 rounded-sm text-white px-3 py-2 outline-none focus:ring-2 focus:ring-white/50 text-xs font-semibold"
                                     value={stateFilter}
                                     onChange={(e) => setStateFilter(e.target.value)}
                                 >
@@ -609,10 +609,10 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                         <button
                                             key={a.id}
                                             onClick={() => toggleSelection(a.id)}
-                                            className={`w-full p-4 flex items-center bg-neutral-800/50 border transition-all rounded-2xl group text-left ${isSelected ? 'border-white bg-neutral-900/20 ring-1 ring-white' : 'border-neutral-700 hover:border-neutral-500'
+                                            className={`w-full p-4 flex items-center bg-neutral-800/50 border transition-all rounded-md group text-left ${isSelected ? 'border-white bg-neutral-900/20 ring-1 ring-white' : 'border-neutral-700 hover:border-neutral-500'
                                                 }`}
                                         >
-                                            <div className={`w-6 h-6 rounded-lg mr-4 flex items-center justify-center transition-all ${isSelected ? 'bg-white text-neutral-900' : 'bg-neutral-900 border border-neutral-600 text-transparent'
+                                            <div className={`w-6 h-6 rounded-sm mr-4 flex items-center justify-center transition-all ${isSelected ? 'bg-white text-neutral-900' : 'bg-neutral-900 border border-neutral-600 text-transparent'
                                                 }`}>
                                                 <CheckCircle2 size={16} strokeWidth={1.5} />
                                             </div>
@@ -651,7 +651,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                 <button
                                     disabled={selectedIds.length === 0}
                                     onClick={handleBulkLink}
-                                    className={`flex items-center space-x-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg ${selectedIds.length > 0
+                                    className={`flex items-center space-x-2 px-6 py-2.5 rounded-sm font-bold transition-all shadow-lg ${selectedIds.length > 0
                                         ? 'bg-white text-neutral-900 hover:bg-neutral-200 active:scale-95'
                                         : 'bg-neutral-700 text-neutral-500 cursor-not-allowed text-opacity-50'
                                         }`}
@@ -667,7 +667,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
 
             {showAddVendorModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
-                    <div className="bg-neutral-800 rounded-3xl w-full max-w-md shadow-2xl border border-neutral-700 overflow-hidden flex flex-col max-h-[85vh]">
+                    <div className="bg-neutral-800 rounded-md w-full max-w-md shadow-2xl border border-neutral-700 overflow-hidden flex flex-col max-h-[85vh]">
                         <div className="p-6 border-b border-neutral-700 flex justify-between items-center bg-neutral-800/50">
                             <div>
                                 <h3 className="text-xl font-bold text-white">Adicionar Vendedor</h3>
@@ -677,7 +677,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                             </div>
                             <button
                                 onClick={() => setShowAddVendorModal(false)}
-                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-xl transition-colors"
+                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-sm transition-colors"
                             >
                                 <X size={18} strokeWidth={1.5} />
                             </button>
@@ -689,13 +689,13 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     <button
                                         key={v.id}
                                         onClick={() => handleAddVendor(v.id)}
-                                        className="w-full p-4 flex justify-between items-center bg-neutral-800/50 border border-neutral-700 hover:border-blue-500 transition-all rounded-2xl group text-left"
+                                        className="w-full p-4 flex justify-between items-center bg-neutral-800/50 border border-neutral-700 hover:border-blue-500 transition-all rounded-md group text-left"
                                     >
                                         <div>
                                             <p className="font-bold text-white">{v.name}</p>
                                             <p className="text-[10px] text-neutral-400 mt-1">{v.city ? `${v.city} - ` : ''}{v.email}</p>
                                         </div>
-                                        <div className="bg-neutral-900 p-2 rounded-xl text-neutral-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                        <div className="bg-neutral-900 p-2 rounded-sm text-neutral-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                                             <Plus size={16} strokeWidth={2} />
                                         </div>
                                     </button>
@@ -710,7 +710,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
 
             {selectedVisit && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[120]">
-                    <div className="bg-neutral-800 rounded-3xl w-full max-w-lg shadow-2xl border border-neutral-700 overflow-hidden flex flex-col">
+                    <div className="bg-neutral-800 rounded-md w-full max-w-lg shadow-2xl border border-neutral-700 overflow-hidden flex flex-col">
                         <div className="p-6 border-b border-neutral-700 flex justify-between items-center bg-neutral-900/30">
                             <div>
                                 <h3 className="text-xl font-bold text-white">Detalhes da Visita</h3>
@@ -720,7 +720,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                             </div>
                             <button
                                 onClick={() => setSelectedVisit(null)}
-                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-xl transition-colors"
+                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-sm transition-colors"
                             >
                                 <X size={18} strokeWidth={1.5} />
                             </button>
@@ -728,13 +728,13 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
 
                         <div className="p-6 space-y-6">
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-700/50">
+                                <div className="bg-neutral-900/50 p-4 rounded-md border border-neutral-700/50">
                                     <p className="text-[10px] font-bold text-neutral-500 uppercase mb-1">Status</p>
                                     <span className="text-sm font-bold text-amber-400 flex items-center">
                                         {selectedVisit.status}
                                     </span>
                                 </div>
-                                <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-700/50">
+                                <div className="bg-neutral-900/50 p-4 rounded-md border border-neutral-700/50">
                                     <p className="text-[10px] font-bold text-neutral-500 uppercase mb-1">Temperatura</p>
                                     <span className={`text-sm font-bold flex items-center ${selectedVisit.temperature === AcademyTemperature.HOT ? 'text-red-400' : 'text-neutral-400'}`}>
                                         {selectedVisit.temperature}
@@ -742,7 +742,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                 </div>
                             </div>
 
-                            <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-700/50">
+                            <div className="bg-neutral-900/50 p-4 rounded-md border border-neutral-700/50">
                                 <p className="text-[10px] font-bold text-neutral-500 uppercase mb-1">Conversa com</p>
                                 <span className="text-sm font-bold text-white">
                                     {selectedVisit.contactPerson || 'Não informado'}
@@ -753,11 +753,11 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                             <div className="space-y-3">
                                 <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Materiais Deixados</p>
                                 <div className="flex gap-3">
-                                    <div className={`flex-1 p-3 rounded-xl border flex items-center space-x-2 ${selectedVisit.leftBanner ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-neutral-900/30 border-neutral-800 text-neutral-600'}`}>
+                                    <div className={`flex-1 p-3 rounded-sm border flex items-center space-x-2 ${selectedVisit.leftBanner ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-neutral-900/30 border-neutral-800 text-neutral-600'}`}>
                                         <span>??</span>
                                         <span className="text-xs font-bold uppercase tracking-widest">Banner</span>
                                     </div>
-                                    <div className={`flex-1 p-3 rounded-xl border flex items-center space-x-2 ${selectedVisit.leftFlyers ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : 'bg-neutral-900/30 border-neutral-800 text-neutral-600'}`}>
+                                    <div className={`flex-1 p-3 rounded-sm border flex items-center space-x-2 ${selectedVisit.leftFlyers ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : 'bg-neutral-900/30 border-neutral-800 text-neutral-600'}`}>
                                         <span>??</span>
                                         <span className="text-xs font-bold uppercase tracking-widest">Flyers</span>
                                     </div>
@@ -767,7 +767,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                             {/* Resumo da Visita */}
                             <div className="space-y-1">
                                 <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Resumo da Visita</p>
-                                <div className="bg-neutral-900/50 p-4 rounded-2xl border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed italic">
+                                <div className="bg-neutral-900/50 p-4 rounded-md border border-neutral-700/50 text-sm text-neutral-300 leading-relaxed italic">
                                     {selectedVisit.summary || selectedVisit.notes || 'Nenhum resumo registrado.'}
                                 </div>
                             </div>
@@ -778,7 +778,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1 text-sky-400">Fotos do Local</p>
                                     <div className="flex flex-wrap gap-3">
                                         {selectedVisit.photos.map((photo, idx) => (
-                                            <div key={idx} className="w-20 h-20 rounded-xl overflow-hidden border border-white/5 shadow-lg group relative">
+                                            <div key={idx} className="w-20 h-20 rounded-sm overflow-hidden border border-white/5 shadow-lg group relative">
                                                 <img src={photo} alt="" className="w-full h-full object-cover" />
                                                 <a href={photo} target="_blank" rel="noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                     <ExternalLink size={14} className="text-white" />
@@ -794,7 +794,7 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     <p className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Vouchers Gerados ({selectedVisit.vouchersGenerated.length})</p>
                                     <div className="flex flex-wrap gap-2">
                                         {selectedVisit.vouchersGenerated.map(code => (
-                                            <span key={code} className="bg-neutral-900/30 text-neutral-400 px-3 py-1.5 rounded-lg border border-neutral-800/50 font-mono font-bold text-xs uppercase shadow-sm">
+                                            <span key={code} className="bg-neutral-900/30 text-neutral-400 px-3 py-1.5 rounded-sm border border-neutral-800/50 font-mono font-bold text-xs uppercase shadow-sm">
                                                 {code}
                                             </span>
                                         ))}
@@ -811,14 +811,14 @@ export const EventDetailAdmin: React.FC<EventDetailAdminProps> = ({ event, acade
                                     {selectedVisit.status !== VisitStatus.VISITED && (
                                         <button
                                             onClick={() => handleFinishVisitFromAdmin(selectedVisit)}
-                                            className="bg-amber-600 hover:bg-amber-500 text-white px-6 py-2 rounded-xl font-bold transition-colors shadow-lg"
+                                            className="bg-amber-600 hover:bg-amber-500 text-white px-6 py-2 rounded-sm font-bold transition-colors shadow-lg"
                                         >
                                             Finalizar Visita
                                         </button>
                                     )}
                                     <button
                                         onClick={() => setSelectedVisit(null)}
-                                        className="bg-neutral-700 hover:bg-neutral-600 text-white px-6 py-2 rounded-xl font-bold transition-colors"
+                                        className="bg-neutral-700 hover:bg-neutral-600 text-white px-6 py-2 rounded-sm font-bold transition-colors"
                                     >
                                         Fechar
                                     </button>

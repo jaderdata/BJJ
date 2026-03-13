@@ -163,6 +163,7 @@ export interface FollowUp {
   id: string;
   academyId: string;
   visitId?: string;
+  eventIds?: string[];
   createdBy: string;
   status: FollowUpStatus;
   notes?: string;
@@ -185,4 +186,27 @@ export interface FollowUpLog {
   toStatus?: FollowUpStatus;
   note?: string;
   createdAt: string;
+}
+
+// ─────────────────────────────── MEETINGS ────────────────────────────────────
+
+export type MeetingDuration = 15 | 30 | 45 | 60 | 90 | 120;
+
+export interface Meeting {
+  id: string;
+  academyId: string;
+  createdBy: string;
+  title: string;
+  scheduledAt: string;        // ISO-8601 with timezone
+  durationMin: MeetingDuration;
+  attendeeEmail?: string;
+  attendeeName?: string;
+  organizerEmail?: string;
+  organizerName?: string;
+  meetingLink?: string;
+  extraEmails?: string;   // comma-separated additional recipients
+  notes?: string;
+  emailSent: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

@@ -57,17 +57,17 @@ const Auth: React.FC = () => {
                     {/* Subtle gradient overlay */}
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neutral-500 to-neutral-400"></div>
 
-                    <div className="flex bg-neutral-900/50 p-1.5 rounded-2xl border border-neutral-700/50">
+                    <div className="flex bg-neutral-900/50 p-1.5 rounded-md border border-neutral-700/50">
                         <button
                             onClick={() => setIsSignUp(false)}
-                            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center space-x-2 ${!isSignUp ? 'bg-neutral-800 text-white shadow-lg border border-neutral-700' : 'text-neutral-400 hover:text-neutral-200'}`}
+                            className={`flex-1 py-3 px-4 rounded-sm font-bold text-sm transition-all flex items-center justify-center space-x-2 ${!isSignUp ? 'bg-neutral-800 text-white shadow-lg border border-neutral-700' : 'text-neutral-400 hover:text-neutral-200'}`}
                         >
                             <LogIn size={18} />
                             <span>Login</span>
                         </button>
                         <button
                             onClick={() => setIsSignUp(true)}
-                            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center space-x-2 ${isSignUp ? 'bg-neutral-800 text-white shadow-lg border border-neutral-700' : 'text-neutral-400 hover:text-neutral-200'}`}
+                            className={`flex-1 py-3 px-4 rounded-sm font-bold text-sm transition-all flex items-center justify-center space-x-2 ${isSignUp ? 'bg-neutral-800 text-white shadow-lg border border-neutral-700' : 'text-neutral-400 hover:text-neutral-200'}`}
                         >
                             <UserPlus size={18} />
                             <span>Sign Up</span>
@@ -76,7 +76,7 @@ const Auth: React.FC = () => {
 
                     <form onSubmit={handleAuth} className="space-y-6">
                         {error && (
-                            <div className="p-4 bg-red-900/30 border border-red-800/50 rounded-2xl text-red-400 text-xs font-bold animate-in fade-in zoom-in-95">
+                            <div className="p-4 bg-red-900/30 border border-red-800/50 rounded-md text-red-400 text-xs font-bold animate-in fade-in zoom-in-95">
                                 {error}
                             </div>
                         )}
@@ -90,7 +90,7 @@ const Auth: React.FC = () => {
                                             required
                                             type="text"
                                             placeholder="Full Name"
-                                            className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
+                                            className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-md text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                         />
@@ -99,7 +99,7 @@ const Auth: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setRole(UserRole.SALES)}
-                                            className={`flex-1 py-3 rounded-xl border font-bold text-xs transition-all flex items-center justify-center space-x-2 ${role === UserRole.SALES ? 'bg-white/20 border-white text-white' : 'bg-neutral-900 border-neutral-700 text-neutral-500 hover:bg-neutral-800'}`}
+                                            className={`flex-1 py-3 rounded-sm border font-bold text-xs transition-all flex items-center justify-center space-x-2 ${role === UserRole.SALES ? 'bg-white/20 border-white text-white' : 'bg-neutral-900 border-neutral-700 text-neutral-500 hover:bg-neutral-800'}`}
                                         >
                                             <Briefcase size={14} />
                                             <span>Sales Role</span>
@@ -107,7 +107,7 @@ const Auth: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setRole(UserRole.ADMIN)}
-                                            className={`flex-1 py-3 rounded-xl border font-bold text-xs transition-all flex items-center justify-center space-x-2 ${role === UserRole.ADMIN ? 'bg-neutral-600/20 border-neutral-500 text-neutral-400' : 'bg-neutral-900 border-neutral-700 text-neutral-500 hover:bg-neutral-800'}`}
+                                            className={`flex-1 py-3 rounded-sm border font-bold text-xs transition-all flex items-center justify-center space-x-2 ${role === UserRole.ADMIN ? 'bg-neutral-600/20 border-neutral-500 text-neutral-400' : 'bg-neutral-900 border-neutral-700 text-neutral-500 hover:bg-neutral-800'}`}
                                         >
                                             <ShieldCheck size={14} />
                                             <span>Admin Role</span>
@@ -122,7 +122,7 @@ const Auth: React.FC = () => {
                                     required
                                     type="email"
                                     placeholder="Email Address"
-                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-md text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
@@ -134,7 +134,7 @@ const Auth: React.FC = () => {
                                     required
                                     type="password"
                                     placeholder="Password"
-                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-md text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white transition-all"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />

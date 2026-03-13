@@ -112,13 +112,13 @@ export const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any,
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <p className="text-neutral-400">Controle de comissões.</p>
-        <button onClick={() => { setSelectedRecord(null); setFormRecord({ status: FinanceStatus.PENDING }); setShowModal(true); }} className="bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 shadow-lg hover:bg-amber-700 transition-colors">
+        <button onClick={() => { setSelectedRecord(null); setFormRecord({ status: FinanceStatus.PENDING }); setShowModal(true); }} className="bg-amber-600 text-white px-4 py-2 rounded-sm font-semibold flex items-center space-x-2 shadow-lg hover:bg-amber-700 transition-colors">
           <Plus size={18} strokeWidth={1.5} />
           <span>Lançar Pagamento</span>
         </button>
       </div>
 
-      <div className="bg-neutral-800 rounded-2xl border border-neutral-700 overflow-hidden shadow-sm">
+      <div className="bg-neutral-800 rounded-md border border-neutral-700 overflow-hidden shadow-sm">
         <table className="w-full text-left">
           <thead className="bg-neutral-900 border-b border-neutral-700">
             <tr>
@@ -149,7 +149,7 @@ export const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any,
                   <div className="flex items-center justify-end space-x-2">
                     <span className="text-xs font-bold text-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity">Editar</span>
                     {f.status === FinanceStatus.PENDING && (
-                      <button onClick={(e) => handleMarkAsPaid(e, f)} className="text-xs bg-white text-neutral-900 px-3 py-1.5 rounded-lg font-bold hover:bg-neutral-200 transition-colors">Marcar Pago</button>
+                      <button onClick={(e) => handleMarkAsPaid(e, f)} className="text-xs bg-white text-neutral-900 px-3 py-1.5 rounded-sm font-bold hover:bg-neutral-200 transition-colors">Marcar Pago</button>
                     )}
                   </div>
                 </td>
@@ -161,23 +161,23 @@ export const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any,
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-          <div className="bg-neutral-800 rounded-3xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 border border-neutral-700">
+          <div className="bg-neutral-800 rounded-md w-full max-w-lg shadow-2xl animate-in zoom-in-95 border border-neutral-700">
             <div className="p-6 border-b border-neutral-700 flex justify-between items-center">
               <h3 className="text-xl font-bold text-white">{selectedRecord ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
               <button onClick={() => setShowModal(false)} className="text-neutral-400 hover:text-white"><X size={18} strokeWidth={1.5} /></button>
             </div>
             <div className="p-6 space-y-4">
-              <select className="w-full border border-neutral-600 p-3 rounded-xl bg-neutral-700 text-white focus:border-white outline-none" value={formRecord.eventId || ''} onChange={e => setFormRecord({ ...formRecord, eventId: e.target.value })}>
+              <select className="w-full border border-neutral-600 p-3 rounded-sm bg-neutral-700 text-white focus:border-white outline-none" value={formRecord.eventId || ''} onChange={e => setFormRecord({ ...formRecord, eventId: e.target.value })}>
                 <option value="">Evento</option>
                 {events.map(e => <option key={e.id} value={e.id} className="bg-neutral-800">{e.name}</option>)}
               </select>
-              <select className="w-full border border-neutral-600 p-3 rounded-xl bg-neutral-700 text-white focus:border-white outline-none" value={formRecord.salespersonId || ''} onChange={e => setFormRecord({ ...formRecord, salespersonId: e.target.value })}>
+              <select className="w-full border border-neutral-600 p-3 rounded-sm bg-neutral-700 text-white focus:border-white outline-none" value={formRecord.salespersonId || ''} onChange={e => setFormRecord({ ...formRecord, salespersonId: e.target.value })}>
                 <option value="">Vendedor</option>
                 {vendedores.map(v => <option key={v.id} value={v.id} className="bg-neutral-800">{v.name}</option>)}
               </select>
-              <input type="number" step="0.01" className="w-full border border-neutral-600 p-3 rounded-xl bg-neutral-700 text-white focus:border-white outline-none placeholder:text-neutral-400" placeholder="Valor" value={formRecord.amount || ''} onChange={e => setFormRecord({ ...formRecord, amount: Number(e.target.value) })} />
+              <input type="number" step="0.01" className="w-full border border-neutral-600 p-3 rounded-sm bg-neutral-700 text-white focus:border-white outline-none placeholder:text-neutral-400" placeholder="Valor" value={formRecord.amount || ''} onChange={e => setFormRecord({ ...formRecord, amount: Number(e.target.value) })} />
               <textarea
-                className="w-full border border-neutral-600 p-3 rounded-xl bg-neutral-700 text-white focus:border-white outline-none placeholder:text-neutral-400 min-h-[100px]"
+                className="w-full border border-neutral-600 p-3 rounded-sm bg-neutral-700 text-white focus:border-white outline-none placeholder:text-neutral-400 min-h-[100px]"
                 placeholder="Observação"
                 value={formRecord.observation || ''}
                 onChange={e => setFormRecord({ ...formRecord, observation: e.target.value })}
@@ -188,7 +188,7 @@ export const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any,
                   <button
                     onClick={handleDelete}
                     disabled={isSubmitting}
-                    className="flex-1 bg-red-900/30 text-red-500 py-4 rounded-2xl font-bold hover:bg-red-900/50 transition-colors border border-red-900/50 flex items-center justify-center disabled:opacity-50"
+                    className="flex-1 bg-red-900/30 text-red-500 py-4 rounded-md font-bold hover:bg-red-900/50 transition-colors border border-red-900/50 flex items-center justify-center disabled:opacity-50"
                   >
                     <Trash2 size={18} strokeWidth={1.5} className="mr-2" /> Excluir
                   </button>
@@ -196,7 +196,7 @@ export const AdminFinance: React.FC<{ finance: FinanceRecord[], setFinance: any,
                 <button
                   onClick={handleLaunchOrEdit}
                   disabled={isSubmitting}
-                  className={`flex-[2] bg-white text-neutral-900 py-4 rounded-2xl font-bold hover:bg-neutral-200 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`flex-[2] bg-white text-neutral-900 py-4 rounded-md font-bold hover:bg-neutral-200 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {isSubmitting ? (
                     <><RefreshCw className="animate-spin mr-2" size={18} strokeWidth={1.5} /> Salvando...</>

@@ -239,7 +239,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
             case UserRole.SALES:
                 return { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Vendedor' };
             case UserRole.CALL_CENTER:
-                return { bg: 'bg-indigo-500/20', text: 'text-indigo-400', label: 'Call-Center' };
+                return { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Call-Center' };
             default:
                 return { bg: 'bg-white/10', text: 'text-white/60', label: role };
         }
@@ -271,7 +271,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                 setInviteEmail('');
                                 setShowInviteModal(true);
                             }}
-                            className="flex-1 md:flex-none bg-white text-neutral-900 px-6 py-3 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:bg-neutral-200 transition-all shadow-lg active:scale-95"
+                            className="flex-1 md:flex-none bg-white text-neutral-900 px-6 py-3 rounded-md font-bold flex items-center justify-center space-x-2 hover:bg-neutral-200 transition-all shadow-lg active:scale-95"
                         >
                             <span>Convidar Usuário</span>
                         </button>
@@ -280,7 +280,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
             </div>
 
             {/* Config Card */}
-            <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg">
+            <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-md flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-neutral-800 rounded-full flex items-center justify-center text-neutral-400">
                         <Settings size={24} />
@@ -295,7 +295,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                     <select
                         value={phoneCountry}
                         onChange={(e) => handleCountryChange(e.target.value as 'BR' | 'US' | 'PT')}
-                        className="bg-neutral-800 border border-neutral-700 text-white px-3 py-3 rounded-xl text-sm outline-none focus:border-amber-500 transition-colors cursor-pointer"
+                        className="bg-neutral-800 border border-neutral-700 text-white px-3 py-3 rounded-sm text-sm outline-none focus:border-amber-500 transition-colors cursor-pointer"
                     >
                         {Object.entries(COUNTRY_CONFIG).map(([key, cfg]) => (
                             <option key={key} value={key}>{cfg.label}</option>
@@ -307,7 +307,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                             value={redemptionPhone}
                             onChange={handlePhoneChange}
                             placeholder={COUNTRY_CONFIG[phoneCountry].mask}
-                            className="w-full bg-neutral-800 border border-neutral-700 text-white px-4 py-3 rounded-xl font-mono text-lg outline-none focus:border-amber-500 transition-colors pl-10"
+                            className="w-full bg-neutral-800 border border-neutral-700 text-white px-4 py-3 rounded-sm font-mono text-lg outline-none focus:border-amber-500 transition-colors pl-10"
                         />
                         <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
                     </div>
@@ -337,23 +337,23 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                             return (
                                 <div
                                     key={user.id}
-                                    className="group bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/50 rounded-3xl p-5 hover:border-white/20 transition-all duration-300"
+                                    className="group bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/50 rounded-md p-5 hover:border-white/20 transition-all duration-300"
                                 >
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className={`w-12 h-12 rounded-2xl ${badge.bg} ${badge.text} flex items-center justify-center font-black text-xl shadow-inner`}>
+                                        <div className={`w-12 h-12 rounded-md ${badge.bg} ${badge.text} flex items-center justify-center font-black text-xl shadow-inner`}>
                                             {user.name.charAt(0).toUpperCase()}
                                         </div>
                                         <div className="flex items-center space-x-1">
                                             <button
                                                 onClick={() => openEditModal(user)}
-                                                className="p-2 text-neutral-500 hover:text-white hover:bg-neutral-700 rounded-xl transition-all"
+                                                className="p-2 text-neutral-500 hover:text-white hover:bg-neutral-700 rounded-sm transition-all"
                                             >
                                                 <Edit3 size={16} />
                                             </button>
                                             {user.id !== currentUser.id && (
                                                 <button
                                                     onClick={() => handleDelete(user.id, user.name)}
-                                                    className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-900/20 rounded-xl transition-all"
+                                                    className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-900/20 rounded-sm transition-all"
                                                 >
                                                     <Trash2 size={16} />
                                                 </button>
@@ -368,11 +368,11 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                         </p>
 
                                         <div className="flex items-center justify-between mt-auto">
-                                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider ${badge.bg} ${badge.text}`}>
+                                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-sm uppercase tracking-wider ${badge.bg} ${badge.text}`}>
                                                 {badge.label}
                                             </span>
                                             {user.id === currentUser.id && (
-                                                <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 px-2 py-1 rounded-lg uppercase tracking-wider">
+                                                <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 px-2 py-1 rounded-sm uppercase tracking-wider">
                                                     Sessão Atual
                                                 </span>
                                             )}
@@ -398,7 +398,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                         <p className="text-white font-bold text-sm truncate max-w-[150px]">{invite.email}</p>
                                         <button
                                             onClick={() => handleRevokeInvite(invite.email)}
-                                            className="opacity-0 group-hover:opacity-100 p-1.5 text-neutral-500 hover:text-red-400 hover:bg-neutral-700 rounded-lg transition-all"
+                                            className="opacity-0 group-hover:opacity-100 p-1.5 text-neutral-500 hover:text-red-400 hover:bg-neutral-700 rounded-sm transition-all"
                                             title="Revogar Convite"
                                         >
                                             <X size={14} />
@@ -417,7 +417,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                             navigator.clipboard.writeText(link);
                                             alert("Link copiado para a área de transferência!");
                                         }}
-                                        className="w-full mt-4 flex items-center justify-center space-x-2 py-2 bg-neutral-900/50 border border-neutral-700/50 rounded-xl text-[10px] font-black text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all"
+                                        className="w-full mt-4 flex items-center justify-center space-x-2 py-2 bg-neutral-900/50 border border-neutral-700/50 rounded-sm text-[10px] font-black text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all"
                                     >
                                         <Copy size={12} />
                                         <span>COPIAR LINK</span>
@@ -445,7 +445,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                             </div>
                             <button
                                 onClick={() => setShowInviteModal(false)}
-                                className="bg-neutral-800 p-2 rounded-2xl text-neutral-500 hover:text-white transition-colors"
+                                className="bg-neutral-800 p-2 rounded-md text-neutral-500 hover:text-white transition-colors"
                             >
                                 <X size={24} strokeWidth={1.5} />
                             </button>
@@ -462,7 +462,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                             required
                                             placeholder="exemplo@email.com"
                                             value={inviteEmail}
-                                            className="w-full pl-12 pr-4 py-4 bg-black/30 border border-neutral-800 rounded-2xl text-white outline-none focus:border-white transition-all text-sm font-bold"
+                                            className="w-full pl-12 pr-4 py-4 bg-black/30 border border-neutral-800 rounded-md text-white outline-none focus:border-white transition-all text-sm font-bold"
                                             onChange={e => setInviteEmail(e.target.value)}
                                         />
                                     </div>
@@ -480,7 +480,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                                 key={role.id}
                                                 type="button"
                                                 onClick={() => setInviteRole(role.id)}
-                                                className={`flex flex-col items-center justify-center space-y-2 p-3 rounded-2xl border-2 transition-all font-bold text-xs ${inviteRole === role.id ? 'bg-white text-neutral-900 border-white' : 'bg-transparent text-neutral-500 border-neutral-800 hover:border-neutral-700'}`}
+                                                className={`flex flex-col items-center justify-center space-y-2 p-3 rounded-md border-2 transition-all font-bold text-xs ${inviteRole === role.id ? 'bg-white text-neutral-900 border-white' : 'bg-transparent text-neutral-500 border-neutral-800 hover:border-neutral-700'}`}
                                             >
                                                 <role.icon size={18} />
                                                 <span>{role.label}</span>
@@ -503,7 +503,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                             </form>
                         ) : (
                             <div className="p-8 space-y-6 text-center animate-in slide-in-from-bottom-4">
-                                <div className="bg-amber-500/10 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
+                                <div className="bg-amber-500/10 w-20 h-20 rounded-md flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
                                     <CheckCircle2 className="text-amber-500" size={40} />
                                 </div>
                                 <div>
@@ -511,7 +511,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                     <p className="text-neutral-400 text-sm">Copie o link abaixo e envie para o convidado.</p>
                                 </div>
 
-                                <div className="bg-black/40 p-4 rounded-2xl border border-neutral-800 break-all text-xs font-mono text-neutral-400 select-all">
+                                <div className="bg-black/40 p-4 rounded-md border border-neutral-800 break-all text-xs font-mono text-neutral-400 select-all">
                                     {generatedLink}
                                 </div>
 
@@ -563,7 +563,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                     required
                                     placeholder="Nome do usuário"
                                     value={formData.name || ''}
-                                    className="w-full px-4 py-4 bg-black/30 border border-neutral-800 rounded-2xl text-white outline-none focus:border-white transition-all text-sm font-bold"
+                                    className="w-full px-4 py-4 bg-black/30 border border-neutral-800 rounded-md text-white outline-none focus:border-white transition-all text-sm font-bold"
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 />
                             </div>
@@ -576,7 +576,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                     disabled={!!editingUser}
                                     placeholder="email@exemplo.com"
                                     value={formData.email || ''}
-                                    className="w-full px-4 py-4 bg-black/30 border border-neutral-800 rounded-2xl text-white outline-none focus:border-white transition-all text-sm font-bold disabled:opacity-50"
+                                    className="w-full px-4 py-4 bg-black/30 border border-neutral-800 rounded-md text-white outline-none focus:border-white transition-all text-sm font-bold disabled:opacity-50"
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                                 />
                             </div>
@@ -585,7 +585,7 @@ export const UsersManager: React.FC<UsersManagerProps> = ({
                                 <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Perfil</label>
                                 <select
                                     value={formData.role || UserRole.SALES}
-                                    className="w-full px-4 py-4 bg-black/30 border border-neutral-800 rounded-2xl text-white outline-none focus:border-white transition-all text-sm font-bold appearance-none bg-no-repeat bg-[right_1rem_center]"
+                                    className="w-full px-4 py-4 bg-black/30 border border-neutral-800 rounded-md text-white outline-none focus:border-white transition-all text-sm font-bold appearance-none bg-no-repeat bg-[right_1rem_center]"
                                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundSize: '1.2em' }}
                                     onChange={e => setFormData({ ...formData, role: e.target.value as UserRole })}
                                 >

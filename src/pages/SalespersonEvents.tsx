@@ -163,7 +163,7 @@ export const SalespersonEvents: React.FC<{
           </div>
 
           <div className="space-y-5 relative z-10">
-            <div className="bg-black/40 rounded-2xl p-4 border border-white/5 backdrop-blur-sm">
+            <div className="bg-black/40 rounded-md p-4 border border-white/5 backdrop-blur-sm">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Progresso de Visitas</span>
                 <span className="text-[10px] font-black text-amber-500/60">{completedVisitsCount} / {totalAcademies}</span>
@@ -172,11 +172,11 @@ export const SalespersonEvents: React.FC<{
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/5 border border-white/5 rounded-2xl p-4 transition-colors hover:bg-white/10">
+              <div className="bg-white/5 border border-white/5 rounded-md p-4 transition-colors hover:bg-white/10">
                 <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Total Alocado</p>
                 <p className="text-2xl font-black text-white mt-1 tracking-tighter italic">{totalAcademies}</p>
               </div>
-              <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 text-right transition-colors hover:bg-amber-500/10">
+              <div className="bg-amber-500/5 border border-amber-500/10 rounded-md p-4 text-right transition-colors hover:bg-amber-500/10">
                 <p className="text-[9px] font-black text-amber-500/30 uppercase tracking-widest text-right">Concluídos</p>
                 <p className="text-2xl font-black text-amber-500 mt-1 tracking-tighter italic">{completedVisitsCount}</p>
               </div>
@@ -263,7 +263,7 @@ export const SalespersonEvents: React.FC<{
                         <div className="px-2 pb-2">
                           <button
                             onClick={() => handleLinkAcademy(e.id)}
-                            className="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 rounded-xl text-indigo-300 font-bold text-xs uppercase tracking-widest flex items-center justify-center space-x-2 transition-all active:scale-95"
+                            className="w-full py-2 bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 rounded-sm text-amber-300 font-bold text-xs uppercase tracking-widest flex items-center justify-center space-x-2 transition-all active:scale-95"
                           >
                             <Plus size={14} />
                             <span>Vincular Academia</span>
@@ -279,7 +279,7 @@ export const SalespersonEvents: React.FC<{
                             key={a.id}
                             onClick={() => handleAcademyClick(e.id, a.id)}
                             className={cn(
-                              "relative group m-1 p-4 flex justify-between items-center rounded-2xl cursor-pointer transition-all duration-500 active:scale-[0.98]",
+                              "relative group m-1 p-4 flex justify-between items-center rounded-md cursor-pointer transition-all duration-500 active:scale-[0.98]",
                               isActive
                                 ? "bg-amber-500 text-white shadow-2xl shadow-amber-500/20"
                                 : "bg-white/5 hover:bg-white/[0.08] text-white/90 border border-white/5"
@@ -303,7 +303,7 @@ export const SalespersonEvents: React.FC<{
                               </div>
                             </div>
                             <div className={cn(
-                              "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
+                              "w-8 h-8 rounded-sm flex items-center justify-center transition-all duration-300",
                               isActive ? "bg-white/10" : "bg-white/5 group-hover:bg-white/10"
                             )}>
                               <ChevronRight size={18} strokeWidth={3} className={cn("transition-transform group-active:translate-x-1", isActive ? "text-white" : "text-white/20")} />
@@ -326,7 +326,7 @@ export const SalespersonEvents: React.FC<{
                         <div className="m-1 pt-4 pb-2 border-t border-white/5">
                           <button 
                             onClick={() => toggleEventExpansion(e.id)}
-                            className="w-full flex items-center justify-between px-3 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-xl transition-colors group/expand"
+                            className="w-full flex items-center justify-between px-3 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-sm transition-colors group/expand"
                           >
                             <h4 className="text-[9px] font-black text-white/40 group-hover/expand:text-white/60 uppercase tracking-[0.2em] transition-colors"> Visitas Realizadas </h4>
                             <div className="flex items-center gap-3">
@@ -350,7 +350,7 @@ export const SalespersonEvents: React.FC<{
                                     placeholder="Buscar academia..."
                                     value={searchTerm}
                                     onChange={(ev) => handleSearchChange(e.id, ev.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl py-2 pl-9 pr-4 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/50 transition-colors"
+                                    className="w-full bg-black/40 border border-white/10 rounded-sm py-2 pl-9 pr-4 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/50 transition-colors"
                                   />
                                 </div>
                               </div>

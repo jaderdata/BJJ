@@ -146,7 +146,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                     </h2>
 
                     {message && (
-                        <div className={`mb-6 p-4 rounded-2xl text-sm font-bold flex items-start space-x-3 aniamte-in fade-in ${message.type === 'success' ? 'bg-amber-900/30 text-amber-400 border border-amber-800/50' : 'bg-red-900/30 text-red-400 border border-red-800/50'}`}>
+                        <div className={`mb-6 p-4 rounded-md text-sm font-bold flex items-start space-x-3 aniamte-in fade-in ${message.type === 'success' ? 'bg-amber-900/30 text-amber-400 border border-amber-800/50' : 'bg-red-900/30 text-red-400 border border-red-800/50'}`}>
                             {message.type === 'success' ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" /> : <AlertCircle size={18} className="shrink-0 mt-0.5" />}
                             <span>{message.text}</span>
                         </div>
@@ -162,7 +162,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                                     required
                                     type="text"
                                     placeholder="Seu Nome Completo"
-                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white focus:border-white outline-none transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-md text-white focus:border-white outline-none transition-all"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                 />
@@ -177,7 +177,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                                     required
                                     type="email"
                                     placeholder="Seu E-mail"
-                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white focus:border-white outline-none transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-md text-white focus:border-white outline-none transition-all"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
@@ -192,7 +192,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                                     required
                                     type={showPassword ? "text" : "password"}
                                     placeholder={view === 'LOGIN' ? "Sua Senha" : "Nova Senha (min 6 chars, 1 num)"}
-                                    className="w-full pl-12 pr-12 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white focus:border-white outline-none transition-all"
+                                    className="w-full pl-12 pr-12 py-4 bg-neutral-900 border border-neutral-700 rounded-md text-white focus:border-white outline-none transition-all"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
@@ -214,7 +214,7 @@ const CustomAuth: React.FC<{ onLogin: (user: any) => void }> = ({ onLogin }) => 
                                     required
                                     type="password"
                                     placeholder="Confirme a Senha"
-                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-2xl text-white focus:border-white outline-none transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-neutral-900 border border-neutral-700 rounded-md text-white focus:border-white outline-none transition-all"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                 />

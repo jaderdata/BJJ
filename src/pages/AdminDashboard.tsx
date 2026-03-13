@@ -154,15 +154,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     ).length;
 
     const filteredVisits = useMemo(() => {
+        const uniqueKeys = new Set<string>();
+
         return visits.filter(v => {
             const event = events.find(e => e.id === v.eventId);
             if (event?.isTest) return false;
 
-            return v.status === VisitStatus.VISITED &&
-                v.finishedAt &&
-                new Date(v.finishedAt).getFullYear().toString() === selectedYear;
+            if (v.status !== VisitStatus.VISITED || !v.finishedAt || new Date(v.finishedAt).getFullYear().toString() !== selectedYear) {
+                return false;
+            }
+
+            const academy = academies.find(a => a.id === v.academyId);
+            const academyName = (academy?.name || '').trim().toLowerCase();
+
+            // Deduplicate by Event Name + Academy Name to ignore duplicated database records
+            const eventName = (event?.name || '').trim().toLowerCase();
+            const key = `${eventName}-${academyName}`;
+            if (uniqueKeys.has(key)) return false;
+            uniqueKeys.add(key);
+
+            return true;
         });
-    }, [visits, selectedYear, events]);
+    }, [visits, selectedYear, events, academies]);
 
     const filteredVouchers = useMemo(() => {
         return vouchers.filter(v => {
@@ -254,14 +267,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     return (
         <div className="space-y-6 p-4">
-            {/* Header with Gradient */}
-            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
-                {/* Glassmorphism overlay - Optimized for mobile */}
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent"></div>
-
-                {/* Decorative elements - Simplified blurs */}
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-2xl -mr-24 -mt-24"></div>
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -ml-16 -mb-16"></div>
+            {/* Header */}
+            <div className="relative overflow-hidden bg-[#111111] border-l-4 border-l-amber-500 border-y border-r border-y-white/5 border-r-white/5 p-6 rounded-sm shadow-2xl">
+                {/* Decorative athletic element */}
+                <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-amber-500/5 to-transparent pointer-events-none transform -skew-x-12 translate-x-10"></div>
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
@@ -278,7 +287,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <button
                             onClick={handleToggleNotifications}
                             disabled={loadingNotifToggle}
-                            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${notificationsEnabled
+                            className={`flex items-center space-x-2 px-4 py-2 rounded-sm text-sm font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${notificationsEnabled
                                 ? 'bg-amber-600 hover:bg-amber-500 text-white'
                                 : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
                                 }`}
@@ -297,7 +306,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(e.target.value)}
-                            className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white text-sm font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-white/30 transition-all hover:bg-white/20 cursor-pointer"
+                            className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white text-sm font-bold rounded-sm px-4 py-2 outline-none focus:ring-2 focus:ring-white/30 transition-all hover:bg-white/20 cursor-pointer"
                         >
                             {availableYears.map(yr => (
                                 <option key={yr} value={yr} className="bg-[hsl(222,47%,15%)] text-white">{yr}</option>
@@ -346,7 +355,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ].map((kpi, i) => (
                     <div
                         key={i}
-                        className="group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+                        className="group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-md p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
                     >
                         {/* Glow effect */}
                         <div className={`absolute -top-24 -right-24 w-48 h-48 ${kpi.bgGlow} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
@@ -356,10 +365,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                             {/* Value */}
                             <div className="mb-2">
-                                <h3 className="text-3xl font-black text-white mb-1 tracking-tight">
+                                <h3 className="text-4xl font-heading font-bold text-white mb-2 tracking-tight">
                                     {kpi.value}
                                 </h3>
-                                <p className="text-xs font-bold text-white/60 uppercase tracking-wider">
+                                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
                                     {kpi.label}
                                 </p>
                             </div>
@@ -369,7 +378,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <button
                                     onClick={handleSyncSheet}
                                     disabled={syncingSheet}
-                                    className="mt-4 w-full flex items-center justify-center space-x-2 py-3 bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg hover:shadow-amber-500/50"
+                                    className="mt-4 w-full flex items-center justify-center space-x-2 py-3 bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-xs font-black uppercase tracking-wider transition-all shadow-lg hover:shadow-amber-500/50"
                                 >
                                     <RefreshCw size={14} strokeWidth={2.5} className={syncingSheet ? 'animate-spin' : ''} />
                                     <span>{syncingSheet ? 'Sincronizando...' : 'Atualizar Planilha'}</span>
@@ -381,7 +390,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Performance Card - Premium Design */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-md p-6 shadow-2xl">
                 {/* Background decoration */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/10 rounded-full blur-[80px] -ml-24 -mb-24"></div>
@@ -400,7 +409,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         {/* Completed */}
-                        <div className="group relative overflow-hidden bg-gradient-to-br from-amber-500/10 to-amber-500/5 backdrop-blur-sm border border-amber-500/20 rounded-2xl p-4 hover:border-amber-500/40 transition-all duration-300">
+                        <div className="group relative overflow-hidden bg-gradient-to-br from-amber-500/10 to-amber-500/5 backdrop-blur-sm border border-amber-500/20 rounded-md p-4 hover:border-amber-500/40 transition-all duration-300">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
 
                             <div className="relative z-10">
@@ -409,18 +418,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
 
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl font-black text-white">{performanceData.completed}</span>
-                                    <span className="text-xl font-black text-amber-400">{performanceData.percent}%</span>
+                                    <span className="text-5xl font-heading font-black text-white">{performanceData.completed}</span>
+                                    <span className="text-2xl font-heading font-black text-amber-500">{performanceData.percent}%</span>
                                 </div>
 
-                                <p className="text-xs text-white/50 font-medium mt-2">
+                                <p className="text-xs text-neutral-500 font-medium mt-2">
                                     Visitas registradas com sucesso
                                 </p>
                             </div>
                         </div>
 
                         {/* Pending */}
-                        <div className="group relative overflow-hidden bg-gradient-to-br from-amber-500/10 to-amber-500/5 backdrop-blur-sm border border-amber-500/20 rounded-2xl p-4 hover:border-amber-500/40 transition-all duration-300">
+                        <div className="group relative overflow-hidden bg-gradient-to-br from-amber-500/10 to-amber-500/5 backdrop-blur-sm border border-amber-500/20 rounded-md p-4 hover:border-amber-500/40 transition-all duration-300">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
 
                             <div className="relative z-10">
@@ -429,11 +438,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
 
                                 <div className="flex items-baseline space-x-2">
-                                    <span className="text-4xl font-black text-white">{performanceData.pending}</span>
-                                    <span className="text-xl font-black text-amber-400">{100 - performanceData.percent}%</span>
+                                    <span className="text-5xl font-heading font-black text-white">{performanceData.pending}</span>
+                                    <span className="text-2xl font-heading font-black text-amber-500">{100 - performanceData.percent}%</span>
                                 </div>
 
-                                <p className="text-xs text-white/50 font-medium mt-2">
+                                <p className="text-xs text-neutral-500 font-medium mt-2">
                                     Aguardando atendimento oficial
                                 </p>
                             </div>
@@ -504,7 +513,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Bottom Grid - Leaderboard & Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Top Sellers */}
-                <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
+                <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-md shadow-2xl">
                     <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent backdrop-blur-sm"></div>
                     <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
 
@@ -517,10 +526,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {sellerLeaderboard.map((seller, idx) => (
                                 <div
                                     key={idx}
-                                    className="flex items-center justify-between p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl hover:bg-white/10 transition-all duration-300 group"
+                                    className="flex items-center justify-between p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-sm hover:bg-white/10 transition-all duration-300 group"
                                 >
                                     <div className="flex items-center space-x-4">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg ${idx === 0 ? 'bg-gradient-to-br from-yellow-500 to-orange-500 text-white shadow-lg shadow-yellow-500/50' :
+                                        <div className={`w-10 h-10 rounded-sm flex items-center justify-center font-black text-lg ${idx === 0 ? 'bg-gradient-to-br from-yellow-500 to-orange-500 text-white shadow-lg shadow-yellow-500/50' :
                                             idx === 1 ? 'bg-gradient-to-br from-gray-400 to-gray-500 text-white shadow-lg shadow-gray-500/50' :
                                                 idx === 2 ? 'bg-gradient-to-br from-orange-600 to-orange-700 text-white shadow-lg shadow-orange-600/50' :
                                                     'bg-white/10 text-white/60'
@@ -540,7 +549,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 {/* Recent Finance */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
+                <div className="relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-md p-4 shadow-xl">
                     <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
 
                     <div className="relative z-10">
@@ -555,7 +564,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 .map(f => (
                                     <div
                                         key={f.id}
-                                        className="flex items-center justify-between p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl hover:bg-white/10 transition-all duration-300"
+                                        className="flex items-center justify-between p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-sm hover:bg-white/10 transition-all duration-300"
                                     >
                                         <div className="flex items-center space-x-3">
                                             <div>
@@ -569,7 +578,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </div>
                                         <div className="text-right">
                                             <p className="text-base font-black text-white">${f.amount.toFixed(2)}</p>
-                                            <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase ${f.status === FinanceStatus.PENDING ? 'bg-amber-500/20 text-amber-400' :
+                                            <span className={`text-[9px] font-black px-2 py-1 rounded-sm uppercase ${f.status === FinanceStatus.PENDING ? 'bg-amber-500/20 text-amber-400' :
                                                 f.status === FinanceStatus.PAID ? 'bg-white/10 text-white/50' :
                                                     'bg-amber-500/20 text-amber-400'
                                                 }`}>

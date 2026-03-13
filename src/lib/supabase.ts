@@ -1,4 +1,4 @@
-import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus, VendorDetails, FollowUp, FollowUpLog, FollowUpLogAction, ContactChannel, FollowUpStatus } from '../types';
+import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus, VendorDetails, FollowUp, FollowUpLog, FollowUpLogAction, ContactChannel, FollowUpStatus, Meeting, MeetingDuration } from '../types';
 import { supabase } from './supabase-client';
 
 export { supabase };
@@ -844,6 +844,7 @@ export const DatabaseService = {
             id: f.id,
             academyId: f.academy_id,
             visitId: f.visit_id,
+            eventIds: f.event_ids || [],
             createdBy: f.created_by,
             status: f.status as FollowUpStatus,
             notes: f.notes,
@@ -859,6 +860,7 @@ export const DatabaseService = {
         const payload = {
             academy_id: data.academyId,
             visit_id: data.visitId || null,
+            event_ids: data.eventIds && data.eventIds.length > 0 ? data.eventIds : null,
             created_by: data.createdBy,
             status: data.status || FollowUpStatus.WAITING,
             notes: data.notes || null,
@@ -879,6 +881,7 @@ export const DatabaseService = {
             id: saved.id,
             academyId: saved.academy_id,
             visitId: saved.visit_id,
+            eventIds: saved.event_ids || [],
             createdBy: saved.created_by,
             status: saved.status as FollowUpStatus,
             notes: saved.notes,
@@ -900,6 +903,7 @@ export const DatabaseService = {
         if (data.contactPerson !== undefined) payload.contact_person = data.contactPerson;
         if (data.contactChannel !== undefined) payload.contact_channel = data.contactChannel;
         if (data.visitId !== undefined) payload.visit_id = data.visitId;
+        if (data.eventIds !== undefined) payload.event_ids = data.eventIds.length > 0 ? data.eventIds : null;
 
         const { data: saved, error } = await supabase
             .from('follow_ups')
@@ -913,6 +917,7 @@ export const DatabaseService = {
             id: saved.id,
             academyId: saved.academy_id,
             visitId: saved.visit_id,
+            eventIds: saved.event_ids || [],
             createdBy: saved.created_by,
             status: saved.status as FollowUpStatus,
             notes: saved.notes,
@@ -969,6 +974,126 @@ export const DatabaseService = {
             note: l.note ?? undefined,
             createdAt: l.created_at,
         } as FollowUpLog));
+    },
+
+    // MEETINGS
+    async getMeetings(fromDate?: string, toDate?: string): Promise<Meeting[]> {
+        let query = supabase
+            .from('meetings')
+            .select('*')
+            .order('scheduled_at', { ascending: true });
+        if (fromDate) query = query.gte('scheduled_at', fromDate);
+        if (toDate) query = query.lte('scheduled_at', toDate);
+        const { data, error } = await query;
+        if (error) throw error;
+        return (data || []).map((m: any) => ({
+            id: m.id,
+            academyId: m.academy_id,
+            createdBy: m.created_by,
+            title: m.title,
+            scheduledAt: m.scheduled_at,
+            durationMin: m.duration_min as MeetingDuration,
+            attendeeEmail: m.attendee_email ?? undefined,
+            attendeeName: m.attendee_name ?? undefined,
+            organizerEmail: m.organizer_email ?? undefined,
+            organizerName: m.organizer_name ?? undefined,
+            meetingLink: m.meeting_link ?? undefined,
+            extraEmails: m.extra_emails ?? undefined,
+            notes: m.notes ?? undefined,
+            emailSent: m.email_sent,
+            createdAt: m.created_at,
+            updatedAt: m.updated_at,
+        } as Meeting));
+    },
+
+    async createMeeting(data: Partial<Meeting>): Promise<Meeting> {
+        const { data: saved, error } = await supabase
+            .from('meetings')
+            .insert({
+                academy_id: data.academyId,
+                created_by: data.createdBy,
+                title: data.title,
+                scheduled_at: data.scheduledAt,
+                duration_min: data.durationMin,
+                attendee_email: data.attendeeEmail ?? null,
+                attendee_name: data.attendeeName ?? null,
+                organizer_email: data.organizerEmail ?? null,
+                organizer_name: data.organizerName ?? null,
+                meeting_link: data.meetingLink ?? null,
+                extra_emails: data.extraEmails ?? null,
+                notes: data.notes ?? null,
+                email_sent: false,
+            })
+            .select()
+            .single();
+        if (error) throw error;
+        return {
+            id: saved.id,
+            academyId: saved.academy_id,
+            createdBy: saved.created_by,
+            title: saved.title,
+            scheduledAt: saved.scheduled_at,
+            durationMin: saved.duration_min as MeetingDuration,
+            attendeeEmail: saved.attendee_email ?? undefined,
+            attendeeName: saved.attendee_name ?? undefined,
+            organizerEmail: saved.organizer_email ?? undefined,
+            organizerName: saved.organizer_name ?? undefined,
+            meetingLink: saved.meeting_link ?? undefined,
+            extraEmails: saved.extra_emails ?? undefined,
+            notes: saved.notes ?? undefined,
+            emailSent: saved.email_sent,
+            createdAt: saved.created_at,
+            updatedAt: saved.updated_at,
+        } as Meeting;
+    },
+
+    async updateMeeting(id: string, data: Partial<Meeting>): Promise<Meeting> {
+        const payload: any = { updated_at: new Date().toISOString() };
+        if (data.title !== undefined) payload.title = data.title;
+        if (data.scheduledAt !== undefined) payload.scheduled_at = data.scheduledAt;
+        if (data.durationMin !== undefined) payload.duration_min = data.durationMin;
+        if (data.meetingLink !== undefined) payload.meeting_link = data.meetingLink;
+        if (data.extraEmails !== undefined) payload.extra_emails = data.extraEmails;
+        if (data.notes !== undefined) payload.notes = data.notes;
+        if (data.emailSent !== undefined) payload.email_sent = data.emailSent;
+        const { data: saved, error } = await supabase
+            .from('meetings')
+            .update(payload)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return {
+            id: saved.id,
+            academyId: saved.academy_id,
+            createdBy: saved.created_by,
+            title: saved.title,
+            scheduledAt: saved.scheduled_at,
+            durationMin: saved.duration_min as MeetingDuration,
+            attendeeEmail: saved.attendee_email ?? undefined,
+            attendeeName: saved.attendee_name ?? undefined,
+            organizerEmail: saved.organizer_email ?? undefined,
+            organizerName: saved.organizer_name ?? undefined,
+            meetingLink: saved.meeting_link ?? undefined,
+            extraEmails: saved.extra_emails ?? undefined,
+            notes: saved.notes ?? undefined,
+            emailSent: saved.email_sent,
+            createdAt: saved.created_at,
+            updatedAt: saved.updated_at,
+        } as Meeting;
+    },
+
+    async deleteMeeting(id: string): Promise<void> {
+        const { error } = await supabase.from('meetings').delete().eq('id', id);
+        if (error) throw error;
+    },
+
+    async markMeetingEmailSent(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('meetings')
+            .update({ email_sent: true, updated_at: new Date().toISOString() })
+            .eq('id', id);
+        if (error) throw error;
     },
 
 };

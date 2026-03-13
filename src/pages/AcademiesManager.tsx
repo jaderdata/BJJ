@@ -1,9 +1,10 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import {
     Plus,
     Trash2,
     X,
-    Edit3
+    Edit3,
+    Search
 } from 'lucide-react';
 import { Academy, User, Event } from '../types';
 import { DatabaseService } from '../lib/supabase';
@@ -31,6 +32,16 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
     const [selectedCountry, setSelectedCountry] = useState('BR');
 
     const [showInactive, setShowInactive] = useState(false);
+    const [searchName, setSearchName] = useState('');
+    const [filterState, setFilterState] = useState('');
+    const [filterCountry, setFilterCountry] = useState('');
+
+    const inferCountry = (phone: string) => {
+        const clean = phone?.replace(/\D/g, '') || '';
+        if (clean.length === 9) return 'PT';
+        if (clean.length === 10) return 'US';
+        return 'BR';
+    };
 
     const applyPhoneMask = (val: string, country: string) => {
         val = val.replace(/\D/g, '');
@@ -129,7 +140,22 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
         });
     };
 
-    const filteredAcademies = academies.filter(a => showInactive ? a.status === 'INACTIVE' : (a.status === 'ACTIVE' || !a.status));
+    const uniqueStates = useMemo(() => {
+        const states = academies
+            .filter(a => a.status === 'ACTIVE' || !a.status)
+            .map(a => a.state)
+            .filter(Boolean);
+        return [...new Set(states)].sort();
+    }, [academies]);
+
+    const filteredAcademies = academies.filter(a => {
+        const statusMatch = showInactive ? a.status === 'INACTIVE' : (a.status === 'ACTIVE' || !a.status);
+        if (!statusMatch) return false;
+        if (searchName && !a.name.toLowerCase().includes(searchName.toLowerCase())) return false;
+        if (filterState && a.state !== filterState) return false;
+        if (filterCountry && inferCountry(a.phone) !== filterCountry) return false;
+        return true;
+    });
 
     const openEditModal = (academy: Academy) => {
         setEditingAcademy(academy);
@@ -155,7 +181,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
     return (
         <div className="space-y-6 p-4">
             {/* Header */}
-            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
+            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-md shadow-2xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent backdrop-blur-sm"></div>
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
@@ -172,7 +198,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
 
                     {/* Academy Counter Badge */}
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-sm">
                             <div className="flex flex-col items-center">
                                 <span className="text-2xl font-black text-amber-400 leading-none">
                                     {academies.filter(a => a.status === 'ACTIVE' || !a.status).length}
@@ -195,7 +221,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setShowInactive(!showInactive)}
-                                className={`px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all border ${showInactive
+                                className={`px-4 py-2 rounded-sm font-bold text-xs uppercase transition-all border ${showInactive
                                     ? 'bg-amber-500/20 border-amber-500/30 text-amber-500'
                                     : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
                                     }`}
@@ -204,7 +230,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                             </button>
                             <button
                                 onClick={openNewModal}
-                                className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-xl font-bold flex items-center space-x-2 hover:bg-white/20 transition-all"
+                                className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-sm font-bold flex items-center space-x-2 hover:bg-white/20 transition-all"
                             >
                                 <Plus size={18} strokeWidth={2} />
                                 <span>Nova Academia</span>
@@ -213,12 +239,52 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                     </div>
                 </div>
 
+                {/* Search & Filters */}
+                <div className="flex flex-col md:flex-row gap-3 mt-4">
+                    <div className="relative flex-1">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                        <input
+                            type="text"
+                            placeholder="Pesquisar por nome..."
+                            value={searchName}
+                            onChange={e => setSearchName(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 text-sm font-medium transition-all"
+                        />
+                    </div>
+                    <select
+                        value={filterState}
+                        onChange={e => setFilterState(e.target.value)}
+                        className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-sm text-white focus:outline-none focus:ring-2 focus:ring-white/20 text-sm font-medium transition-all min-w-[130px]"
+                    >
+                        <option value="" className="bg-neutral-900">Todos os estados</option>
+                        {uniqueStates.map(s => (
+                            <option key={s} value={s} className="bg-neutral-900">{s}</option>
+                        ))}
+                    </select>
+                    <select
+                        value={filterCountry}
+                        onChange={e => setFilterCountry(e.target.value)}
+                        className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-sm text-white focus:outline-none focus:ring-2 focus:ring-white/20 text-sm font-medium transition-all min-w-[140px]"
+                    >
+                        <option value="" className="bg-neutral-900">Todos os países</option>
+                        <option value="BR" className="bg-neutral-900">Brasil</option>
+                        <option value="US" className="bg-neutral-900">Estados Unidos</option>
+                        <option value="PT" className="bg-neutral-900">Portugal</option>
+                    </select>
+                </div>
+
                 {/* Academies Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredAcademies.length === 0 && (
+                    <div className="mt-6 text-center text-white/30 text-sm font-medium py-8">
+                        Nenhuma academia encontrada com os filtros aplicados.
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                     {filteredAcademies.map(academy => (
                         <div
                             key={academy.id}
-                            className={`group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border ${academy.status === 'INACTIVE' ? 'border-amber-500/30' : 'border-white/10'} rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2`}
+                            className={`group relative overflow-hidden bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border ${academy.status === 'INACTIVE' ? 'border-amber-500/30' : 'border-white/10'} rounded-md p-4 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2`}
                         >
                             {/* Glow effect */}
                             <div className={`absolute -top-24 -right-24 w-48 h-48 ${academy.status === 'INACTIVE' ? 'bg-amber-500/10' : 'bg-amber-500/20'} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
@@ -227,7 +293,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                 {/* Header */}
                                 <div className="flex justify-between items-start mb-3">
                                     {academy.status === 'INACTIVE' ? (
-                                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-lg uppercase tracking-widest">Inativa</span>
+                                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-sm uppercase tracking-widest">Inativa</span>
                                     ) : (
                                         <div />
                                     )}
@@ -236,7 +302,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                             <button
                                                 aria-label="Restaurar Academia"
                                                 onClick={() => handleRestore(academy)}
-                                                className="p-1.5 text-white/40 hover:text-amber-400 hover:bg-amber-500/20 rounded-lg transition-all"
+                                                className="p-1.5 text-white/40 hover:text-amber-400 hover:bg-amber-500/20 rounded-sm transition-all"
                                                 title="Restaurar Academia"
                                             >
                                                 <Plus size={14} strokeWidth={2} />
@@ -245,7 +311,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                         <button
                                             aria-label="Editar Academia"
                                             onClick={() => openEditModal(academy)}
-                                            className="p-1.5 text-white/40 hover:text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all"
+                                            className="p-1.5 text-white/40 hover:text-blue-400 hover:bg-blue-500/20 rounded-sm transition-all"
                                             title="Editar Academia"
                                         >
                                             <Edit3 size={14} strokeWidth={2} />
@@ -253,7 +319,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                         <button
                                             aria-label="Excluir Academia"
                                             onClick={() => handleDelete(academy.id, academy.name)}
-                                            className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                                            className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-sm transition-all"
                                             title="Excluir Academia"
                                         >
                                             <Trash2 size={14} strokeWidth={2} />
@@ -300,7 +366,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                 {/* Modal */}
                 {showModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-                        <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
+                        <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-md w-full max-w-2xl shadow-2xl overflow-hidden">
                             <div className="p-6 border-b border-white/10 flex justify-between items-center">
                                 <h3 className="text-xl font-black text-white">
                                     {editingAcademy ? 'Editar Academia' : 'Nova Academia'}
@@ -322,7 +388,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                     type="text"
                                     placeholder="Nome da Academia"
                                     value={formData.name || ''}
-                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 />
 
@@ -332,7 +398,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                         type="text"
                                         placeholder="Endereço completo"
                                         value={formData.address || ''}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                         onChange={e => setFormData({ ...formData, address: e.target.value })}
                                     />
                                 </div>
@@ -344,7 +410,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                             type="text"
                                             placeholder="Ex: Orlando"
                                             value={formData.city || ''}
-                                            className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                            className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                             onChange={e => setFormData({ ...formData, city: e.target.value })}
                                         />
                                     </div>
@@ -355,7 +421,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                             placeholder="Ex: FL"
                                             maxLength={2}
                                             value={formData.state || ''}
-                                            className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                            className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                             onChange={e => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
                                         />
                                     </div>
@@ -367,7 +433,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                         type="text"
                                         placeholder="Nome do responsável"
                                         value={formData.responsible || ''}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                         onChange={e => setFormData({ ...formData, responsible: e.target.value })}
                                     />
                                 </div>
@@ -378,7 +444,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                         type="email"
                                         placeholder="contato@academia.com"
                                         value={formData.email || ''}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                         onChange={e => setFormData({ ...formData, email: e.target.value })}
                                     />
                                 </div>
@@ -386,7 +452,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">País</label>
                                     <select
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                         value={selectedCountry}
                                         onChange={(e) => {
                                             const newCountry = e.target.value;
@@ -408,7 +474,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                         type="text"
                                         placeholder="Número de telefone"
                                         value={formData.phone || ''}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                         onChange={(e) => {
                                             const val = applyPhoneMask(e.target.value, selectedCountry);
                                             setFormData({ ...formData, phone: val });
@@ -418,7 +484,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
 
                                 <button
                                     type="submit"
-                                    className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-amber-500/50"
+                                    className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-sm font-bold transition-all shadow-lg hover:shadow-amber-500/50"
                                 >
                                     {editingAcademy ? 'Salvar Alterações' : 'Criar Academia'}
                                 </button>

@@ -182,7 +182,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
     return (
         <div className="space-y-6 p-4">
             {/* Header */}
-            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
+            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-md shadow-2xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent backdrop-blur-sm"></div>
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -ml-16 -mb-16"></div>
@@ -198,7 +198,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                        <div className="flex items-center space-x-2 bg-black/20 p-1.5 rounded-xl border border-white/10">
+                        <div className="flex items-center space-x-2 bg-black/20 p-1.5 rounded-sm border border-white/10">
                             <select
                                 value={sortBy}
                                 onChange={e => setSortBy(e.target.value as 'date' | 'alpha')}
@@ -229,7 +229,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
 
                         <button
                             onClick={() => setShowModal(true)}
-                            className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-xl font-bold flex items-center justify-center space-x-2 hover:bg-white/20 transition-all"
+                            className="bg-white/10 backdrop-blur-md border-2 border-white/20 text-white px-4 py-2 rounded-sm font-bold flex items-center justify-center space-x-2 hover:bg-white/20 transition-all"
                         >
                             <Plus size={18} strokeWidth={2} />
                             <span>Novo Evento</span>
@@ -278,7 +278,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                             <div
                                 key={e.id}
                                 onClick={() => onSelectEvent(e.id)}
-                                className="group relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer h-64"
+                                className="group relative overflow-hidden rounded-md shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer h-64"
                             >
                                 {/* Background Image */}
                                 {e.photoUrl ? (
@@ -298,7 +298,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
 
                                 {/* Top Badges - Always visible */}
                                 <div className="absolute top-0 left-0 right-0 z-20 p-5 flex justify-between items-start">
-                                    <span className={`text-xs font-black px-3 py-1.5 rounded-lg uppercase backdrop-blur-md ${isExpired ? 'bg-white/10 text-white/60 border border-white/20' :
+                                    <span className={`text-xs font-black px-3 py-1.5 rounded-sm uppercase backdrop-blur-md ${isExpired ? 'bg-white/10 text-white/60 border border-white/20' :
                                         isOngoing ? 'bg-amber-500/30 text-amber-300 border border-amber-400/50' :
                                             'bg-blue-500/30 text-blue-300 border border-blue-400/50'
                                         }`}>
@@ -306,7 +306,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                     </span>
                                     <button
                                         onClick={(ev) => handleDeleteEvent(ev, e.id, e.name)}
-                                        className="p-2 text-white/80 hover:text-red-400 hover:bg-red-500/30 backdrop-blur-md rounded-lg transition-all border border-white/20 hover:border-red-400/50"
+                                        className="p-2 text-white/80 hover:text-red-400 hover:bg-red-500/30 backdrop-blur-md rounded-sm transition-all border border-white/20 hover:border-red-400/50"
                                     >
                                         <Trash2 size={16} strokeWidth={2.5} />
                                     </button>
@@ -371,7 +371,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-                    <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
+                    <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-md w-full max-w-2xl shadow-2xl overflow-hidden">
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
                             <h3 className="text-xl font-black text-white">Novo Evento</h3>
                             <button
@@ -386,14 +386,14 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                             <input
                                 type="text"
                                 placeholder="Nome do Evento"
-                                className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                 onChange={e => setNewEvent({ ...newEvent, name: e.target.value })}
                             />
 
                             <input
                                 type="text"
                                 placeholder="Endereço do Evento"
-                                className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                 onChange={e => setNewEvent({ ...newEvent, address: e.target.value })}
                             />
 
@@ -403,7 +403,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                     <input
                                         type="text"
                                         placeholder="Ex: Orlando"
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                         onChange={e => setNewEvent({ ...newEvent, city: e.target.value })}
                                     />
                                 </div>
@@ -413,7 +413,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                         type="text"
                                         placeholder="Ex: FL"
                                         maxLength={2}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                         onChange={e => setNewEvent({ ...newEvent, state: e.target.value.toUpperCase() })}
                                     />
                                 </div>
@@ -424,7 +424,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                     <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Data Início</label>
                                     <input
                                         type="date"
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                         value={newEvent.startDate}
                                         onChange={e => setNewEvent({ ...newEvent, startDate: e.target.value })}
                                     />
@@ -433,7 +433,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                     <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Data Fim</label>
                                     <input
                                         type="date"
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
                                         value={newEvent.endDate}
                                         onChange={e => setNewEvent({ ...newEvent, endDate: e.target.value })}
                                     />
@@ -448,13 +448,13 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                     <button
                                         type="button"
                                         onClick={() => setShowAddVendorModal(true)}
-                                        className="bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase px-3 py-1.5 rounded-lg flex items-center transition-all border border-white/10"
+                                        className="bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase px-3 py-1.5 rounded-sm flex items-center transition-all border border-white/10"
                                     >
                                         <Plus size={14} strokeWidth={1.5} className="mr-1.5" /> Adicionar Vendedor
                                     </button>
                                 </div>
 
-                                <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden">
+                                <div className="bg-white/5 backdrop-blur-md rounded-sm border border-white/10 overflow-hidden">
                                     <div className="divide-y divide-white/5">
                                         {newEvent.salespersonIds && newEvent.salespersonIds.length > 0 ? (
                                             newEvent.salespersonIds.map(id => {
@@ -468,7 +468,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                                         <button
                                                             type="button"
                                                             onClick={() => handleRemoveVendor(id)}
-                                                            className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+                                                            className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-sm transition-colors"
                                                             title="Remover Vendedor"
                                                         >
                                                             <Trash2 size={14} strokeWidth={1.5} />
@@ -490,9 +490,9 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                 </label>
 
                                 {!photoPreview ? (
-                                    <label className="w-full flex flex-col items-center justify-center px-4 py-8 bg-white/5 backdrop-blur-md border-2 border-dashed border-white/20 rounded-xl cursor-pointer hover:bg-white/10 hover:border-white/30 transition-all group">
+                                    <label className="w-full flex flex-col items-center justify-center px-4 py-8 bg-white/5 backdrop-blur-md border-2 border-dashed border-white/20 rounded-sm cursor-pointer hover:bg-white/10 hover:border-white/30 transition-all group">
                                         <div className="flex flex-col items-center space-y-2">
-                                            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-amber-500/20 rounded-xl group-hover:scale-110 transition-transform">
+                                            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-amber-500/20 rounded-sm group-hover:scale-110 transition-transform">
                                                 <ImageIcon size={32} className="text-blue-400" strokeWidth={2} />
                                             </div>
                                             <div className="flex items-center space-x-2">
@@ -509,7 +509,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                         />
                                     </label>
                                 ) : (
-                                    <div className="relative w-full h-48 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden group">
+                                    <div className="relative w-full h-48 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden group">
                                         <img
                                             src={photoPreview}
                                             alt="Preview"
@@ -519,7 +519,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                             <button
                                                 type="button"
                                                 onClick={handleRemovePhoto}
-                                                className="px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white rounded-lg font-bold flex items-center space-x-2 transition-all"
+                                                className="px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white rounded-sm font-bold flex items-center space-x-2 transition-all"
                                             >
                                                 <Trash2 size={16} />
                                                 <span>Remover Foto</span>
@@ -532,7 +532,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                             <button
                                 type="submit"
                                 disabled={isUploading}
-                                className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                                className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-sm font-bold transition-all shadow-lg hover:shadow-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                             >
                                 {isUploading ? (
                                     <>
@@ -550,7 +550,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
 
             {showAddVendorModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
-                    <div className="bg-neutral-800 rounded-3xl w-full max-w-md shadow-2xl border border-neutral-700 overflow-hidden flex flex-col max-h-[85vh]">
+                    <div className="bg-neutral-800 rounded-md w-full max-w-md shadow-2xl border border-neutral-700 overflow-hidden flex flex-col max-h-[85vh]">
                         <div className="p-6 border-b border-neutral-700 flex justify-between items-center bg-neutral-800/50">
                             <div>
                                 <h3 className="text-xl font-bold text-white">Selecionar Vendedor</h3>
@@ -560,7 +560,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                             </div>
                             <button
                                 onClick={() => setShowAddVendorModal(false)}
-                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-xl transition-colors"
+                                className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-sm transition-colors"
                             >
                                 <X size={18} strokeWidth={1.5} />
                             </button>
@@ -573,13 +573,13 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                         key={v.id}
                                         type="button"
                                         onClick={() => handleAddVendor(v.id)}
-                                        className="w-full p-4 flex justify-between items-center bg-neutral-800/50 border border-neutral-700 hover:border-amber-500 transition-all rounded-2xl group text-left"
+                                        className="w-full p-4 flex justify-between items-center bg-neutral-800/50 border border-neutral-700 hover:border-amber-500 transition-all rounded-md group text-left"
                                     >
                                         <div>
                                             <p className="font-bold text-white">{v.name}</p>
                                             <p className="text-[10px] text-neutral-400 mt-1">{v.city ? `${v.city} - ` : ''}{v.email}</p>
                                         </div>
-                                        <div className="bg-neutral-900 p-2 rounded-xl text-neutral-500 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                                        <div className="bg-neutral-900 p-2 rounded-sm text-neutral-500 group-hover:bg-amber-600 group-hover:text-white transition-colors">
                                             <Plus size={16} strokeWidth={2} />
                                         </div>
                                     </button>

@@ -56,13 +56,13 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                 <div className="flex items-center space-x-2">
                     <button
                         onClick={() => { hapticFeedback('light'); setShowTimeInfo(true); }}
-                        className="p-2 text-neutral-400 hover:text-sky-400 transition-colors bg-white/5 rounded-xl border border-white/5"
+                        className="p-2 text-neutral-400 hover:text-sky-400 transition-colors bg-white/5 rounded-sm border border-white/5"
                     >
                         <Info size={18} />
                     </button>
                     <button
                         onClick={() => { hapticFeedback('light'); handleCancelEdit(); }}
-                        className="bg-white/5 p-2 rounded-xl text-neutral-400 hover:text-white transition-colors border border-white/5 active:scale-95"
+                        className="bg-white/5 p-2 rounded-sm text-neutral-400 hover:text-white transition-colors border border-white/5 active:scale-95"
                     >
                         <X size={18} />
                     </button>
@@ -83,7 +83,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                                     key={person}
                                     onClick={() => updateField('contactPerson', person)}
                                     className={cn(
-                                        "py-4 rounded-2xl font-bold transition-all border text-sm active:scale-95",
+                                        "py-4 rounded-md font-bold transition-all border text-sm active:scale-95",
                                         editedVisit.contactPerson === person
                                             ? 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-600/20'
                                             : 'bg-neutral-800/50 text-neutral-500 border-white/5 hover:bg-neutral-800'
@@ -113,7 +113,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                                     key={temp.value}
                                     onClick={() => updateField('temperature', temp.value)}
                                     className={cn(
-                                        "py-4 rounded-2xl font-bold transition-all border text-[10px] uppercase tracking-tighter active:scale-95",
+                                        "py-4 rounded-md font-bold transition-all border text-[10px] uppercase tracking-tighter active:scale-95",
                                         editedVisit.temperature === temp.value
                                             ? temp.value === AcademyTemperature.HOT ? 'bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20' :
                                                 temp.value === AcademyTemperature.WARM ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20' :
@@ -137,7 +137,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                             <button
                                 onClick={() => updateField('leftBanner', !editedVisit.leftBanner)}
                                 className={cn(
-                                    "py-4 rounded-2xl font-bold transition-all border text-xs active:scale-95",
+                                    "py-4 rounded-md font-bold transition-all border text-xs active:scale-95",
                                     editedVisit.leftBanner
                                         ? 'bg-amber-600/20 text-amber-400 border-amber-500/30'
                                         : 'bg-neutral-800/50 text-neutral-500 border-white/5'
@@ -148,7 +148,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                             <button
                                 onClick={() => updateField('leftFlyers', !editedVisit.leftFlyers)}
                                 className={cn(
-                                    "py-4 rounded-2xl font-bold transition-all border text-xs active:scale-95",
+                                    "py-4 rounded-md font-bold transition-all border text-xs active:scale-95",
                                     editedVisit.leftFlyers
                                         ? 'bg-sky-600/20 text-sky-400 border-sky-500/30'
                                         : 'bg-neutral-800/50 text-neutral-500 border-white/5'
@@ -171,7 +171,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                                 onChange={(e) => setEditedVisit(p => ({ ...p, summary: e.target.value }))}
                                 maxLength={500}
                                 placeholder="Resumo geral da visita..."
-                                className="w-full bg-neutral-900 border border-white/10 rounded-2xl p-4 text-white text-sm focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all min-h-[120px] resize-none"
+                                className="w-full bg-neutral-900 border border-white/10 rounded-md p-4 text-white text-sm focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all min-h-[120px] resize-none"
                             />
                             <div className="absolute bottom-3 right-4 text-[10px] font-black text-white/20">
                                 {editedVisit.summary?.length || 0}/500
@@ -190,7 +190,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                         </label>
                         <div className="flex gap-3 flex-wrap">
                             {editedVisit.photos?.map((photo, index) => (
-                                <div key={index} className="relative w-20 h-20 bg-neutral-800 rounded-xl overflow-hidden border border-neutral-700 group">
+                                <div key={index} className="relative w-20 h-20 bg-neutral-800 rounded-sm overflow-hidden border border-neutral-700 group">
                                     <img src={photo} alt="Visit detail" className="w-full h-full object-cover" />
                                     <button
                                         onClick={() => { hapticFeedback('error'); setEditedVisit(p => ({ ...p, photos: p.photos?.filter((_, i) => i !== index) })); }}
@@ -201,7 +201,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                                 </div>
                             ))}
                             {(editedVisit.photos?.length || 0) < 3 && (
-                                <label className="w-20 h-20 bg-neutral-800/50 border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-800 hover:border-amber-500/30 transition-all">
+                                <label className="w-20 h-20 bg-neutral-800/50 border-2 border-dashed border-neutral-700 rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-800 hover:border-amber-500/30 transition-all">
                                     <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={isUploading} />
                                     {isUploading ? <Loader2 size={20} className="text-amber-500 animate-spin" /> : <Camera size={20} className="text-neutral-600" />}
                                 </label>
@@ -217,7 +217,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                             onClick={() => { hapticFeedback('success'); handleSaveEditedVisit(); }}
                             disabled={!hasChanges()}
                             className={cn(
-                                "h-14 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 active:scale-95",
+                                "h-14 rounded-md font-bold transition-all flex items-center justify-center gap-2 active:scale-95",
                                 hasChanges() ? 'bg-sky-600 text-white shadow-lg' : 'bg-neutral-800 text-neutral-600 cursor-not-allowed'
                             )}
                         >
@@ -225,7 +225,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                         </button>
                         <button
                             onClick={() => { hapticFeedback('light'); handleCancelEdit(); }}
-                            className="h-14 bg-neutral-800 text-white rounded-2xl font-medium active:scale-95 border border-white/5"
+                            className="h-14 bg-neutral-800 text-white rounded-md font-medium active:scale-95 border border-white/5"
                         >
                             Cancelar
                         </button>
@@ -234,7 +234,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                     <div className="flex items-center gap-4 pt-4 border-t border-white/5">
                         <button
                             onClick={() => { hapticFeedback('medium'); handleGenerateVoucherFromModal(); }}
-                            className="flex-1 h-12 bg-white/5 text-white/40 rounded-2xl font-bold border border-white/5 text-xs uppercase tracking-widest active:scale-95"
+                            className="flex-1 h-12 bg-white/5 text-white/40 rounded-md font-bold border border-white/5 text-xs uppercase tracking-widest active:scale-95"
                         >
                             Gerar Voucher
                         </button>
@@ -242,7 +242,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                         {(!visit.finishedAt || visit.status !== VisitStatus.VISITED) && (
                             <button
                                 onClick={() => { hapticFeedback('success'); handleFinishVisitFromModal(); }}
-                                className="flex-1 h-12 bg-amber-600/10 text-amber-400 rounded-2xl font-bold border border-amber-500/20 text-xs uppercase tracking-widest active:scale-95"
+                                className="flex-1 h-12 bg-amber-600/10 text-amber-400 rounded-md font-bold border border-amber-500/20 text-xs uppercase tracking-widest active:scale-95"
                             >
                                 Finalizar Visita
                             </button>
@@ -253,7 +253,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                 {/* Modal de Informação de Horário */}
                 {showTimeInfo && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[80] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setShowTimeInfo(false)}>
-                        <div className="bg-neutral-900 border border-amber-500/30 rounded-3xl p-6 max-w-xs w-full shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                        <div className="bg-neutral-900 border border-amber-500/30 rounded-md p-6 max-w-xs w-full shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
                             <div className="flex flex-col items-center text-center space-y-4">
                                 <div className="w-12 h-12 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center">
                                     <Info size={24} />
@@ -264,7 +264,7 @@ export const VisitEditModal: React.FC<VisitEditModalProps> = ({
                                         Os horários de <strong>início</strong> e <strong>fim</strong> são registrados automaticamente e não podem ser alterados.
                                     </p>
                                 </div>
-                                <button onClick={() => setShowTimeInfo(false)} className="w-full bg-neutral-800 text-white py-3 rounded-xl font-bold">Entendi</button>
+                                <button onClick={() => setShowTimeInfo(false)} className="w-full bg-neutral-800 text-white py-3 rounded-sm font-bold">Entendi</button>
                             </div>
                         </div>
                     </div>

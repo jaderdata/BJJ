@@ -27,13 +27,6 @@ export const SalesHeader: React.FC<SalesHeaderProps> = ({ user, activeTab, onNav
     return (
         <header className="px-6 py-4 bg-[#0a0a0a] border-b border-white/5 relative z-50 flex items-center justify-between">
             <div className="flex items-center space-x-4">
-                <div className="bg-white/5 p-2 rounded-xl border border-white/10">
-                    <img
-                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/WhatsApp_logo-color-vertical.svg/2048px-WhatsApp_logo-color-vertical.svg.png"
-                        alt="Logo"
-                        className="w-8 h-8 object-contain opacity-80 mix-blend-luminosity"
-                    />
-                </div>
                 <div>
                     <h1 className="text-lg font-black text-white tracking-tight leading-none bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
                         {user.role === UserRole.CALL_CENTER ? 'Call-Center' : 'Vendedor'}

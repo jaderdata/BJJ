@@ -55,7 +55,7 @@ export const VisitStepVouchers: React.FC<VisitStepVouchersProps> = ({
                 {vouchers.map((c, i) => (
                     <div
                         key={i}
-                        className="bg-white/5 border border-white/10 px-3 py-2 rounded-xl font-mono text-[10px] font-black text-amber-400 animate-in zoom-in-95"
+                        className="bg-white/5 border border-white/10 px-3 py-2 rounded-sm font-mono text-[10px] font-black text-amber-400 animate-in zoom-in-95"
                         style={{ animationDelay: `${i * 50}ms` }}
                     >
                         {c}

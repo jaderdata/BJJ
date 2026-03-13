@@ -31,7 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     return (
       <button
         onClick={() => { setActiveTab(id); setSidebarOpen(false); }}
-        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${isActive
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-sm transition-colors ${isActive
           ? 'bg-white text-neutral-900 shadow-lg'
           : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
           }`}
@@ -84,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="text-[10px] text-neutral-500 font-mono mt-1" title={`Version ${version}`}>v{version}</p>
           </div>
           {currentUser.role === UserRole.ADMIN && (
-            <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors">
+            <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-sm text-red-400 hover:bg-red-500/10 transition-colors">
               <span className="text-sm font-medium">Sair</span>
             </button>
           )}

@@ -20,7 +20,7 @@ export const GlobalToast: React.FC<GlobalToastProps> = ({ toast, onClose }) => {
                         "bg-zinc-800 border-white/10 text-white"
             )}>
                 <div className={cn(
-                    "p-2 rounded-xl",
+                    "p-2 rounded-sm",
                     toast.type === 'success' ? "bg-amber-500/20" :
                         toast.type === 'error' ? "bg-red-500/20" :
                             "bg-white/10"

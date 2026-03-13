@@ -797,6 +797,7 @@ const AppContent: React.FC = () => {
               <FollowUpPage
                 academies={academies}
                 visits={visits}
+                events={events}
                 vendedores={sellers}
                 currentUser={currentUser}
                 onAcademyCreated={() => queryClient.invalidateQueries({ queryKey: ['academies'] })}

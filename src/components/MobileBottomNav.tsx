@@ -30,7 +30,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
                 {/* Sliding active indicator pill */}
                 {activeIndex !== -1 && (
                     <div
-                        className="absolute h-14 bg-white/5 border border-white/10 rounded-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] z-0"
+                        className="absolute h-14 bg-white/5 border border-white/10 rounded-md transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] z-0"
                         style={{
                             width: `calc(((100% - 32px) / ${tabs.length}) - 12px)`, // Slot width minus gap
                             left: `calc(16px + 6px + ${activeIndex} * ((100% - 32px) / ${tabs.length}))` // Left padding + half gap + index offset
@@ -46,7 +46,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={cn(
-                                "flex flex-col items-center justify-center flex-1 h-16 rounded-2xl transition-all duration-500 relative z-10 group",
+                                "flex flex-col items-center justify-center flex-1 h-16 rounded-md transition-all duration-500 relative z-10 group",
                                 isActive ? 'text-amber-400' : 'text-neutral-500 hover:text-neutral-300'
                             )}
                         >

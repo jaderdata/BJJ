@@ -172,7 +172,7 @@ export const VisitStepActive: React.FC<VisitStepActiveProps> = ({
                                     hapticFeedback('error');
                                     setVisit(p => ({ ...p, photos: p.photos?.filter((_, i) => i !== index) }));
                                 }}
-                                className="absolute top-2 right-2 bg-red-500 text-white rounded-xl p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-sm p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                             >
                                 <X size={12} strokeWidth={3} />
                             </button>

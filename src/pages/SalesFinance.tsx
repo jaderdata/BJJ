@@ -153,7 +153,7 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
                                         {f.status === FinanceStatus.PAID && (
                                             <button
                                                 onClick={() => onConfirm(f.id)}
-                                                className="w-full bg-amber-600 hover:bg-amber-500 text-white h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-amber-600/20 flex items-center justify-center space-x-3 active:scale-[0.98]"
+                                                className="w-full bg-amber-600 hover:bg-amber-500 text-white h-14 rounded-md font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-amber-600/20 flex items-center justify-center space-x-3 active:scale-[0.98]"
                                             >
                                                 <CheckCircle2 size={18} strokeWidth={3} />
                                                 <span>Confirmar Recebimento</span>
@@ -161,14 +161,14 @@ export const SalesFinance: React.FC<SalesFinanceProps> = ({
                                         )}
 
                                         {f.status === FinanceStatus.RECEIVED && (
-                                            <div className="w-full bg-white/5 border border-white/5 text-white/40 h-12 rounded-2xl font-black text-[9px] uppercase tracking-[0.3em] flex items-center justify-center space-x-2">
+                                            <div className="w-full bg-white/5 border border-white/5 text-white/40 h-12 rounded-md font-black text-[9px] uppercase tracking-[0.3em] flex items-center justify-center space-x-2">
                                                 <CheckCircle2 size={14} className="opacity-40" />
                                                 <span>Transação Finalizada</span>
                                             </div>
                                         )}
 
                                         {f.status === FinanceStatus.PENDING && (
-                                            <div className="w-full bg-amber-500/10 border border-amber-500/10 text-amber-500/60 h-12 rounded-2xl font-black text-[9px] uppercase tracking-[0.3em] flex items-center justify-center space-x-2">
+                                            <div className="w-full bg-amber-500/10 border border-amber-500/10 text-amber-500/60 h-12 rounded-md font-black text-[9px] uppercase tracking-[0.3em] flex items-center justify-center space-x-2">
                                                 <Clock size={14} className="opacity-40 animate-pulse" />
                                                 <span>Aguardando Pagamento</span>
                                             </div>

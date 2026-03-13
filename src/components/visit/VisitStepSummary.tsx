@@ -76,7 +76,7 @@ export const VisitStepSummary: React.FC<VisitStepSummaryProps> = ({
                             {visit.leftBanner && <div className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-full text-[9px] font-black uppercase">Banner 🚩</div>}
                             {visit.leftFlyers && <div className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-3 py-1.5 rounded-full text-[9px] font-black uppercase">Flyers 📄</div>}
                             {visit.photos?.map((p, i) => (
-                                <div key={i} className="w-12 h-12 rounded-xl overflow-hidden border border-white/10">
+                                <div key={i} className="w-12 h-12 rounded-sm overflow-hidden border border-white/10">
                                     <img src={p} alt={`Visit Photo ${i + 1}`} className="w-full h-full object-cover" />
                                 </div>
                             ))}

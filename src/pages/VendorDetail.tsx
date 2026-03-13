@@ -176,7 +176,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onBack}
-                        className="p-2 -ml-2 hover:bg-white/10 rounded-xl transition-colors text-white text-xs font-bold uppercase tracking-widest"
+                        className="p-2 -ml-2 hover:bg-white/10 rounded-sm transition-colors text-white text-xs font-bold uppercase tracking-widest"
                     >
                         Voltar
                     </button>
@@ -193,7 +193,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                     <select
                         value={filterYear}
                         onChange={(e) => setFilterYear(e.target.value)}
-                        className="bg-black/40 border border-white/10 text-white text-xs rounded-xl px-3 py-2 outline-none font-bold"
+                        className="bg-black/40 border border-white/10 text-white text-xs rounded-sm px-3 py-2 outline-none font-bold"
                     >
                         <option value="" className="bg-neutral-900">Todos os Anos</option>
                         {availableYears.map(year => (
@@ -204,7 +204,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                     <select
                         value={filterEventId}
                         onChange={(e) => setFilterEventId(e.target.value)}
-                        className="bg-black/40 border border-white/10 text-white text-xs rounded-xl px-3 py-2 outline-none font-bold max-w-[200px]"
+                        className="bg-black/40 border border-white/10 text-white text-xs rounded-sm px-3 py-2 outline-none font-bold max-w-[200px]"
                     >
                         <option value="" className="bg-neutral-900">Todos os Eventos</option>
                         {availableEvents.map(e => (
@@ -214,7 +214,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
 
                     <button
                         onClick={handleExport}
-                        className="flex items-center space-x-2 bg-white text-neutral-900 hover:bg-neutral-200 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg"
+                        className="flex items-center space-x-2 bg-white text-neutral-900 hover:bg-neutral-200 px-4 py-2 rounded-sm text-xs font-black uppercase tracking-wider transition-all shadow-lg"
                     >
                         <span>Exportar Relatório</span>
                     </button>
@@ -223,27 +223,27 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
 
             {/* Top Metrics Grid */}
             <div className={`grid grid-cols-2 ${isCallCenter ? 'md:grid-cols-3' : 'md:grid-cols-4'} gap-4`}>
-                <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
+                <div className="bg-neutral-900 border border-white/5 p-5 rounded-md relative overflow-hidden group hover:border-white/10 transition-all">
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Visitas Realizadas</p>
                     <p className="text-3xl font-black text-white">{completedVisits.length}</p>
                     <p className="text-xs text-neutral-500 mt-2">de {vendorVisits.length} planejadas</p>
                 </div>
 
-                <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
+                <div className="bg-neutral-900 border border-white/5 p-5 rounded-md relative overflow-hidden group hover:border-white/10 transition-all">
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Vouchers Gerados</p>
                     <p className="text-3xl font-black text-white">{totalVouchersCount}</p>
                     <p className="text-xs text-neutral-500 mt-2">em {uniqueAcademiesWithVouchers} academias distintas</p>
                 </div>
 
                 {!isCallCenter && (
-                    <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
+                    <div className="bg-neutral-900 border border-white/5 p-5 rounded-md relative overflow-hidden group hover:border-white/10 transition-all">
                         <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Tempo Médio/Visita</p>
                         <p className="text-3xl font-black text-white">{formatTime(avgVisitMinutes)}</p>
                         <p className="text-xs text-neutral-500 mt-2">duração média por visita/contato</p>
                     </div>
                 )}
 
-                <div className="bg-neutral-900 border border-white/5 p-5 rounded-2xl relative overflow-hidden group hover:border-white/10 transition-all">
+                <div className="bg-neutral-900 border border-white/5 p-5 rounded-md relative overflow-hidden group hover:border-white/10 transition-all">
                     <p className="text-neutral-400 text-xs font-black uppercase tracking-widest mb-1">Financeiro</p>
                     <p className="text-3xl font-black text-amber-400">$ {totalReceived.toFixed(0)}</p>
                     <p className="text-xs text-neutral-500 mt-2">total recebido/lançado</p>
@@ -256,7 +256,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                     {/* Quality & Contact */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Termometer */}
-                        <div className="bg-neutral-900 border border-white/5 p-6 rounded-2xl">
+                        <div className="bg-neutral-900 border border-white/5 p-6 rounded-md">
                             <div className="flex items-center gap-2 mb-6">
                                 <h3 className="text-sm font-black text-white uppercase tracking-wider">Temperatura das Visitas</h3>
                             </div>
@@ -280,7 +280,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                         </div>
 
                         {/* Contact Person */}
-                        <div className="bg-neutral-900 border border-white/5 p-6 rounded-2xl">
+                        <div className="bg-neutral-900 border border-white/5 p-6 rounded-md">
                             <div className="flex items-center gap-2 mb-6">
                                 <h3 className="text-sm font-black text-white uppercase tracking-wider">Interlocutores</h3>
                             </div>
@@ -291,7 +291,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                                     { label: 'Staff/Recepção', val: contactStats[ContactPerson.STAFF], color: 'text-purple-400', bg: 'bg-purple-500/10' },
                                     { label: 'Ninguém Disponível', val: contactStats[ContactPerson.NOBODY], color: 'text-red-400', bg: 'bg-red-500/10' }
                                 ].map(item => (
-                                    <div key={item.label} className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
+                                    <div key={item.label} className="flex items-center justify-between p-3 rounded-sm bg-black/20 border border-white/5">
                                         <span className={`text-xs font-bold ${item.color}`}>{item.label}</span>
                                         <span className="text-white font-black">{item.val}</span>
                                     </div>
@@ -301,7 +301,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                     </div>
 
                     {/* Recent Activity Log */}
-                    <div className="bg-neutral-900 border border-white/5 rounded-2xl overflow-hidden">
+                    <div className="bg-neutral-900 border border-white/5 rounded-md overflow-hidden">
                         <div className="p-6 border-b border-white/5 flex justify-between items-center">
                             <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
                                 Histórico de Atividades
@@ -335,7 +335,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                                         </div>
 
                                         {visit.summary && (
-                                            <p className="text-xs text-neutral-400 bg-black/20 p-2 rounded-lg border border-white/5 mb-3 line-clamp-2 italic">
+                                            <p className="text-xs text-neutral-400 bg-black/20 p-2 rounded-sm border border-white/5 mb-3 line-clamp-2 italic">
                                                 "{visit.summary}"
                                             </p>
                                         )}
@@ -366,18 +366,18 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                 {/* Right Col: Details & Materials */}
                 <div className="space-y-6">
                     {/* Materials Card */}
-                    <div className="bg-neutral-900 border border-white/5 p-6 rounded-2xl">
+                    <div className="bg-neutral-900 border border-white/5 p-6 rounded-md">
                         <div className="flex items-center gap-2 mb-6">
                             <h3 className="text-sm font-black text-white uppercase tracking-wider">Materiais Entregues</h3>
                         </div>
-                        <div className="bg-black/20 p-6 rounded-xl border border-white/5 text-center">
+                        <div className="bg-black/20 p-6 rounded-sm border border-white/5 text-center">
                             <p className="text-4xl font-black text-white mb-1">{bannersLeft}</p>
                             <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">Banners</p>
                         </div>
                     </div>
 
                     {/* Active Events List */}
-                    <div className="bg-neutral-900 border border-white/5 p-6 rounded-2xl">
+                    <div className="bg-neutral-900 border border-white/5 p-6 rounded-md">
                         <div className="flex items-center gap-2 mb-6">
                             <h3 className="text-sm font-black text-white uppercase tracking-wider">Eventos Ativos</h3>
                             <span className="text-xs bg-white/10 text-white px-2 py-0.5 rounded-full font-bold">
@@ -386,7 +386,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                         </div>
                         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                             {vendorEvents.map(event => (
-                                <div key={event.id} className="p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                                <div key={event.id} className="p-3 bg-white/[0.02] rounded-sm border border-white/5">
                                     <p className="text-sm font-bold text-white mb-1">{event.name}</p>
                                     <div className="flex justify-between text-xs text-neutral-400">
                                         <span>{event.city}, {event.state}</span>

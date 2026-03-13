@@ -469,7 +469,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
                 setShowConfirmCancel(true);
               }
             }}
-            className="bg-white/5 hover:bg-white/10 text-white/40 hover:text-white p-2.5 rounded-2xl transition-all active:scale-90 border border-white/5"
+            className="bg-white/5 hover:bg-white/10 text-white/40 hover:text-white p-2.5 rounded-md transition-all active:scale-90 border border-white/5"
           >
             <X size={20} strokeWidth={2.5} />
           </button>
@@ -484,7 +484,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
               className="flex flex-col items-center space-y-1 relative flex-1 cursor-pointer group/step"
             >
               <div className={cn(
-                "w-5 h-5 rounded-lg flex items-center justify-center transition-all duration-500 relative z-10 active:scale-90",
+                "w-5 h-5 rounded-sm flex items-center justify-center transition-all duration-500 relative z-10 active:scale-90",
                 idx <= currentStepIndex ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20" : "bg-white/5 text-white/20 border border-white/5 group-hover/step:bg-white/10 group-hover/step:text-white/40"
               )}>
                 {idx < currentStepIndex ? <CheckCircle2 size={10} strokeWidth={3} /> : s.icon}

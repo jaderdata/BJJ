@@ -74,7 +74,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         <button
                             onClick={handleConfirm}
                             className={cn(
-                                "w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-95 shadow-lg",
+                                "w-full py-4 rounded-md font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-95 shadow-lg",
                                 type === 'danger' ? 'bg-red-600 text-white' : type === 'warning' ? 'bg-amber-600 text-white' : 'bg-amber-600 text-white'
                             )}
                         >
@@ -83,7 +83,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
                         <button
                             onClick={handleCancel}
-                            className="w-full py-4 bg-white/5 hover:bg-white/10 text-white/40 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-95 border border-white/5"
+                            className="w-full py-4 bg-white/5 hover:bg-white/10 text-white/40 rounded-md font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-95 border border-white/5"
                         >
                             {cancelLabel}
                         </button>

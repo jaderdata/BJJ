@@ -32,12 +32,12 @@ const ElevationPrompt: React.FC<ElevationPromptProps> = ({ onElevate, onCancel, 
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-neutral-900 border border-neutral-700 rounded-3xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-95">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-md shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-95">
                 {/* Header */}
                 <div className="p-6 border-b border-neutral-800">
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-3">
-                            <div className="p-2.5 bg-amber-500/10 rounded-xl">
+                            <div className="p-2.5 bg-amber-500/10 rounded-sm">
                                 <Shield className="text-amber-500" size={24} strokeWidth={2} />
                             </div>
                             <div>
@@ -47,7 +47,7 @@ const ElevationPrompt: React.FC<ElevationPromptProps> = ({ onElevate, onCancel, 
                         </div>
                         <button
                             onClick={onCancel}
-                            className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
+                            className="p-2 hover:bg-neutral-800 rounded-sm transition-colors"
                         >
                             <X size={20} className="text-neutral-400" />
                         </button>
@@ -57,7 +57,7 @@ const ElevationPrompt: React.FC<ElevationPromptProps> = ({ onElevate, onCancel, 
                 {/* Content */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
                     {/* Warning */}
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start space-x-3">
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-4 flex items-start space-x-3">
                         <AlertTriangle size={20} className="text-amber-500 shrink-0 mt-0.5" />
                         <div>
                             <p className="text-sm font-bold text-amber-400">Modo Administrativo</p>
@@ -69,7 +69,7 @@ const ElevationPrompt: React.FC<ElevationPromptProps> = ({ onElevate, onCancel, 
                     </div>
 
                     {/* User Info */}
-                    <div className="bg-neutral-800/50 rounded-xl p-3 border border-neutral-700">
+                    <div className="bg-neutral-800/50 rounded-sm p-3 border border-neutral-700">
                         <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-1">Usuário</p>
                         <p className="text-sm font-bold text-white">{userName}</p>
                     </div>
@@ -87,7 +87,7 @@ const ElevationPrompt: React.FC<ElevationPromptProps> = ({ onElevate, onCancel, 
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Digite sua senha"
-                            className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder:text-neutral-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all"
+                            className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-sm text-white placeholder:text-neutral-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all"
                         />
                     </div>
 
@@ -102,12 +102,12 @@ const ElevationPrompt: React.FC<ElevationPromptProps> = ({ onElevate, onCancel, 
                             onChange={(e) => setReason(e.target.value)}
                             placeholder="Ex: Gerenciar usuários, ajustar configurações críticas..."
                             rows={3}
-                            className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder:text-neutral-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all resize-none"
+                            className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-sm text-white placeholder:text-neutral-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all resize-none"
                         />
                     </div>
 
                     {/* Duration Info */}
-                    <div className="bg-neutral-800/30 border border-neutral-700/50 rounded-xl p-3 flex items-center space-x-3">
+                    <div className="bg-neutral-800/30 border border-neutral-700/50 rounded-sm p-3 flex items-center space-x-3">
                         <Clock size={16} className="text-neutral-400" />
                         <div>
                             <p className="text-xs font-bold text-neutral-300">Duração da Sessão</p>
@@ -117,7 +117,7 @@ const ElevationPrompt: React.FC<ElevationPromptProps> = ({ onElevate, onCancel, 
 
                     {/* Error Message */}
                     {error && (
-                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-sm text-red-400 font-medium">
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-sm p-3 text-sm text-red-400 font-medium">
                             {error}
                         </div>
                     )}
@@ -127,14 +127,14 @@ const ElevationPrompt: React.FC<ElevationPromptProps> = ({ onElevate, onCancel, 
                         <button
                             type="button"
                             onClick={onCancel}
-                            className="flex-1 px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl font-bold transition-colors"
+                            className="flex-1 px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-sm font-bold transition-colors"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
                             disabled={loading || !password}
-                            className="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                            className="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                         >
                             {loading ? (
                                 <>

@@ -73,7 +73,7 @@ const AdminModeIndicator: React.FC<AdminModeIndicatorProps> = ({ expiresAt, onRe
                     <div className="flex items-center justify-between">
                         {/* Left: Status */}
                         <div className="flex items-center space-x-3">
-                            <div className={`p-2 ${getColorClass()} rounded-lg animate-pulse`}>
+                            <div className={`p-2 ${getColorClass()} rounded-sm animate-pulse`}>
                                 <Shield size={18} className="text-white" strokeWidth={2.5} />
                             </div>
                             <div>
@@ -93,7 +93,7 @@ const AdminModeIndicator: React.FC<AdminModeIndicatorProps> = ({ expiresAt, onRe
 
                         {/* Right: Actions */}
                         <div className="flex items-center space-x-3">
-                            <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-neutral-900/50 rounded-lg border border-neutral-700">
+                            <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-neutral-900/50 rounded-sm border border-neutral-700">
                                 <Clock size={14} className="text-neutral-400" />
                                 <span className={`text-sm font-mono font-bold ${getTextColorClass()}`}>
                                     {formatTime(timeRemaining)}
@@ -101,7 +101,7 @@ const AdminModeIndicator: React.FC<AdminModeIndicatorProps> = ({ expiresAt, onRe
                             </div>
                             <button
                                 onClick={onRevoke}
-                                className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white rounded-lg font-bold text-xs transition-colors flex items-center space-x-2 border border-neutral-700"
+                                className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white rounded-sm font-bold text-xs transition-colors flex items-center space-x-2 border border-neutral-700"
                             >
                                 <X size={14} />
                                 <span>Sair do Modo Admin</span>

@@ -32,7 +32,7 @@ const Navbar: React.FC<NavbarProps> = ({ setSidebarOpen, activeTab, onOpenElevat
                 {!isElevated && (
                     <button
                         onClick={onOpenElevationPrompt}
-                        className="flex items-center space-x-2 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 rounded-lg text-xs font-bold transition-all border border-neutral-600 hover:border-neutral-500"
+                        className="flex items-center space-x-2 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 rounded-sm text-xs font-bold transition-all border border-neutral-600 hover:border-neutral-500"
                         title="Ativar privilégios administrativos temporários"
                     >
                         <Shield size={14} />

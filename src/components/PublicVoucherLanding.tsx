@@ -127,7 +127,7 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                             <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Your Vouchers</p>
                             <div className="flex flex-wrap gap-4 justify-center">
                                 {codes.filter(c => c.trim().length > 0).map((c, i) => (
-                                    <div key={i} className="bg-black/40 border border-white/10 text-white px-8 py-4 rounded-2xl font-mono font-black text-xl md:text-2xl shadow-inner uppercase">
+                                    <div key={i} className="bg-black/40 border border-white/10 text-white px-8 py-4 rounded-md font-mono font-black text-xl md:text-2xl shadow-inner uppercase">
                                         {c.trim()}
                                     </div>
                                 ))}
@@ -143,7 +143,7 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <button
                                 onClick={handleWhatsApp}
-                                className="bg-amber-600 hover:bg-amber-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-900/20 active:scale-[0.98] transition-all"
+                                className="bg-amber-600 hover:bg-amber-500 text-white py-4 rounded-md font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-900/20 active:scale-[0.98] transition-all"
                             >
                                 <div className="flex items-center gap-2">
                                     <MessageCircle size={24} fill="currentColor" className="text-white/20" />
@@ -152,7 +152,7 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                             </button>
                             <button
                                 onClick={handleSMS}
-                                className="bg-sky-600 hover:bg-sky-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-sky-900/20 active:scale-[0.98] transition-all"
+                                className="bg-sky-600 hover:bg-sky-500 text-white py-4 rounded-md font-bold flex items-center justify-center gap-2 shadow-lg shadow-sky-900/20 active:scale-[0.98] transition-all"
                             >
                                 <div className="flex items-center gap-2">
                                     <MessageCircle size={24} />

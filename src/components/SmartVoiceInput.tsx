@@ -129,7 +129,7 @@ export const SmartVoiceInput: React.FC<SmartVoiceInputProps> = ({ onTranscript }
             {/* Status Display - Animated */}
             {(isRecording || isProcessing) && (
                 <div className={cn(
-                    "flex items-center space-x-3 px-4 py-2 rounded-2xl animate-in slide-in-from-right-4 duration-300 border backdrop-blur-md",
+                    "flex items-center space-x-3 px-4 py-2 rounded-md animate-in slide-in-from-right-4 duration-300 border backdrop-blur-md",
                     isRecording ? "bg-red-500/10 border-red-500/20" : "bg-sky-500/10 border-sky-500/20"
                 )}>
                     {isRecording ? (
@@ -163,7 +163,7 @@ export const SmartVoiceInput: React.FC<SmartVoiceInputProps> = ({ onTranscript }
                 onClick={handleClick}
                 disabled={isProcessing}
                 className={cn(
-                    "relative group w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-xl",
+                    "relative group w-12 h-12 rounded-md flex items-center justify-center transition-all duration-300 shadow-xl",
                     isRecording
                         ? "bg-red-500 text-white hover:bg-red-600 shadow-red-500/30 scale-110"
                         : isProcessing
@@ -188,7 +188,7 @@ export const SmartVoiceInput: React.FC<SmartVoiceInputProps> = ({ onTranscript }
 
                 {/* Ring Glow Effect */}
                 {!isRecording && !isProcessing && (
-                    <div className="absolute inset-0 rounded-2xl border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="absolute inset-0 rounded-md border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 )}
             </button>
         </div>

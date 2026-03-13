@@ -205,22 +205,22 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
         <div className="space-y-6 pb-20">
             {/* Context Banner for Linking */}
             {linkingEventId && (
-                <div className="bg-indigo-600/20 border border-indigo-500/30 p-4 rounded-2xl flex items-center justify-between mb-2 animate-in slide-in-from-top-4 duration-300">
+                <div className="bg-amber-600/20 border border-amber-500/30 p-4 rounded-md flex items-center justify-between mb-2 animate-in slide-in-from-top-4 duration-300">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500 rounded-lg shadow-lg shadow-indigo-500/20">
+                        <div className="p-2 bg-amber-500 rounded-sm shadow-lg shadow-amber-500/20">
                             <Link size={20} className="text-white" />
                         </div>
                         <div>
                             <h3 className="text-white font-bold flex items-center gap-2">
                                 Modo de Vinculação
-                                <span className="text-[10px] bg-indigo-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Ativo</span>
+                                <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Ativo</span>
                             </h3>
-                            <p className="text-indigo-200 text-sm">Selecione uma academia para adicionar ao evento <strong className="text-white">{linkingEvent?.name}</strong></p>
+                            <p className="text-amber-200 text-sm">Selecione uma academia para adicionar ao evento <strong className="text-white">{linkingEvent?.name}</strong></p>
                         </div>
                     </div>
                     <button
                         onClick={onCancelLinking}
-                        className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-white/60 hover:text-white transition-colors text-sm font-bold active:scale-95"
+                        className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-sm text-white/60 hover:text-white transition-colors text-sm font-bold active:scale-95"
                     >
                         <ArrowLeft size={16} /> Cancelar
                     </button>
@@ -228,8 +228,8 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
             )}
 
             {/* Header */}
-            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-2xl shadow-2xl">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent backdrop-blur-sm"></div>
+            <div className="relative overflow-hidden bg-neutral-900 border border-white/10 p-6 rounded-md shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent backdrop-blur-sm"></div>
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
@@ -243,7 +243,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
 
                     <button
                         onClick={openNewModal}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-3 rounded-xl font-bold flex items-center space-x-2 transition-all shadow-lg shadow-indigo-900/20 active:scale-95 hover:shadow-indigo-500/40"
+                        className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-3 rounded-sm font-bold flex items-center space-x-2 transition-all shadow-lg shadow-amber-900/20 active:scale-95 hover:shadow-amber-500/40"
                     >
                         <Plus size={18} strokeWidth={3} />
                         <span>Nova Academia</span>
@@ -253,11 +253,11 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                 {/* Filters */}
                 <div className="mt-8 space-y-4 relative z-10">
                     <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-indigo-400 transition-colors" size={20} />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-amber-400 transition-colors" size={20} />
                         <input
                             type="text"
                             placeholder="Buscar por nome, responsável ou endereço..."
-                            className="w-full pl-12 pr-4 h-14 bg-black/40 border border-white/5 rounded-2xl text-white placeholder:text-white/20 focus:border-indigo-500/50 focus:bg-indigo-500/5 focus:outline-none transition-all font-medium shadow-inner"
+                            className="w-full pl-12 pr-4 h-14 bg-black/40 border border-white/5 rounded-md text-white placeholder:text-white/20 focus:border-amber-500/50 focus:bg-amber-500/5 focus:outline-none transition-all font-medium shadow-inner"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                         />
@@ -268,7 +268,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                             <input
                                 type="text"
                                 placeholder="Orlando"
-                                className="w-full h-11 px-4 bg-black/40 border border-white/5 rounded-xl text-sm text-white focus:border-white/20 focus:outline-none transition-all placeholder:text-white/10"
+                                className="w-full h-11 px-4 bg-black/40 border border-white/5 rounded-sm text-sm text-white focus:border-white/20 focus:outline-none transition-all placeholder:text-white/10"
                                 value={filterCity}
                                 onChange={e => setFilterCity(e.target.value)}
                             />
@@ -278,7 +278,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                             <input
                                 type="text"
                                 placeholder="UF"
-                                className="w-full h-11 px-4 bg-black/40 border border-white/5 rounded-xl text-sm text-white focus:border-white/20 focus:outline-none transition-all placeholder:text-white/10 uppercase"
+                                className="w-full h-11 px-4 bg-black/40 border border-white/5 rounded-sm text-sm text-white focus:border-white/20 focus:outline-none transition-all placeholder:text-white/10 uppercase"
                                 maxLength={2}
                                 value={filterState}
                                 onChange={e => setFilterState(e.target.value.toUpperCase())}
@@ -289,7 +289,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                             <input
                                 type="text"
                                 placeholder="Digitos..."
-                                className="w-full h-11 px-4 bg-black/40 border border-white/5 rounded-xl text-sm text-white focus:border-white/20 focus:outline-none transition-all placeholder:text-white/10"
+                                className="w-full h-11 px-4 bg-black/40 border border-white/5 rounded-sm text-sm text-white focus:border-white/20 focus:outline-none transition-all placeholder:text-white/10"
                                 value={filterPhone}
                                 onChange={e => setFilterPhone(e.target.value)}
                             />
@@ -313,7 +313,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                     return (
                         <div
                             key={academy.id}
-                            className={`group relative overflow-hidden bg-neutral-800/40 backdrop-blur-xl border ${isLinked && linkingEventId ? 'border-indigo-500/50 bg-indigo-500/5' : 'border-white/5'} rounded-2xl p-5 hover:bg-neutral-800/60 transition-all duration-300 hover:shadow-xl hover:shadow-black/20 flex flex-col justify-between`}
+                            className={`group relative overflow-hidden bg-neutral-800/40 backdrop-blur-xl border ${isLinked && linkingEventId ? 'border-amber-500/50 bg-amber-500/5' : 'border-white/5'} rounded-md p-5 hover:bg-neutral-800/60 transition-all duration-300 hover:shadow-xl hover:shadow-black/20 flex flex-col justify-between`}
                         >
                             <div>
                                 <div className="flex justify-between items-start mb-4">
@@ -323,21 +323,21 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                             <div className="flex gap-1 opacity-100 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={() => openEditModal(academy)}
-                                                    className="p-2 text-neutral-500 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                                                    className="p-2 text-neutral-500 hover:text-white hover:bg-white/10 rounded-sm transition-all"
                                                     title="Editar dados"
                                                 >
                                                     <Edit3 size={16} strokeWidth={2} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleSoftDelete(academy)}
-                                                    className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                                                    className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-400/10 rounded-sm transition-all"
                                                     title="Excluir academia"
                                                 >
                                                     <X size={16} strokeWidth={2} />
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div className="px-2 py-1 bg-white/5 rounded-lg text-[10px] font-bold text-white/20 uppercase tracking-widest">
+                                            <div className="px-2 py-1 bg-white/5 rounded-sm text-[10px] font-bold text-white/20 uppercase tracking-widest">
                                                 Leitura
                                             </div>
                                         )}
@@ -382,9 +382,9 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                 <button
                                     onClick={() => !isLinked && handleLinkAcademy(academy.id)}
                                     disabled={isLinked}
-                                    className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${isLinked
+                                    className={`w-full py-3 rounded-sm font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${isLinked
                                         ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 cursor-default'
-                                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95 hover:shadow-indigo-500/40'
+                                        : 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-500/20 active:scale-95 hover:shadow-amber-500/40'
                                         }`}
                                 >
                                     {isLinked ? (
@@ -423,10 +423,10 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in duration-200">
-                    <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+                    <div className="bg-[#0a0a0a] border border-white/10 rounded-md w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02] shrink-0">
                             <h3 className="text-xl font-black text-white flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                <div className="w-10 h-10 rounded-sm bg-amber-500/20 flex items-center justify-center text-amber-400">
                                     {editingAcademy ? <Edit3 size={20} /> : <Plus size={20} />}
                                 </div>
                                 {editingAcademy ? (editingAcademy.createdBy === currentUser.id ? 'Editar Academia' : 'Detalhes da Academia') : 'Cadastrar Nova Academia'}
@@ -437,7 +437,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                     setEditingAcademy(null);
                                     setFormData({});
                                 }}
-                                className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-95"
+                                className="w-10 h-10 rounded-sm bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-95"
                             >
                                 <X size={20} />
                             </button>
@@ -446,12 +446,12 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                         <form onSubmit={handleSave} className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
                             <fieldset disabled={editingAcademy ? (editingAcademy.createdBy !== currentUser.id) : false} className="space-y-6 group-disabled:opacity-60">
                                 <div>
-                                    <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-1 mb-1.5 block">Nome da Academia</label>
+                                    <label className="text-[10px] font-black text-amber-400 uppercase tracking-widest ml-1 mb-1.5 block">Nome da Academia</label>
                                     <input
                                         type="text"
                                         placeholder="Ex: Gracie Barra Centro"
                                         value={formData.name || ''}
-                                        className="w-full h-14 px-5 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-indigo-500/50 focus:bg-indigo-500/5 focus:outline-none transition-all text-base font-bold placeholder:text-white/10 placeholder:font-normal disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full h-14 px-5 bg-white/5 border border-white/10 rounded-md text-white focus:border-amber-500/50 focus:bg-amber-500/5 focus:outline-none transition-all text-base font-bold placeholder:text-white/10 placeholder:font-normal disabled:opacity-50 disabled:cursor-not-allowed"
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                                         autoFocus={!editingAcademy || (editingAcademy.createdBy === currentUser.id)}
                                     />
@@ -464,7 +464,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                             type="text"
                                             placeholder="Ex: Orlando"
                                             value={formData.city || ''}
-                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-indigo-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-md text-white focus:border-amber-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                             onChange={e => setFormData({ ...formData, city: e.target.value })}
                                         />
                                     </div>
@@ -475,7 +475,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                             placeholder="FL"
                                             maxLength={2}
                                             value={formData.state || ''}
-                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-indigo-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-md text-white focus:border-amber-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 uppercase disabled:opacity-50 disabled:cursor-not-allowed"
                                             onChange={e => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
                                         />
                                     </div>
@@ -487,7 +487,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                         type="text"
                                         placeholder="Rua, Número, Bairro, CEP"
                                         value={formData.address || ''}
-                                        className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-indigo-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-md text-white focus:border-amber-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                         onChange={e => setFormData({ ...formData, address: e.target.value })}
                                     />
                                 </div>
@@ -499,14 +499,14 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                             type="text"
                                             placeholder="Nome do contato principal"
                                             value={formData.responsible || ''}
-                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-indigo-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-md text-white focus:border-amber-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                             onChange={e => setFormData({ ...formData, responsible: e.target.value })}
                                         />
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-black text-white/30 uppercase tracking-widest ml-1 mb-1.5 block">País</label>
                                         <select
-                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-indigo-500/50 focus:outline-none transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-md text-white focus:border-amber-500/50 focus:outline-none transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                             value={selectedCountry}
                                             onChange={(e) => {
                                                 const newCountry = e.target.value;
@@ -527,7 +527,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                             type="text"
                                             placeholder="Número"
                                             value={formData.phone || ''}
-                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-indigo-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-md text-white focus:border-amber-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                             onChange={(e) => {
                                                 const val = applyPhoneMask(e.target.value, selectedCountry);
                                                 setFormData({ ...formData, phone: val });
@@ -540,7 +540,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                             type="email"
                                             placeholder="contato@academia.com"
                                             value={formData.email || ''}
-                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-indigo-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="w-full h-12 px-5 bg-white/5 border border-white/10 rounded-md text-white focus:border-amber-500/50 focus:outline-none transition-all text-sm font-medium placeholder:text-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                             onChange={e => setFormData({ ...formData, email: e.target.value })}
                                         />
                                     </div>
@@ -556,7 +556,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                         setFormData({});
                                         setSelectedCountry('BR'); // Reset country on modal close
                                     }}
-                                    className="px-8 py-4 bg-transparent hover:bg-white/5 text-white/40 hover:text-white rounded-xl font-bold uppercase tracking-widest text-xs transition-all"
+                                    className="px-8 py-4 bg-transparent hover:bg-white/5 text-white/40 hover:text-white rounded-sm font-bold uppercase tracking-widest text-xs transition-all"
                                 >
                                     {(!editingAcademy || editingAcademy.createdBy === currentUser.id) ? 'Cancelar' : 'Fechar'}
                                 </button>
@@ -564,7 +564,7 @@ export const CallCenterAcademies: React.FC<CallCenterAcademiesProps> = ({
                                     <button
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="min-w-[200px] bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-indigo-500/20 active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="min-w-[200px] bg-amber-600 hover:bg-amber-500 text-white px-8 py-4 rounded-sm font-bold transition-all shadow-lg hover:shadow-amber-500/20 active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : (
                                             <>

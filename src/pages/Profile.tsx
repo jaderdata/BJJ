@@ -104,7 +104,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
             {/* Upload Overlay */}
             {isUploading && (
                 <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
-                    <div className="bg-neutral-900 border border-white/10 rounded-3xl p-8 flex flex-col items-center space-y-4 shadow-2xl">
+                    <div className="bg-neutral-900 border border-white/10 rounded-md p-8 flex flex-col items-center space-y-4 shadow-2xl">
                         <div className="relative">
                             <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full animate-pulse"></div>
                             <Loader2 className="w-12 h-12 text-amber-500 animate-spin relative z-10" />
@@ -125,7 +125,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                 </div>
                 <button
                     onClick={onLogout}
-                    className="flex items-center space-x-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl text-xs font-black uppercase tracking-widest transition-all border border-red-500/20 active:scale-95"
+                    className="flex items-center space-x-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-sm text-xs font-black uppercase tracking-widest transition-all border border-red-500/20 active:scale-95"
                 >
                     <LogOut size={14} />
                     <span>Sair</span>
@@ -155,7 +155,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                         </div>
 
                         {/* Status Batch */}
-                        <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-amber-500 rounded-2xl border-4 border-neutral-900 flex items-center justify-center shadow-lg">
+                        <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-amber-500 rounded-md border-4 border-neutral-900 flex items-center justify-center shadow-lg">
                             <Camera className="text-white" size={16} />
                         </div>
                     </div>
@@ -180,7 +180,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/5 transition-all"
+                                    className="w-full bg-black/40 border border-white/10 rounded-md py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/5 transition-all"
                                     placeholder="Seu nome"
                                 />
                             </div>
@@ -197,7 +197,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                                     type="email"
                                     value={user.email}
                                     disabled
-                                    className="w-full bg-black/20 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white/50 cursor-not-allowed"
+                                    className="w-full bg-black/20 border border-white/5 rounded-md py-4 pl-12 pr-4 text-white/50 cursor-not-allowed"
                                 />
                             </div>
                         </div>
@@ -213,7 +213,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                                     type="text"
                                     value={phone}
                                     onChange={handlePhoneChange}
-                                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/5 transition-all"
+                                    className="w-full bg-black/40 border border-white/10 rounded-md py-4 pl-12 pr-4 text-white placeholder-white/10 focus:outline-none focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/5 transition-all"
                                     placeholder="(00) 00000-0000"
                                 />
                             </div>
@@ -227,7 +227,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                                     type="text"
                                     value={city}
                                     onChange={(e) => setCity(e.target.value)}
-                                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 px-4 text-white placeholder-white/10 focus:outline-none focus:border-amber-500/50 transition-all text-sm"
+                                    className="w-full bg-black/40 border border-white/10 rounded-md py-4 px-4 text-white placeholder-white/10 focus:outline-none focus:border-amber-500/50 transition-all text-sm"
                                     placeholder="Ex: Orlando"
                                 />
                             </div>
@@ -238,7 +238,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                                     value={uf}
                                     maxLength={2}
                                     onChange={(e) => setUf(e.target.value.toUpperCase())}
-                                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 px-4 text-white placeholder-white/10 focus:outline-none focus:border-amber-500/50 transition-all text-center text-sm"
+                                    className="w-full bg-black/40 border border-white/10 rounded-md py-4 px-4 text-white placeholder-white/10 focus:outline-none focus:border-amber-500/50 transition-all text-center text-sm"
                                     placeholder="FL"
                                 />
                             </div>
@@ -250,14 +250,14 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                         <button
                             onClick={onBack}
                             disabled={loading || isUploading}
-                            className="w-full px-6 py-4 rounded-2xl border border-white/10 text-white/40 text-xs font-black uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full px-6 py-4 rounded-md border border-white/10 text-white/40 text-xs font-black uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={loading || isUploading}
-                            className="w-full px-6 py-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-neutral-900 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-amber-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95 group disabled:cursor-not-allowed"
+                            className="w-full px-6 py-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-neutral-900 rounded-md text-sm font-black uppercase tracking-widest shadow-xl shadow-amber-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95 group disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <Loader2 size={18} className="animate-spin" />

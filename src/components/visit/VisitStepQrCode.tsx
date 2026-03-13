@@ -22,7 +22,7 @@ export const VisitStepQrCode: React.FC<VisitStepQrCodeProps> = ({
     return (
         <div className="space-y-12 animate-in zoom-in-95 duration-700 text-center py-10">
             <div className="space-y-2">
-                <div className="inline-flex p-3 bg-amber-500/20 text-amber-500 rounded-2xl mb-4">
+                <div className="inline-flex p-3 bg-amber-500/20 text-amber-500 rounded-md mb-4">
                     <QrCode size={32} strokeWidth={1.5} />
                 </div>
                 <h4 className="text-3xl font-black text-white tracking-tighter">Resgate Pronto!</h4>
@@ -61,7 +61,7 @@ export const VisitStepQrCode: React.FC<VisitStepQrCodeProps> = ({
 
                 <button
                     onClick={() => { hapticFeedback('light'); window.open(generateShareLink(), '_blank'); }}
-                    className="col-span-2 bg-white/5 border border-white/10 text-white/40 mb-2 py-3 rounded-xl font-black text-[8px] uppercase tracking-[0.2em] flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
+                    className="col-span-2 bg-white/5 border border-white/10 text-white/40 mb-2 py-3 rounded-sm font-black text-[8px] uppercase tracking-[0.2em] flex items-center justify-center space-x-2 active:scale-95 transition-all hover:bg-white/10"
                 >
                     <ExternalLink size={12} />
                     <span>Acessar Landing Page</span>
