@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, MessageCircle, CheckCircle2, Copy, X } from 'lucide-react';
+import { MessageCircle, CheckCircle2, Copy, X } from 'lucide-react';
 import { DatabaseService } from '../lib/supabase';
-import { formatPhone, getCleanPhone, isExpired as checkExpired } from '../lib/business-utils';
+import { formatPhone, getCleanPhone } from '../lib/business-utils';
 
 interface PublicVoucherLandingProps {
     academyName: string;
@@ -44,8 +44,6 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
         fetchSettings();
     }, []);
 
-    const isExpired = checkExpired(createdAt);
-
     const getMessageBody = () => {
         return `PBJJF Voucher Redemption\n\nAcademy: ${academyName}\nVouchers: ${codes.join(', ')}\n\nPlease confirm receipt and processing.`;
     };
@@ -81,18 +79,6 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                     <div className="text-amber-500 font-black text-4xl mb-4 animate-bounce">OSS!</div>
                     <h1 className="text-2xl font-black text-white">Vouchers Saved!</h1>
                     <p className="text-neutral-400">You can now close this screen.</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (isExpired) {
-        return (
-            <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-6 text-center animate-in fade-in duration-500">
-                <div className="bg-neutral-800 border border-neutral-700 max-w-md w-full p-10 rounded-[2rem] space-y-4 shadow-2xl">
-                    <div className="bg-red-500/20 text-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto"><Clock size={32} /></div>
-                    <h1 className="text-2xl font-black text-white">Expired Link</h1>
-                    <p className="text-neutral-400">This voucher link expired after 24 hours for security reasons. Please request a new code from your representative.</p>
                 </div>
             </div>
         );
@@ -168,8 +154,6 @@ export const PublicVoucherLanding: React.FC<PublicVoucherLandingProps> = ({ acad
                 {/* Footer */}
                 <div className="w-full bg-black/30 p-8 border-t border-white/5 space-y-6">
                     <div className="flex justify-center items-center space-x-2 text-[8px] md:text-[10px] text-white/20 font-black uppercase tracking-[0.2em]">
-                        <span>Expires in 24 hours</span>
-                        <span className="text-white/10">•</span>
                         <span>Secure BJJVisits Token</span>
                     </div>
 
