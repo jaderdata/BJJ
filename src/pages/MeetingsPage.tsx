@@ -85,6 +85,7 @@ export const MeetingsPage: React.FC<MeetingsPageProps> = ({ academies, currentUs
                 academies={academies}
                 onNewMeeting={() => { setEditingMeeting(null); setShowMeetingModal(true); }}
                 onMeetingClick={(m) => { setEditingMeeting(m); setShowMeetingModal(true); }}
+                onDelete={(id) => setMeetings(prev => prev.filter(m => m.id !== id))}
                 loading={meetingsLoading}
             />
 

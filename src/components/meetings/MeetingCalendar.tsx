@@ -2,13 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { Clock, Calendar, Loader2, ChevronDown, CalendarPlus, Video, CheckCircle, ArrowRight, UserCheck, Trash2, X } from 'lucide-react';
 import { Meeting, Academy } from '../../types';
 import { DatabaseService } from '../../lib/supabase';
-import { useQueryClient } from '@tanstack/react-query';
 
 interface MeetingCalendarProps {
     meetings: Meeting[];
     academies: Academy[];
     onNewMeeting: () => void;
     onMeetingClick: (m: Meeting) => void;
+    onDelete: (id: string) => void;
     loading: boolean;
 }
 
@@ -23,13 +23,13 @@ function formatMeetingDate(iso: string, now: Date): string {
     return `${date} · ${time}`;
 }
 
-function MeetingRow({ m, academies, onMeetingClick, now }: {
+function MeetingRow({ m, academies, onMeetingClick, onDelete, now }: {
     m: Meeting;
     academies: Academy[];
     onMeetingClick: (m: Meeting) => void;
+    onDelete: (id: string) => void;
     now: Date;
 }) {
-    const queryClient = useQueryClient();
     const [toggling, setToggling] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -40,10 +40,13 @@ function MeetingRow({ m, academies, onMeetingClick, now }: {
         setDeleting(true);
         try {
             await DatabaseService.deleteMeeting(m.id);
-            queryClient.invalidateQueries({ queryKey: ['meetings'] });
+            onDelete(m.id);
+            const { toast } = await import('sonner');
+            toast.success('Reunião excluída.');
         } catch (err) {
             console.error('[MeetingRow] delete error:', err);
-        } finally {
+            const { toast } = await import('sonner');
+            toast.error('Erro ao excluir reunião.');
             setDeleting(false);
             setConfirmDelete(false);
         }
@@ -68,7 +71,7 @@ function MeetingRow({ m, academies, onMeetingClick, now }: {
             } else {
                 await DatabaseService.confirmMeeting(m.id);
             }
-            queryClient.invalidateQueries({ queryKey: ['meetings'] });
+            // confirm toggle is reflected via realtime subscription in MeetingsPage
         } catch (err) {
             console.error('[MeetingRow] toggleConfirm error:', err);
         } finally {
@@ -167,7 +170,7 @@ function MeetingRow({ m, academies, onMeetingClick, now }: {
 }
 
 
-export function MeetingCalendar({ meetings, academies, onNewMeeting, onMeetingClick, loading }: MeetingCalendarProps) {
+export function MeetingCalendar({ meetings, academies, onNewMeeting, onMeetingClick, onDelete, loading }: MeetingCalendarProps) {
     const [expanded, setExpanded] = useState(false);
     const [showPast, setShowPast] = useState(false);
 
@@ -240,7 +243,7 @@ export function MeetingCalendar({ meetings, academies, onNewMeeting, onMeetingCl
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest px-1">Próximas</p>
                                     {upcoming.map(m => (
-                                        <MeetingRow key={m.id} m={m} academies={academies} onMeetingClick={onMeetingClick} now={now} />
+                                        <MeetingRow key={m.id} m={m} academies={academies} onMeetingClick={onMeetingClick} onDelete={onDelete} now={now} />
                                     ))}
                                 </div>
                             )}
@@ -258,7 +261,7 @@ export function MeetingCalendar({ meetings, academies, onNewMeeting, onMeetingCl
                                     {showPast && (
                                         <div className="space-y-2 mt-2">
                                             {past.map(m => (
-                                                <MeetingRow key={m.id} m={m} academies={academies} onMeetingClick={onMeetingClick} now={now} />
+                                                <MeetingRow key={m.id} m={m} academies={academies} onMeetingClick={onMeetingClick} onDelete={onDelete} now={now} />
                                             ))}
                                         </div>
                                     )}
