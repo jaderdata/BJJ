@@ -65,6 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <SidebarItem id="admin_finance" label="Financeiro" />
               <SidebarItem id="reports" label="Relatórios" />
               <SidebarItem id="follow_up" label="Follow-Up" badge={followUpOverdueCount} />
+              <SidebarItem id="meetings" label="Reuniões" />
               <SidebarItem id="vendors" label="Vendedores" />
               <SidebarItem id="access_control" label="Gestão de Acessos" />
             </>

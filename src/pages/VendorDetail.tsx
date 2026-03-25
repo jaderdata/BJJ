@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { User, Visit, Event, FinanceRecord, Academy, Voucher, VisitStatus, AcademyTemperature, ContactPerson, UserRole } from '../types';
+import React, { useMemo, useState, useEffect } from 'react';
+import { User, Visit, Event, FinanceRecord, Academy, Voucher, VisitStatus, AcademyTemperature, ContactPerson, UserRole, FollowUp, FollowUpStatus } from '../types';
 import { mkConfig, generateCsv, download } from 'export-to-csv';
+import { DatabaseService } from '../lib/supabase';
 import {
     formatTime,
     filterVendorVisits,
@@ -34,6 +35,13 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
 
     const [filterYear, setFilterYear] = useState<string>('');
     const [filterEventId, setFilterEventId] = useState<string>('');
+    const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+
+    useEffect(() => {
+        DatabaseService.getFollowUps().then(fus => {
+            setFollowUps(fus.filter(f => f.createdBy === vendor.id));
+        });
+    }, [vendor.id]);
 
     // Base Sets
     const vendorVisits = useMemo(() => filterVendorVisits(visits, events, vendor.id), [visits, events, vendor.id]);
@@ -127,6 +135,17 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
         }).slice(0, 50);
     }, [completedVisits]);
 
+
+    // Follow-Up stats
+    const followUpStats = useMemo(() => ({
+        total: followUps.length,
+        closed: followUps.filter(f => f.status === FollowUpStatus.CLOSED).length,
+        highInterest: followUps.filter(f => f.status === FollowUpStatus.HIGH).length,
+        mediumInterest: followUps.filter(f => f.status === FollowUpStatus.MEDIUM).length,
+        lowInterest: followUps.filter(f => f.status === FollowUpStatus.LOW).length,
+        noInterest: followUps.filter(f => f.status === FollowUpStatus.NO_INTEREST).length,
+        waiting: followUps.filter(f => f.status === FollowUpStatus.WAITING).length,
+    }), [followUps]);
 
     const isCallCenter = vendor.role === UserRole.CALL_CENTER;
 
@@ -309,7 +328,7 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
                             <span className="text-xs text-neutral-500 font-bold">Últimas 50 visitas</span>
                         </div>
                         <div className="divide-y divide-white/5">
-                            {recentActivity.map((visit, i) => {
+                            {recentActivity.map((visit) => {
                                 const event = events.find(e => e.id === visit.eventId);
                                 const duration = calculateTrueVisitDuration(visit.startedAt, visit.finishedAt);
 
@@ -365,6 +384,46 @@ export const VendorDetail: React.FC<VendorDetailProps> = ({
 
                 {/* Right Col: Details & Materials */}
                 <div className="space-y-6">
+                    {/* Follow-Up Card */}
+                    <div className="bg-neutral-900 border border-white/5 p-6 rounded-md">
+                        <div className="flex items-center gap-2 mb-5">
+                            <h3 className="text-sm font-black text-white uppercase tracking-wider">Follow-Up</h3>
+                            <span className="text-xs bg-white/10 text-white px-2 py-0.5 rounded-full font-bold">
+                                {followUpStats.total}
+                            </span>
+                        </div>
+
+                        {/* Summary row */}
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className="bg-black/20 border border-white/5 rounded-sm p-3 text-center">
+                                <p className="text-2xl font-black text-emerald-400">{followUpStats.closed}</p>
+                                <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold mt-0.5">Fechados</p>
+                            </div>
+                            <div className="bg-black/20 border border-white/5 rounded-sm p-3 text-center">
+                                <p className="text-2xl font-black text-neutral-300">{followUpStats.waiting}</p>
+                                <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold mt-0.5">Aguardando</p>
+                            </div>
+                        </div>
+
+                        {/* Interest breakdown */}
+                        <div className="space-y-2">
+                            {[
+                                { label: 'Interesse Alto', val: followUpStats.highInterest, color: 'text-red-400', dot: 'bg-red-500' },
+                                { label: 'Interesse Médio', val: followUpStats.mediumInterest, color: 'text-amber-400', dot: 'bg-amber-500' },
+                                { label: 'Interesse Baixo', val: followUpStats.lowInterest, color: 'text-blue-400', dot: 'bg-blue-500' },
+                                { label: 'Sem Interesse', val: followUpStats.noInterest, color: 'text-neutral-500', dot: 'bg-neutral-600' },
+                            ].map(item => (
+                                <div key={item.label} className="flex items-center justify-between px-3 py-2 rounded-sm bg-black/20 border border-white/5">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.dot}`} />
+                                        <span className={`text-xs font-bold ${item.color}`}>{item.label}</span>
+                                    </div>
+                                    <span className="text-white font-black text-sm">{item.val}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* Materials Card */}
                     <div className="bg-neutral-900 border border-white/5 p-6 rounded-md">
                         <div className="flex items-center gap-2 mb-6">

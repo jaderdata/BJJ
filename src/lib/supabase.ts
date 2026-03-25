@@ -1,4 +1,31 @@
-import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus, VendorDetails, FollowUp, FollowUpLog, FollowUpLogAction, ContactChannel, FollowUpStatus, Meeting, MeetingDuration } from '../types';
+import { Academy, Event, Visit, FinanceRecord, Voucher, VisitStatus, VendorDetails, FollowUp, FollowUpLog, FollowUpLogAction, ContactChannel, FollowUpStatus, Meeting, MeetingDuration, MeetingRecurrence } from '../types';
+
+function mapMeeting(m: any): Meeting {
+    return {
+        id: m.id,
+        academyId: m.academy_id,
+        createdBy: m.created_by,
+        title: m.title,
+        scheduledAt: m.scheduled_at,
+        durationMin: m.duration_min as MeetingDuration,
+        attendeeEmail: m.attendee_email ?? undefined,
+        attendeeName: m.attendee_name ?? undefined,
+        organizerEmail: m.organizer_email ?? undefined,
+        organizerName: m.organizer_name ?? undefined,
+        meetingLink: m.meeting_link ?? undefined,
+        extraEmails: m.extra_emails ? m.extra_emails.split(',').map((e: string) => e.trim()).filter(Boolean) : undefined,
+        notes: m.notes ?? undefined,
+        emailSent: m.email_sent,
+        emailLang: (m.email_lang as 'pt' | 'en') ?? 'pt',
+        recurrence: (m.recurrence as MeetingRecurrence) ?? 'none',
+        parentMeetingId: m.parent_meeting_id ?? undefined,
+        deletedAt: m.deleted_at ?? undefined,
+        confirmedAt: m.confirmed_at ?? undefined,
+        timezoneName: m.timezone_name ?? undefined,
+        createdAt: m.created_at,
+        updatedAt: m.updated_at,
+    };
+}
 import { supabase } from './supabase-client';
 
 export { supabase };
@@ -981,36 +1008,20 @@ export const DatabaseService = {
         let query = supabase
             .from('meetings')
             .select('*')
+            .is('deleted_at', null)
             .order('scheduled_at', { ascending: true });
         if (fromDate) query = query.gte('scheduled_at', fromDate);
         if (toDate) query = query.lte('scheduled_at', toDate);
         const { data, error } = await query;
         if (error) throw error;
-        return (data || []).map((m: any) => ({
-            id: m.id,
-            academyId: m.academy_id,
-            createdBy: m.created_by,
-            title: m.title,
-            scheduledAt: m.scheduled_at,
-            durationMin: m.duration_min as MeetingDuration,
-            attendeeEmail: m.attendee_email ?? undefined,
-            attendeeName: m.attendee_name ?? undefined,
-            organizerEmail: m.organizer_email ?? undefined,
-            organizerName: m.organizer_name ?? undefined,
-            meetingLink: m.meeting_link ?? undefined,
-            extraEmails: m.extra_emails ?? undefined,
-            notes: m.notes ?? undefined,
-            emailSent: m.email_sent,
-            createdAt: m.created_at,
-            updatedAt: m.updated_at,
-        } as Meeting));
+        return (data || []).map(mapMeeting);
     },
 
     async createMeeting(data: Partial<Meeting>): Promise<Meeting> {
         const { data: saved, error } = await supabase
             .from('meetings')
             .insert({
-                academy_id: data.academyId,
+                academy_id: data.academyId ?? null,
                 created_by: data.createdBy,
                 title: data.title,
                 scheduled_at: data.scheduledAt,
@@ -1020,31 +1031,18 @@ export const DatabaseService = {
                 organizer_email: data.organizerEmail ?? null,
                 organizer_name: data.organizerName ?? null,
                 meeting_link: data.meetingLink ?? null,
-                extra_emails: data.extraEmails ?? null,
+                extra_emails: data.extraEmails?.length ? data.extraEmails.join(',') : null,
                 notes: data.notes ?? null,
                 email_sent: false,
+                email_lang: data.emailLang ?? 'pt',
+                recurrence: data.recurrence ?? 'none',
+                parent_meeting_id: data.parentMeetingId ?? null,
+                timezone_name: data.timezoneName ?? null,
             })
             .select()
             .single();
         if (error) throw error;
-        return {
-            id: saved.id,
-            academyId: saved.academy_id,
-            createdBy: saved.created_by,
-            title: saved.title,
-            scheduledAt: saved.scheduled_at,
-            durationMin: saved.duration_min as MeetingDuration,
-            attendeeEmail: saved.attendee_email ?? undefined,
-            attendeeName: saved.attendee_name ?? undefined,
-            organizerEmail: saved.organizer_email ?? undefined,
-            organizerName: saved.organizer_name ?? undefined,
-            meetingLink: saved.meeting_link ?? undefined,
-            extraEmails: saved.extra_emails ?? undefined,
-            notes: saved.notes ?? undefined,
-            emailSent: saved.email_sent,
-            createdAt: saved.created_at,
-            updatedAt: saved.updated_at,
-        } as Meeting;
+        return mapMeeting(saved);
     },
 
     async updateMeeting(id: string, data: Partial<Meeting>): Promise<Meeting> {
@@ -1053,9 +1051,12 @@ export const DatabaseService = {
         if (data.scheduledAt !== undefined) payload.scheduled_at = data.scheduledAt;
         if (data.durationMin !== undefined) payload.duration_min = data.durationMin;
         if (data.meetingLink !== undefined) payload.meeting_link = data.meetingLink;
-        if (data.extraEmails !== undefined) payload.extra_emails = data.extraEmails;
+        if (data.extraEmails !== undefined) payload.extra_emails = data.extraEmails.length ? data.extraEmails.join(',') : null;
         if (data.notes !== undefined) payload.notes = data.notes;
         if (data.emailSent !== undefined) payload.email_sent = data.emailSent;
+        if (data.emailLang !== undefined) payload.email_lang = data.emailLang;
+        if (data.recurrence !== undefined) payload.recurrence = data.recurrence;
+        if (data.timezoneName !== undefined) payload.timezone_name = data.timezoneName;
         const { data: saved, error } = await supabase
             .from('meetings')
             .update(payload)
@@ -1063,28 +1064,14 @@ export const DatabaseService = {
             .select()
             .single();
         if (error) throw error;
-        return {
-            id: saved.id,
-            academyId: saved.academy_id,
-            createdBy: saved.created_by,
-            title: saved.title,
-            scheduledAt: saved.scheduled_at,
-            durationMin: saved.duration_min as MeetingDuration,
-            attendeeEmail: saved.attendee_email ?? undefined,
-            attendeeName: saved.attendee_name ?? undefined,
-            organizerEmail: saved.organizer_email ?? undefined,
-            organizerName: saved.organizer_name ?? undefined,
-            meetingLink: saved.meeting_link ?? undefined,
-            extraEmails: saved.extra_emails ?? undefined,
-            notes: saved.notes ?? undefined,
-            emailSent: saved.email_sent,
-            createdAt: saved.created_at,
-            updatedAt: saved.updated_at,
-        } as Meeting;
+        return mapMeeting(saved);
     },
 
     async deleteMeeting(id: string): Promise<void> {
-        const { error } = await supabase.from('meetings').delete().eq('id', id);
+        const { error } = await supabase
+            .from('meetings')
+            .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq('id', id);
         if (error) throw error;
     },
 
@@ -1096,7 +1083,32 @@ export const DatabaseService = {
         if (error) throw error;
     },
 
+    // Called manually by admin to mark presence as confirmed without using the email link
+    async confirmMeeting(id: string): Promise<Meeting> {
+        const { data, error } = await supabase
+            .from('meetings')
+            .update({ confirmed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return mapMeeting(data);
+    },
+
+    // Remove confirmation (admin undo)
+    async unconfirmMeeting(id: string): Promise<Meeting> {
+        const { data, error } = await supabase
+            .from('meetings')
+            .update({ confirmed_at: null, updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return mapMeeting(data);
+    },
+
 };
+
 
 export const AuthService = {
     async login(email: string, password: string) {

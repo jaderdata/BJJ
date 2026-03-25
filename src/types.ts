@@ -191,10 +191,11 @@ export interface FollowUpLog {
 // ─────────────────────────────── MEETINGS ────────────────────────────────────
 
 export type MeetingDuration = 15 | 30 | 45 | 60 | 90 | 120;
+export type MeetingRecurrence = 'none' | 'weekly' | 'biweekly' | 'monthly';
 
 export interface Meeting {
   id: string;
-  academyId: string;
+  academyId?: string;
   createdBy: string;
   title: string;
   scheduledAt: string;        // ISO-8601 with timezone
@@ -204,9 +205,15 @@ export interface Meeting {
   organizerEmail?: string;
   organizerName?: string;
   meetingLink?: string;
-  extraEmails?: string;   // comma-separated additional recipients
+  extraEmails?: string[];     // array of additional recipient emails
   notes?: string;
   emailSent: boolean;
+  emailLang?: 'pt' | 'en';   // persisted language preference for confirmation email
+  recurrence?: MeetingRecurrence;
+  parentMeetingId?: string;   // links recurring instances to the original
+  deletedAt?: string;         // soft-delete timestamp
+  confirmedAt?: string;       // timestamp when attendee confirmed presence via email link
+  timezoneName?: string;      // display label shown in the email, e.g. "Horário de Brasília"
   createdAt: string;
   updatedAt: string;
 }

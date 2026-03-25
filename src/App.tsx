@@ -43,6 +43,7 @@ const VendorDetail = lazy(() => import('./pages/VendorDetail').then(m => ({ defa
 const SalesFinance = lazy(() => import('./pages/SalesFinance').then(m => ({ default: m.SalesFinance })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const FollowUpPage = lazy(() => import('./pages/FollowUp').then(m => ({ default: m.FollowUpPage })));
+const MeetingsPage = lazy(() => import('./pages/MeetingsPage').then(m => ({ default: m.MeetingsPage })));
 import { SalesHeader } from './components/SalesHeader';
 import { GlobalToast } from './components/GlobalToast';
 import { SystemAlerts } from './components/SystemAlerts';
@@ -638,6 +639,7 @@ const AppContent: React.FC = () => {
             {activeTab === 'vendors' && currentUser.role === UserRole.ADMIN && (
               <VendorList
                 vendors={sellers}
+                visits={visits}
                 onSelect={(id) => {
                   setSelectedVendorId(id);
                   setActiveTab('vendor_detail');
@@ -801,6 +803,12 @@ const AppContent: React.FC = () => {
                 vendedores={sellers}
                 currentUser={currentUser}
                 onAcademyCreated={() => queryClient.invalidateQueries({ queryKey: ['academies'] })}
+              />
+            )}
+            {activeTab === 'meetings' && currentUser && currentUser.role === UserRole.ADMIN && (
+              <MeetingsPage
+                academies={academies}
+                currentUser={currentUser}
               />
             )}
 

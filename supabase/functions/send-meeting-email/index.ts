@@ -30,9 +30,11 @@ Deno.serve(async (req: Request) => {
         const smtpPort = Deno.env.get('BREVO_SMTP_PORT');
         const smtpUser = Deno.env.get('BREVO_SMTP_USER');
         const smtpPass = Deno.env.get('BREVO_SMTP_PASS');
+        // Must be a verified sender in Brevo (Senders & IPs → Senders)
+        const smtpFrom = Deno.env.get('BREVO_SMTP_FROM');
 
-        if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
-            throw new Error('Configuração SMTP faltando. Verifique os Secrets da Edge Function.');
+        if (!smtpHost || !smtpPort || !smtpUser || !smtpPass || !smtpFrom) {
+            throw new Error('Configuração SMTP faltando. Verifique os Secrets da Edge Function (BREVO_SMTP_HOST, BREVO_SMTP_PORT, BREVO_SMTP_USER, BREVO_SMTP_PASS, BREVO_SMTP_FROM).');
         }
 
         const payload: EmailPayload = await req.json();
@@ -61,8 +63,11 @@ Deno.serve(async (req: Request) => {
             ccList.push(...extras);
         }
 
+        // Brevo requires the from address to be a verified sender (BREVO_SMTP_FROM).
+        // The organizer email is set as Reply-To so replies go to the correct person.
         await transporter.sendMail({
-            from: `${organizerName} <${organizerEmail}>`,
+            from: `${organizerName} <${smtpFrom}>`,
+            replyTo: `${organizerName} <${organizerEmail}>`,
             to: toList.length > 0 ? toList.join(', ') : organizerEmail,
             cc: ccList.join(', '),
             subject,

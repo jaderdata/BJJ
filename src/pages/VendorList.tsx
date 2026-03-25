@@ -1,12 +1,13 @@
 import React from 'react';
-import { User } from '../types';
+import { User, Visit, VisitStatus } from '../types';
 
 interface VendorListProps {
     vendors: User[];
+    visits: Visit[];
     onSelect: (vendorId: string) => void;
 }
 
-export const VendorList: React.FC<VendorListProps> = ({ vendors, onSelect }) => {
+export const VendorList: React.FC<VendorListProps> = ({ vendors, visits, onSelect }) => {
     return (
         <div className="space-y-6 p-4">
             {/* Header */}
@@ -48,7 +49,7 @@ export const VendorList: React.FC<VendorListProps> = ({ vendors, onSelect }) => 
                                 <h3 className="text-lg font-bold text-white truncate">{vendor.name}</h3>
                                 <p className="text-sm text-neutral-400 truncate mb-2">{vendor.email}</p>
 
-                                <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                                     <span className="text-[10px] font-black bg-amber-500/20 text-amber-400 px-2 py-1 rounded-sm uppercase tracking-wider">
                                         Vendedor
                                     </span>
@@ -57,6 +58,9 @@ export const VendorList: React.FC<VendorListProps> = ({ vendors, onSelect }) => 
                                             {vendor.phone}
                                         </span>
                                     )}
+                                    <span className="text-[10px] font-bold text-neutral-300 bg-neutral-800 px-2 py-1 rounded-sm">
+                                        {visits.filter(v => v.salespersonId === vendor.id && v.status === VisitStatus.VISITED).length} visitas
+                                    </span>
                                 </div>
                             </div>
                         </div>
