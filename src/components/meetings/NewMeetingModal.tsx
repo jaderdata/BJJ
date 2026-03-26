@@ -100,7 +100,10 @@ export function NewMeetingModal({ academies, currentUser, editing, allMeetings, 
     const [attendeeEmail, setAttendeeEmail] = useState(editing?.attendeeEmail || '');
     const [attendeeName, setAttendeeName] = useState(editing?.attendeeName || '');
     const [organizerEmail, setOrganizerEmail] = useState(editing?.organizerEmail || currentUser.email);
-    const [extraEmails, setExtraEmails] = useState<string[]>(editing?.extraEmails ?? []);
+    const [extraParticipants, setExtraParticipants] = useState<Array<{ name: string; email: string }>>(
+        editing?.extraParticipants?.map(p => ({ name: p.name ?? '', email: p.email })) ??
+        (editing?.extraEmails?.map(e => ({ name: '', email: e })) ?? [])
+    );
     const [lang, setLang] = useState<'pt' | 'en'>(editing?.emailLang ?? 'pt');
     const [notes, setNotes] = useState(editing?.notes || '');
     const [timezoneName, setTimezoneName] = useState(editing?.timezoneName ?? 'Horário de Brasília');
@@ -126,11 +129,11 @@ export function NewMeetingModal({ academies, currentUser, editing, allMeetings, 
         }
     };
 
-    const addExtraEmail = () => setExtraEmails(prev => [...prev, '']);
-    const updateExtraEmail = (idx: number, val: string) =>
-        setExtraEmails(prev => prev.map((e, i) => i === idx ? val : e));
-    const removeExtraEmail = (idx: number) =>
-        setExtraEmails(prev => prev.filter((_, i) => i !== idx));
+    const addExtraParticipant = () => setExtraParticipants(prev => [...prev, { name: '', email: '' }]);
+    const updateExtraParticipant = (idx: number, field: 'name' | 'email', val: string) =>
+        setExtraParticipants(prev => prev.map((p, i) => i === idx ? { ...p, [field]: val } : p));
+    const removeExtraParticipant = (idx: number) =>
+        setExtraParticipants(prev => prev.filter((_, i) => i !== idx));
 
     function buildInstances(primaryScheduledAt: string): Partial<Meeting>[] {
         const base: Partial<Meeting> = {
@@ -145,7 +148,10 @@ export function NewMeetingModal({ academies, currentUser, editing, allMeetings, 
             attendeeName: attendeeName.trim() || undefined,
             organizerEmail: organizerEmail.trim() || currentUser.email,
             organizerName: currentUser.name,
-            extraEmails: extraEmails.filter(e => e.trim()).length > 0 ? extraEmails.filter(e => e.trim()) : undefined,
+            extraParticipants: extraParticipants.filter(p => p.email.trim()).length > 0
+                ? extraParticipants.filter(p => p.email.trim()).map(p => ({ name: p.name.trim() || undefined, email: p.email.trim() }))
+                : undefined,
+            extraEmails: extraParticipants.filter(p => p.email.trim()).map(p => p.email.trim()),
             emailLang: lang,
             recurrence,
             timezoneName,
@@ -442,7 +448,7 @@ export function NewMeetingModal({ academies, currentUser, editing, allMeetings, 
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <label className="text-[10px] font-black text-white/30 uppercase tracking-widest">Participantes</label>
-                                    <button type="button" onClick={addExtraEmail} className="flex items-center gap-1 text-[10px] font-bold text-amber-400 hover:text-amber-300 transition-colors">
+                                    <button type="button" onClick={addExtraParticipant} className="flex items-center gap-1 text-[10px] font-bold text-amber-400 hover:text-amber-300 transition-colors">
                                         <Plus size={11} />
                                         Adicionar
                                     </button>
@@ -474,17 +480,23 @@ export function NewMeetingModal({ academies, currentUser, editing, allMeetings, 
                                 })()}
 
                                 {/* Extra participants */}
-                                {extraEmails.map((email, idx) => (
+                                {extraParticipants.map((p, idx) => (
                                     <div key={idx} className="flex items-center gap-2">
-                                        <div className="w-[40%] shrink-0" />
+                                        <input
+                                            type="text"
+                                            placeholder="Nome"
+                                            value={p.name}
+                                            onChange={e => updateExtraParticipant(idx, 'name', e.target.value)}
+                                            className="w-[40%] h-9 px-3 bg-white/5 border border-white/10 rounded-sm text-white text-xs focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/20 shrink-0"
+                                        />
                                         <input
                                             type="email"
                                             placeholder={`Email participante ${idx + 2}`}
-                                            value={email}
-                                            onChange={e => updateExtraEmail(idx, e.target.value)}
+                                            value={p.email}
+                                            onChange={e => updateExtraParticipant(idx, 'email', e.target.value)}
                                             className="flex-1 h-9 px-3 bg-white/5 border border-white/10 rounded-sm text-white text-xs focus:border-amber-500/50 focus:outline-none transition-all placeholder:text-white/20 min-w-0"
                                         />
-                                        <button type="button" onClick={() => removeExtraEmail(idx)} className="w-9 h-9 rounded-sm bg-white/5 hover:bg-red-500/10 flex items-center justify-center text-white/30 hover:text-red-400 transition-all shrink-0">
+                                        <button type="button" onClick={() => removeExtraParticipant(idx)} className="w-9 h-9 rounded-sm bg-white/5 hover:bg-red-500/10 flex items-center justify-center text-white/30 hover:text-red-400 transition-all shrink-0">
                                             <X size={14} />
                                         </button>
                                     </div>

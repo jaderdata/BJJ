@@ -14,6 +14,7 @@ function mapMeeting(m: any): Meeting {
         organizerName: m.organizer_name ?? undefined,
         meetingLink: m.meeting_link ?? undefined,
         extraEmails: m.extra_emails ? m.extra_emails.split(',').map((e: string) => e.trim()).filter(Boolean) : undefined,
+        extraParticipants: m.extra_participants ?? undefined,
         notes: m.notes ?? undefined,
         emailSent: m.email_sent,
         emailLang: (m.email_lang as 'pt' | 'en') ?? 'pt',
@@ -1032,6 +1033,7 @@ export const DatabaseService = {
                 organizer_name: data.organizerName ?? null,
                 meeting_link: data.meetingLink ?? null,
                 extra_emails: data.extraEmails?.length ? data.extraEmails.join(',') : null,
+                extra_participants: data.extraParticipants ?? null,
                 notes: data.notes ?? null,
                 email_sent: false,
                 email_lang: data.emailLang ?? 'pt',
@@ -1052,6 +1054,7 @@ export const DatabaseService = {
         if (data.durationMin !== undefined) payload.duration_min = data.durationMin;
         if (data.meetingLink !== undefined) payload.meeting_link = data.meetingLink;
         if (data.extraEmails !== undefined) payload.extra_emails = data.extraEmails.length ? data.extraEmails.join(',') : null;
+        if (data.extraParticipants !== undefined) payload.extra_participants = data.extraParticipants ?? null;
         if (data.notes !== undefined) payload.notes = data.notes;
         if (data.emailSent !== undefined) payload.email_sent = data.emailSent;
         if (data.emailLang !== undefined) payload.email_lang = data.emailLang;

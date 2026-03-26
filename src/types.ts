@@ -205,7 +205,8 @@ export interface Meeting {
   organizerEmail?: string;
   organizerName?: string;
   meetingLink?: string;
-  extraEmails?: string[];     // array of additional recipient emails
+  extraEmails?: string[];     // array of additional recipient emails (legacy)
+  extraParticipants?: Array<{ name?: string; email: string }>; // participants with optional name
   notes?: string;
   emailSent: boolean;
   emailLang?: 'pt' | 'en';   // persisted language preference for confirmation email

@@ -805,7 +805,7 @@ const AppContent: React.FC = () => {
                 onAcademyCreated={() => queryClient.invalidateQueries({ queryKey: ['academies'] })}
               />
             )}
-            {activeTab === 'meetings' && currentUser && currentUser.role === UserRole.ADMIN && (
+            {activeTab === 'meetings' && currentUser && (
               <MeetingsPage
                 academies={academies}
                 currentUser={currentUser}
