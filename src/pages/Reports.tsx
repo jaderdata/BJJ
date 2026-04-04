@@ -56,7 +56,7 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
     const [followUpsError, setFollowUpsError] = useState(false);
 
     useEffect(() => {
-        if (activeTab === 'followup' && followUps.length === 0 && !followUpsLoading) {
+        if (followUps.length === 0 && !followUpsLoading) {
             setFollowUpsLoading(true);
             setFollowUpsError(false);
             DatabaseService.getFollowUps()
@@ -64,7 +64,7 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
                 .catch(() => setFollowUpsError(true))
                 .finally(() => setFollowUpsLoading(false));
         }
-    }, [activeTab]);
+    }, []);
     const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [eventFilter, setEventFilter] = useState('');
@@ -175,11 +175,20 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
     }, [filteredFinance]);
 
     const timelineData = useMemo(() => {
-        const days: Record<string, { date: string; visits: number; vouchers: number }> = {};
-        filteredVisits.forEach(v => { if (v.finishedAt) { const d = new Date(v.finishedAt).toLocaleDateString('pt-BR'); if (!days[d]) days[d] = { date: d, visits: 0, vouchers: 0 }; days[d].visits++; } });
-        overviewVouchers.forEach(v => { const d = new Date(v.createdAt).toLocaleDateString('pt-BR'); if (!days[d]) days[d] = { date: d, visits: 0, vouchers: 0 }; days[d].vouchers++; });
-        return Object.values(days).sort((a, b) => { const [da, ma, ya] = a.date.split('/').map(Number); const [db, mb, yb] = b.date.split('/').map(Number); return new Date(ya, ma - 1, da).getTime() - new Date(yb, mb - 1, db).getTime(); }).slice(-20);
-    }, [filteredVisits, overviewVouchers]);
+        return [...nonTestEvents]
+            .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+            .filter(e => {
+                const hasVisit = visits.some(v => v.eventId === e.id);
+                const hasFollowUp = followUps.some(f => f.eventIds?.includes(e.id));
+                return hasVisit || hasFollowUp;
+            })
+            .slice(-10)
+            .map(e => ({
+                name: e.name.length > 22 ? e.name.slice(0, 20) + '…' : e.name,
+                visitas: visits.filter(v => v.eventId === e.id).length,
+                followups: followUps.filter(f => f.eventIds?.includes(e.id)).length,
+            }));
+    }, [nonTestEvents, visits, followUps]);
 
     const temperatureData = useMemo(() => {
         const c = { [AcademyTemperature.COLD]: 0, [AcademyTemperature.WARM]: 0, [AcademyTemperature.HOT]: 0 };
@@ -541,22 +550,18 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
                         <KPICard label="Saldo Financeiro" value={`$ ${financialSummary.balance.toFixed(0)}`} sub={`Recebido - Pago`} />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                        <ChartCard title="Evolução Temporal" className="lg:col-span-2">
+                        <ChartCard title="Visitas e Follow-Ups por Evento (últimos 10)" className="lg:col-span-2">
                             <div className="h-[280px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={timelineData}>
-                                        <defs>
-                                            <linearGradient id="gV" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.3} /><stop offset="95%" stopColor="#10b981" stopOpacity={0} /></linearGradient>
-                                            <linearGradient id="gU" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} /><stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} /></linearGradient>
-                                        </defs>
+                                    <BarChart data={timelineData} barCategoryGap="25%" barGap={3}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                                        <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} />
-                                        <YAxis stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} />
-                                        <Tooltip contentStyle={tooltipStyle} />
+                                        <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} allowDecimals={false} />
+                                        <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
                                         <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                                        <Area name="Visitas" type="monotone" dataKey="visits" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#gV)" />
-                                        <Area name="Vouchers" type="monotone" dataKey="vouchers" stroke="#0ea5e9" strokeWidth={2} fillOpacity={1} fill="url(#gU)" />
-                                    </AreaChart>
+                                        <Bar name="Visitas" dataKey="visitas" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                        <Bar name="Follow-Ups" dataKey="followups" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
                                 </ResponsiveContainer>
                             </div>
                         </ChartCard>
