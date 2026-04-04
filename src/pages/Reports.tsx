@@ -317,14 +317,14 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
                 const title = getTabTitle();
 
                 if (activeTab === 'overview') {
-                    headers = ['Academia', 'Cidade', 'Evento', 'Vendedor', 'Data Visita', 'Temperatura', 'Duração (min)'];
+                    headers = ['Academia', 'Cidade', 'Evento', 'Vendedor', 'Data Visita', 'Temperatura', 'Duração (min)', 'Resumo da Atividade'];
                     rows = filteredVisits.map(v => {
                         const ac = academies.find(a => a.id === v.academyId);
                         const ev = events.find(e => e.id === v.eventId);
                         const se = vendedores.find(u => u.id === v.salespersonId);
                         const dur = v.startedAt && v.finishedAt ? calculateTrueVisitDuration(v.startedAt, v.finishedAt) : null;
                         const date = v.finishedAt || v.startedAt;
-                        return [ac?.name || '---', ac?.city || '---', ev?.name || '---', se?.name || 'N/A', date ? new Date(date).toLocaleDateString('pt-BR') : '---', v.temperature || '---', dur ? String(dur) : '---'];
+                        return [ac?.name || '---', ac?.city || '---', ev?.name || '---', se?.name || 'N/A', date ? new Date(date).toLocaleDateString('pt-BR') : '---', v.temperature || '---', dur ? String(dur) : '---', v.summary || ''];
                     });
                 } else if (activeTab === 'vouchers') {
                     headers = ['Código', 'Data', 'Academia', 'Evento', 'Vendedor', 'Duração (min)'];
