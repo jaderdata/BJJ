@@ -33,7 +33,7 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 
 
 
-export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, onFinish: any, onStart: (v: Partial<Visit>) => Promise<Visit | void>, onCancel: any, userRole?: UserRole }> = ({ eventId, academy, event, existingVisit, onFinish, onStart, onCancel, userRole }) => {
+export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: Event, existingVisit?: Visit, currentUserId?: string, onFinish: any, onStart: (v: Partial<Visit>) => Promise<Visit | void>, onCancel: any, userRole?: UserRole }> = ({ eventId, academy, event, existingVisit, currentUserId, onFinish, onStart, onCancel, userRole }) => {
   const { withLoading } = useLoading();
   const [step, setStep] = useState<'START' | 'ACTIVE' | 'VOUCHERS' | 'QR_CODE' | 'SUMMARY'>(
     existingVisit
@@ -43,7 +43,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
   const [visit, setVisit] = useState<Partial<Visit>>(existingVisit || {
     eventId,
     academyId: academy.id,
-    salespersonId: event.salespersonIds?.[0] || '',
+    salespersonId: currentUserId || event.salespersonIds?.[0] || '',
     status: VisitStatus.PENDING,
     vouchersGenerated: [],
     temperature: undefined,

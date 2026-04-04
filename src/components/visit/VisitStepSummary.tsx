@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn, hapticFeedback } from '../../lib/utils';
 import { Visit, AcademyTemperature } from '../../types';
 
@@ -15,6 +15,43 @@ export const VisitStepSummary: React.FC<VisitStepSummaryProps> = ({
     handleStartEdit,
     onCancel
 }) => {
+    const [lightbox, setLightbox] = useState<{ url: string; index: number } | null>(null);
+
+    const downloadPhoto = (url: string, index: number) => {
+        fetch(url)
+            .then(res => res.blob())
+            .then(blob => {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `visita_foto_${index + 1}.jpg`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            })
+            .catch(() => window.open(url, '_blank'));
+    };
+
+    const handleImageClick = () => {
+        if (!lightbox) return;
+        const confirmed = window.confirm('Deseja baixar esta foto?');
+        if (confirmed) downloadPhoto(lightbox.url, lightbox.index);
+    };
+
+    const photos = visit.photos || [];
+
+    const goNext = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!lightbox) return;
+        const next = (lightbox.index + 1) % photos.length;
+        setLightbox({ url: photos[next], index: next });
+    };
+
+    const goPrev = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!lightbox) return;
+        const prev = (lightbox.index - 1 + photos.length) % photos.length;
+        setLightbox({ url: photos[prev], index: prev });
+    };
+
     return (
         <div className="space-y-2 animate-in slide-in-from-bottom-10 duration-700">
             <div className="flex flex-col items-center justify-center space-y-1 text-center">
@@ -76,7 +113,11 @@ export const VisitStepSummary: React.FC<VisitStepSummaryProps> = ({
                             {visit.leftBanner && <div className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-full text-[9px] font-black uppercase">Banner 🚩</div>}
                             {visit.leftFlyers && <div className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-3 py-1.5 rounded-full text-[9px] font-black uppercase">Flyers 📄</div>}
                             {visit.photos?.map((p, i) => (
-                                <div key={i} className="w-12 h-12 rounded-sm overflow-hidden border border-white/10">
+                                <div
+                                    key={i}
+                                    className="w-12 h-12 rounded-sm overflow-hidden border border-white/10 cursor-pointer hover:border-amber-500/50 transition-all hover:scale-105"
+                                    onClick={() => setLightbox({ url: p, index: i })}
+                                >
                                     <img src={p} alt={`Visit Photo ${i + 1}`} className="w-full h-full object-cover" />
                                 </div>
                             ))}
@@ -101,6 +142,46 @@ export const VisitStepSummary: React.FC<VisitStepSummaryProps> = ({
                     </button>
                 </div>
             </div>
+
+            {/* Lightbox */}
+            {lightbox && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setLightbox(null)}
+                >
+                    <button
+                        className="absolute top-4 right-4 w-9 h-9 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center transition-all z-10"
+                        onClick={() => setLightbox(null)}
+                    >
+                        <X size={16} className="text-white" />
+                    </button>
+                    {photos.length > 1 && (
+                        <button
+                            className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center transition-all z-10"
+                            onClick={goPrev}
+                        >
+                            <ChevronLeft size={18} className="text-white" />
+                        </button>
+                    )}
+                    <img
+                        src={lightbox.url}
+                        alt={`Visit Photo ${lightbox.index + 1}`}
+                        className="max-w-[90vw] max-h-[90vh] rounded-xl object-contain shadow-2xl cursor-pointer"
+                        onClick={e => { e.stopPropagation(); handleImageClick(); }}
+                    />
+                    {photos.length > 1 && (
+                        <button
+                            className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center transition-all z-10"
+                            onClick={goNext}
+                        >
+                            <ChevronRight size={18} className="text-white" />
+                        </button>
+                    )}
+                    <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/30 text-[10px] font-black uppercase tracking-widest">
+                        {photos.length > 1 ? `${lightbox.index + 1} / ${photos.length} · ` : ''}Toque na foto para baixar
+                    </p>
+                </div>
+            )}
         </div>
     );
 };

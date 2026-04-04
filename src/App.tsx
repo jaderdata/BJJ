@@ -682,6 +682,7 @@ const AppContent: React.FC = () => {
                 academy={academies.find((a: Academy) => a.id === selectedAcademyId)!}
                 event={events.find((e: Event) => e.id === selectedEventId)!}
                 existingVisit={visits.find((v: Visit) => v.eventId === selectedEventId && v.academyId === selectedAcademyId)}
+                currentUserId={currentUser.id}
                 userRole={currentUser.role}
                 onStart={async (visit: Visit) => {
                   try {
