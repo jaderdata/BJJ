@@ -161,7 +161,7 @@ export enum ContactChannel {
 
 export interface FollowUp {
   id: string;
-  academyId: string;
+  academyId?: string;
   visitId?: string;
   eventIds?: string[];
   createdBy: string;

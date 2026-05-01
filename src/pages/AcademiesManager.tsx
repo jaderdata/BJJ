@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Plus,
     Trash2,
@@ -38,7 +38,10 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
 
     const inferCountry = (phone: string) => {
         const clean = phone?.replace(/\D/g, '') || '';
-        if (clean.length === 9) return 'PT';
+        if (clean.length === 9) {
+            if (phone.split(' ').length === 4) return 'ES';
+            return 'PT';
+        }
         if (clean.length === 10) return 'US';
         return 'BR';
     };
@@ -69,6 +72,15 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
             if (val.length > 9) val = val.slice(0, 9);
             if (val.length > 6) {
                 val = `${val.slice(0, 3)} ${val.slice(3, 6)} ${val.slice(6)}`;
+            } else if (val.length > 3) {
+                val = `${val.slice(0, 3)} ${val.slice(3)}`;
+            }
+        } else if (country === 'ES') {
+            if (val.length > 9) val = val.slice(0, 9);
+            if (val.length > 7) {
+                val = `${val.slice(0, 3)} ${val.slice(3, 5)} ${val.slice(5, 7)} ${val.slice(7)}`;
+            } else if (val.length > 5) {
+                val = `${val.slice(0, 3)} ${val.slice(3, 5)} ${val.slice(5)}`;
             } else if (val.length > 3) {
                 val = `${val.slice(0, 3)} ${val.slice(3)}`;
             }
@@ -164,7 +176,9 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
         let country = 'BR';
         if (academy.phone) {
             const clean = academy.phone.replace(/\D/g, '');
-            if (clean.length === 9) country = 'PT';
+            if (clean.length === 9) {
+                country = academy.phone.split(' ').length === 4 ? 'ES' : 'PT';
+            }
             else if (clean.length === 10 && academy.phone.startsWith('(') && academy.phone.substring(4, 5) === ')') country = 'US'; // (XXX) XXX
         }
         setSelectedCountry(country);
@@ -270,6 +284,7 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                         <option value="BR" className="bg-neutral-900">Brasil</option>
                         <option value="US" className="bg-neutral-900">Estados Unidos</option>
                         <option value="PT" className="bg-neutral-900">Portugal</option>
+                        <option value="ES" className="bg-neutral-900">Espanha</option>
                     </select>
                 </div>
 
@@ -366,12 +381,13 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                 {/* Modal */}
                 {showModal && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-                        <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-md w-full max-w-2xl shadow-2xl overflow-hidden">
-                            <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                        <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-md w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="p-5 border-b border-white/10 flex justify-between items-center shrink-0">
                                 <h3 className="text-xl font-black text-white">
                                     {editingAcademy ? 'Editar Academia' : 'Nova Academia'}
                                 </h3>
                                 <button
+                                    type="button"
                                     onClick={() => {
                                         setShowModal(false);
                                         setEditingAcademy(null);
@@ -383,112 +399,115 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSave} className="p-6 space-y-4">
-                                <input
-                                    type="text"
-                                    placeholder="Nome da Academia"
-                                    value={formData.name || ''}
-                                    className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                />
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Endereço</label>
+                            <div className="overflow-y-auto p-5">
+                                <form onSubmit={handleSave} className="space-y-4">
                                     <input
                                         type="text"
-                                        placeholder="Endereço completo"
-                                        value={formData.address || ''}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                        onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                        placeholder="Nome da Academia"
+                                        value={formData.name || ''}
+                                        className="w-full px-4 py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
-                                </div>
 
-                                <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Cidade</label>
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Endereço</label>
                                         <input
                                             type="text"
-                                            placeholder="Ex: Orlando"
-                                            value={formData.city || ''}
-                                            className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                            onChange={e => setFormData({ ...formData, city: e.target.value })}
+                                            placeholder="Endereço completo"
+                                            value={formData.address || ''}
+                                            className="w-full px-4 py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                            onChange={e => setFormData({ ...formData, address: e.target.value })}
                                         />
                                     </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Cidade</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Ex: Orlando"
+                                                value={formData.city || ''}
+                                                className="w-full px-4 py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                                onChange={e => setFormData({ ...formData, city: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">UF</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Ex: FL"
+                                                maxLength={2}
+                                                value={formData.state || ''}
+                                                className="w-full px-4 py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                                onChange={e => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">UF</label>
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Responsável</label>
                                         <input
                                             type="text"
-                                            placeholder="Ex: FL"
-                                            maxLength={2}
-                                            value={formData.state || ''}
-                                            className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                            onChange={e => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
+                                            placeholder="Nome do responsável"
+                                            value={formData.responsible || ''}
+                                            className="w-full px-4 py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                            onChange={e => setFormData({ ...formData, responsible: e.target.value })}
                                         />
                                     </div>
-                                </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Responsável</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Nome do responsável"
-                                        value={formData.responsible || ''}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                        onChange={e => setFormData({ ...formData, responsible: e.target.value })}
-                                    />
-                                </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">E-mail</label>
+                                        <input
+                                            type="email"
+                                            placeholder="contato@academia.com"
+                                            value={formData.email || ''}
+                                            className="w-full px-4 py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                        />
+                                    </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">E-mail</label>
-                                    <input
-                                        type="email"
-                                        placeholder="contato@academia.com"
-                                        value={formData.email || ''}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    />
-                                </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">País</label>
+                                        <select
+                                            className="w-full px-4 py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                            value={selectedCountry}
+                                            onChange={(e) => {
+                                                const newCountry = e.target.value;
+                                                setSelectedCountry(newCountry);
+                                                // Re-apply mask to existing phone number
+                                                const masked = applyPhoneMask(formData.phone || '', newCountry);
+                                                setFormData({ ...formData, phone: masked });
+                                            }}
+                                        >
+                                            <option value="BR" className="bg-neutral-900">Brasil</option>
+                                            <option value="US" className="bg-neutral-900">Estados Unidos</option>
+                                            <option value="PT" className="bg-neutral-900">Portugal</option>
+                                            <option value="ES" className="bg-neutral-900">Espanha</option>
+                                        </select>
+                                    </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">País</label>
-                                    <select
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                        value={selectedCountry}
-                                        onChange={(e) => {
-                                            const newCountry = e.target.value;
-                                            setSelectedCountry(newCountry);
-                                            // Re-apply mask to existing phone number
-                                            const masked = applyPhoneMask(formData.phone || '', newCountry);
-                                            setFormData({ ...formData, phone: masked });
-                                        }}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Telefone</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Número de telefone"
+                                            value={formData.phone || ''}
+                                            className="w-full px-4 py-2.5 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
+                                            onChange={(e) => {
+                                                const val = applyPhoneMask(e.target.value, selectedCountry);
+                                                setFormData({ ...formData, phone: val });
+                                            }}
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-sm font-bold transition-all shadow-lg hover:shadow-amber-500/50 mt-2"
                                     >
-                                        <option value="BR" className="bg-neutral-900">Brasil</option>
-                                        <option value="US" className="bg-neutral-900">Estados Unidos</option>
-                                        <option value="PT" className="bg-neutral-900">Portugal</option>
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider ml-1">Telefone</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Número de telefone"
-                                        value={formData.phone || ''}
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
-                                        onChange={(e) => {
-                                            const val = applyPhoneMask(e.target.value, selectedCountry);
-                                            setFormData({ ...formData, phone: val });
-                                        }}
-                                    />
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-sm font-bold transition-all shadow-lg hover:shadow-amber-500/50"
-                                >
-                                    {editingAcademy ? 'Salvar Alterações' : 'Criar Academia'}
-                                </button>
-                            </form>
+                                        {editingAcademy ? 'Salvar Alterações' : 'Criar Academia'}
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 )}

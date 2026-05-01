@@ -113,9 +113,12 @@ function FollowUpCard({
 
             {/* Academy name */}
             <h4 className="text-sm font-bold text-white mb-1 leading-tight">
-                {academy?.name ?? 'Academia desconhecida'}
+                {academy?.name ?? followUp.contactPerson ?? 'Sem academia'}
             </h4>
-            <p className="text-xs text-neutral-500 mb-3">{academy?.city}, {academy?.state}</p>
+            {academy && (
+                <p className="text-xs text-neutral-500 mb-3">{academy.city}, {academy.state}</p>
+            )}
+            {!academy && <div className="mb-3" />}
 
             {/* Meta row */}
             <div className="flex items-center gap-3 flex-wrap mb-3">
@@ -123,7 +126,7 @@ function FollowUpCard({
                     <ChannelIcon size={12} />
                     <span className="text-[10px] font-bold uppercase tracking-wider">{channelCfg.label}</span>
                 </div>
-                {followUp.contactPerson && (
+                {followUp.contactPerson && academy && (
                     <span className="text-[10px] text-neutral-600 font-medium">{followUp.contactPerson}</span>
                 )}
                 {creator && (
@@ -389,11 +392,11 @@ function FollowUpModal({ academies, visits, events, currentUser, editing, onSave
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedAcademyId) return alert('Selecione uma academia.');
+        if (!selectedAcademyId && !contactPerson) return alert('Selecione uma academia ou informe o nome do contato.');
         setSaving(true);
         try {
             await onSave({
-                academyId: selectedAcademyId,
+                academyId: selectedAcademyId || undefined,
                 status,
                 contactChannel: channel,
                 contactPerson: contactPerson || undefined,
@@ -510,7 +513,7 @@ function FollowUpModal({ academies, visits, events, currentUser, editing, onSave
                             {/* Academy */}
                             <div>
                                 <div className="flex items-center justify-between mb-1.5">
-                                    <label className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Academia *</label>
+                                    <label className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Academia</label>
                                     {!showNewAcademy && !selectedAcademy && (
                                         <button
                                             type="button"
@@ -696,7 +699,9 @@ function FollowUpModal({ academies, visits, events, currentUser, editing, onSave
                             {/* Contact Person + Next Contact side by side */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1.5 block">Contato (nome)</label>
+                                    <label className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1.5 block">
+                                        Contato (nome) {!selectedAcademyId && <span className="text-amber-400">*</span>}
+                                    </label>
                                     <input
                                         type="text"
                                         placeholder="Ex: Prof. João"
@@ -744,7 +749,7 @@ function FollowUpModal({ academies, visits, events, currentUser, editing, onSave
                         </button>
                         <button
                             type="submit"
-                            disabled={saving || !selectedAcademyId}
+                            disabled={saving || (!selectedAcademyId && !contactPerson)}
                             className="min-w-[160px] bg-amber-600 hover:bg-amber-500 text-white px-6 py-2.5 rounded-sm font-bold text-sm transition-all shadow-lg hover:shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
