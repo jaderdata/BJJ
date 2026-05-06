@@ -399,8 +399,8 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                 </button>
                             </div>
 
-                            <div className="overflow-y-auto p-5">
-                                <form onSubmit={handleSave} className="space-y-4">
+                            <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
+                                <div className="p-5 space-y-4 overflow-y-auto flex-1">
                                     <input
                                         type="text"
                                         placeholder="Nome da Academia"
@@ -500,14 +500,16 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                                         />
                                     </div>
 
+                                </div>
+                                <div className="p-5 border-t border-white/10 shrink-0 bg-white/5">
                                     <button
                                         type="submit"
-                                        className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-sm font-bold transition-all shadow-lg hover:shadow-amber-500/50 mt-2"
+                                        className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-sm font-bold transition-all shadow-lg hover:shadow-amber-500/50"
                                     >
                                         {editingAcademy ? 'Salvar Alterações' : 'Criar Academia'}
                                     </button>
-                                </form>
-                            </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 )}

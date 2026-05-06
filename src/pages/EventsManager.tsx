@@ -371,8 +371,8 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-                    <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-md w-full max-w-2xl shadow-2xl overflow-hidden">
-                        <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                    <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-md w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-white/10 flex justify-between items-center shrink-0">
                             <h3 className="text-xl font-black text-white">Novo Evento</h3>
                             <button
                                 onClick={() => setShowModal(false)}
@@ -382,8 +382,9 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                             </button>
                         </div>
 
-                        <form onSubmit={handleSave} className="p-6 space-y-4">
-                            <input
+                        <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
+                            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                                <input
                                 type="text"
                                 placeholder="Nome do Evento"
                                 className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all text-sm font-medium"
@@ -529,20 +530,23 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                                 )}
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={isUploading}
-                                className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-sm font-bold transition-all shadow-lg hover:shadow-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                            >
-                                {isUploading ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        <span>Enviando...</span>
-                                    </>
-                                ) : (
-                                    <span>Criar Evento</span>
-                                )}
-                            </button>
+                            </div>
+                            <div className="p-6 border-t border-white/10 shrink-0 bg-white/5">
+                                <button
+                                    type="submit"
+                                    disabled={isUploading}
+                                    className="w-full bg-gradient-to-r from-amber-600 to-teal-600 hover:from-amber-500 hover:to-teal-500 text-white px-4 py-3 rounded-sm font-bold transition-all shadow-lg hover:shadow-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                                >
+                                    {isUploading ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            <span>Enviando...</span>
+                                        </>
+                                    ) : (
+                                        <span>Criar Evento</span>
+                                    )}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
