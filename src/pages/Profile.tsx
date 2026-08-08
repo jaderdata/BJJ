@@ -3,6 +3,7 @@ import { User, UserRole } from '../types';
 import { DatabaseService } from '../lib/supabase';
 import { Camera, Mail, Phone, MapPin, User as UserIcon, LogOut, Loader2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 interface ProfileProps {
     user: User;
@@ -20,6 +21,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
     const [city, setCity] = useState(user.city || '');
     const [uf, setUf] = useState(user.uf || '');
     const [photoUrl, setPhotoUrl] = useState(user.photoUrl || '');
+    const [showConfirmLogout, setShowConfirmLogout] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,13 +126,27 @@ export const Profile: React.FC<ProfileProps> = ({ user, onUpdate, onLogout, onBa
                     <p className="text-white/40 text-xs font-bold uppercase tracking-widest mt-1">Gerencie suas informações</p>
                 </div>
                 <button
-                    onClick={onLogout}
+                    onClick={() => setShowConfirmLogout(true)}
                     className="flex items-center space-x-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-sm text-xs font-black uppercase tracking-widest transition-all border border-red-500/20 active:scale-95"
                 >
                     <LogOut size={14} />
                     <span>Sair</span>
                 </button>
             </div>
+
+            <ConfirmationModal
+                isOpen={showConfirmLogout}
+                onCancel={() => setShowConfirmLogout(false)}
+                onConfirm={() => {
+                    setShowConfirmLogout(false);
+                    onLogout();
+                }}
+                title="Sair da Conta?"
+                message="Você precisará fazer login novamente para acessar o sistema."
+                confirmLabel="Sair"
+                cancelLabel="Cancelar"
+                type="danger"
+            />
 
             <div className={`bg-white/5 backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group transition-all duration-300 ${isUploading ? 'opacity-50 pointer-events-none scale-[0.98] blur-[2px]' : ''}`}>
                 {/* Decorative Background */}

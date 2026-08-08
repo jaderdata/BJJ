@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { User, UserRole } from '../types';
+import { ConfirmationModal } from './ConfirmationModal';
 import pkg from '../../package.json';
 
 const { version } = pkg;
@@ -24,6 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   logout,
   followUpOverdueCount = 0
 }) => {
+  const [showConfirmLogout, setShowConfirmLogout] = useState(false);
 
   const SidebarItem = ({ id, label, badge }: { id: string, label: string, badge?: number }) => {
     const isActive = activeTab === id || (id === 'events' && activeTab === 'event_detail_admin');
@@ -85,12 +87,26 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="text-[10px] text-neutral-500 font-mono mt-1" title={`Version ${version}`}>v{version}</p>
           </div>
           {currentUser.role === UserRole.ADMIN && (
-            <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-sm text-red-400 hover:bg-red-500/10 transition-colors">
+            <button onClick={() => setShowConfirmLogout(true)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-sm text-red-400 hover:bg-red-500/10 transition-colors">
               <span className="text-sm font-medium">Sair</span>
             </button>
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showConfirmLogout}
+        onCancel={() => setShowConfirmLogout(false)}
+        onConfirm={() => {
+          setShowConfirmLogout(false);
+          logout();
+        }}
+        title="Sair da Conta?"
+        message="Você precisará fazer login novamente para acessar o sistema."
+        confirmLabel="Sair"
+        cancelLabel="Cancelar"
+        type="danger"
+      />
     </aside>
   );
 };

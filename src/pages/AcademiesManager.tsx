@@ -377,11 +377,12 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                         </div>
                     ))}
                 </div>
+            </div>
 
-                {/* Modal */}
-                {showModal && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-                        <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-md w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+                    <div className="bg-gradient-to-br from-white/10 to-white/[0.02] backdrop-blur-xl border border-white/20 rounded-md w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                             <div className="p-5 border-b border-white/10 flex justify-between items-center shrink-0">
                                 <h3 className="text-xl font-black text-white">
                                     {editingAcademy ? 'Editar Academia' : 'Nova Academia'}
@@ -513,7 +514,6 @@ export const AcademiesManager: React.FC<AcademiesManagerProps> = ({
                         </div>
                     </div>
                 )}
-            </div>
         </div>
     );
 };

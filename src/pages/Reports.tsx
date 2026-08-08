@@ -197,16 +197,17 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
     }, [filteredVisits]);
 
     const academyRanking = useMemo(() => {
-        const map: Record<string, { name: string; city: string; visits: number; vouchers: number; temps: string[] }> = {};
+        const map: Record<string, { name: string; city: string; visits: number; vouchers: number; temps: string[]; durations: number[] }> = {};
         filteredVisits.forEach(v => {
             const a = academies.find(ac => ac.id === v.academyId);
             if (!a) return;
-            if (!map[v.academyId]) map[v.academyId] = { name: a.name, city: a.city || '', visits: 0, vouchers: 0, temps: [] };
+            if (!map[v.academyId]) map[v.academyId] = { name: a.name, city: a.city || '', visits: 0, vouchers: 0, temps: [], durations: [] };
             map[v.academyId].visits++;
             if (v.temperature) map[v.academyId].temps.push(v.temperature);
+            if (v.startedAt && v.finishedAt) { const d = calculateTrueVisitDuration(v.startedAt, v.finishedAt); if (d) map[v.academyId].durations.push(d); }
         });
         filteredVouchers.forEach(v => { if (map[v.academyId]) map[v.academyId].vouchers++; });
-        return Object.entries(map).map(([id, d]) => ({ id, ...d })).sort((a, b) => b.vouchers - a.vouchers);
+        return Object.entries(map).map(([id, d]) => ({ id, ...d, avgDuration: d.durations.length > 0 ? Math.round(d.durations.reduce((a, b) => a + b, 0) / d.durations.length) : 0 })).sort((a, b) => b.vouchers - a.vouchers);
     }, [filteredVisits, filteredVouchers, academies]);
 
     const eventRanking = useMemo(() => {
@@ -346,8 +347,8 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
                         return [v.code, new Date(v.createdAt).toLocaleDateString('pt-BR'), academy?.name || '---', event?.name || '---', seller?.name || 'N/A', dur ? String(dur) : '---'];
                     });
                 } else if (activeTab === 'academies') {
-                    headers = ['Academia', 'Cidade', 'Visitas', 'Vouchers'];
-                    rows = academyRanking.map(a => [a.name, a.city, String(a.visits), String(a.vouchers)]);
+                    headers = ['Academia', 'Cidade', 'Visitas', 'Vouchers', 'Duração Média (min)'];
+                    rows = academyRanking.map(a => [a.name, a.city, String(a.visits), String(a.vouchers), String(a.avgDuration)]);
                 } else if (activeTab === 'events') {
                     headers = ['Evento', 'Visitas', 'Vouchers', 'Duração Média (min)'];
                     rows = eventRanking.map(e => [e.name, String(e.visits), String(e.vouchers), String(e.avgDuration)]);
@@ -427,8 +428,8 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
                         return [v.code, new Date(v.createdAt).toLocaleDateString('pt-BR'), ac?.name || '---', ev?.name || '---', se?.name || 'N/A'];
                     });
                 } else if (activeTab === 'academies') {
-                    head = [['Academia', 'Cidade', 'Visitas', 'Vouchers']];
-                    body = academyRanking.map(a => [a.name, a.city, String(a.visits), String(a.vouchers)]);
+                    head = [['Academia', 'Cidade', 'Visitas', 'Vouchers', 'Duração Média']];
+                    body = academyRanking.map(a => [a.name, a.city, String(a.visits), String(a.vouchers), `${a.avgDuration} min`]);
                 } else if (activeTab === 'events') {
                     head = [['Evento', 'Visitas', 'Vouchers', 'Duração Média']];
                     body = eventRanking.map(e => [e.name, String(e.visits), String(e.vouchers), `${e.avgDuration} min`]);
@@ -586,7 +587,7 @@ export const Reports: React.FC<ReportsProps> = ({ events, academies, visits, vou
 
                     <div className="bg-white/[0.03] border border-white/[0.08] rounded-md overflow-hidden">
                         <div className="p-4 border-b border-white/[0.06]"><h3 className="text-sm font-black text-white">Todas as Academias ({academyRanking.length})</h3></div>
-                        <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-white/[0.03] border-b border-white/[0.06]"><tr><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Academia</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Cidade</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Visitas</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Vouchers</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Temperatura</th></tr></thead><tbody className="divide-y divide-white/[0.04]">{academyRanking.map((a, i) => (<tr key={a.id} className="hover:bg-white/[0.03] transition-colors"><td className="px-4 py-3"><div className="flex items-center space-x-2"><span className="text-[10px] font-mono font-bold text-white/30 w-5">{i + 1}</span><span className="text-sm font-bold text-white">{a.name}</span></div></td><td className="px-4 py-3 text-xs text-white/50">{a.city}</td><td className="px-4 py-3 text-sm font-bold text-white">{a.visits}</td><td className="px-4 py-3 text-sm font-black text-amber-400">{a.vouchers}</td><td className="px-4 py-3"><div className="flex gap-1">{a.temps.length > 0 ? (() => { const hot = a.temps.filter(t => t === AcademyTemperature.HOT).length; const warm = a.temps.filter(t => t === AcademyTemperature.WARM).length; const cold = a.temps.filter(t => t === AcademyTemperature.COLD).length; const dominant = hot >= warm && hot >= cold ? 'Quente' : warm >= cold ? 'Morno' : 'Frio'; const color = dominant === 'Quente' ? 'text-red-400 bg-red-500/10' : dominant === 'Morno' ? 'text-amber-400 bg-amber-500/10' : 'text-blue-400 bg-blue-500/10'; return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${color}`}>{dominant}</span>; })() : <span className="text-[10px] text-white/20">---</span>}</div></td></tr>))}</tbody></table></div>
+                        <div className="overflow-x-auto"><table className="w-full text-left"><thead className="bg-white/[0.03] border-b border-white/[0.06]"><tr><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Academia</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Cidade</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Visitas</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Vouchers</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Duração Média</th><th className="px-4 py-3 text-[10px] font-black text-white/50 uppercase tracking-wider">Temperatura</th></tr></thead><tbody className="divide-y divide-white/[0.04]">{academyRanking.map((a, i) => (<tr key={a.id} className="hover:bg-white/[0.03] transition-colors"><td className="px-4 py-3"><div className="flex items-center space-x-2"><span className="text-[10px] font-mono font-bold text-white/30 w-5">{i + 1}</span><span className="text-sm font-bold text-white">{a.name}</span></div></td><td className="px-4 py-3 text-xs text-white/50">{a.city}</td><td className="px-4 py-3 text-sm font-bold text-white">{a.visits}</td><td className="px-4 py-3 text-sm font-black text-amber-400">{a.vouchers}</td><td className="px-4 py-3 text-sm text-white/50">{a.avgDuration > 0 ? `${a.avgDuration} min` : '---'}</td><td className="px-4 py-3"><div className="flex gap-1">{a.temps.length > 0 ? (() => { const hot = a.temps.filter(t => t === AcademyTemperature.HOT).length; const warm = a.temps.filter(t => t === AcademyTemperature.WARM).length; const cold = a.temps.filter(t => t === AcademyTemperature.COLD).length; const dominant = hot >= warm && hot >= cold ? 'Quente' : warm >= cold ? 'Morno' : 'Frio'; const color = dominant === 'Quente' ? 'text-red-400 bg-red-500/10' : dominant === 'Morno' ? 'text-amber-400 bg-amber-500/10' : 'text-blue-400 bg-blue-500/10'; return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${color}`}>{dominant}</span>; })() : <span className="text-[10px] text-white/20">---</span>}</div></td></tr>))}</tbody></table></div>
                     </div>
                 </div>
             )}

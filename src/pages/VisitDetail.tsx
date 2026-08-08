@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, CheckCircle2, Ticket, Edit3, QrCode, Play } from 'lucide-react';
+import { X, CheckCircle2, Ticket, Edit3, QrCode, Play, Clock } from 'lucide-react';
 import { ProgressBar } from '../components/ProgressBar';
 import { toast } from 'sonner';
 
@@ -57,6 +57,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
   const [marketingVerified, setMarketingVerified] = useState(existingVisit ? true : false);
   const [isEditingVisit, setIsEditingVisit] = useState(false);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
 
   // -- ROBUSTNESS: Local Storage Backup --
@@ -118,6 +119,26 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     }
   }, [visit, STORAGE_KEY]);
+
+  // -- Timer da visita em andamento --
+  useEffect(() => {
+    if (step !== 'ACTIVE' || !visit.startedAt) return;
+
+    const startTime = new Date(visit.startedAt).getTime();
+    const tick = () => setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startTime) / 1000)));
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [step, visit.startedAt]);
+
+  const formatElapsedTime = (totalSeconds: number) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
+  };
 
   const clearBackup = () => {
     console.log("🧹 [VisitDetail] Limpando backup local");
@@ -459,11 +480,18 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
               <h3 className="text-base font-black text-white leading-tight tracking-tight">{academy.name}</h3>
               <p className="text-neutral-500 text-[9px] font-black uppercase tracking-[0.2em]">{academy.city} • {academy.state}</p>
             </div>
+            {step === 'ACTIVE' && visit.startedAt && (
+              <div className="flex items-center space-x-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md px-2.5 py-1.5 animate-in fade-in duration-300">
+                <Clock size={12} className="text-amber-500 animate-pulse" strokeWidth={2.5} />
+                <span className="text-amber-400 text-xs font-black tabular-nums tracking-wider">{formatElapsedTime(elapsedSeconds)}</span>
+              </div>
+            )}
           </div>
           <button
             onClick={() => {
               hapticFeedback('medium');
               if (visit.status === VisitStatus.VISITED || step === 'SUMMARY' || step === 'QR_CODE' || step === 'START') {
+                clearBackup();
                 onCancel();
               } else {
                 setShowConfirmCancel(true);
@@ -590,6 +618,7 @@ export const VisitDetail: React.FC<{ eventId: string, academy: Academy, event: E
       onCancel={() => setShowConfirmCancel(false)}
       onConfirm={() => {
         setShowConfirmCancel(false);
+        clearBackup();
         onCancel();
       }}
       title="Cancelar Visita?"

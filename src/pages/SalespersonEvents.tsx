@@ -48,6 +48,20 @@ export const SalespersonEvents: React.FC<{
     }
   };
 
+  const [hideFinished, setHideFinished] = useState(true);
+
+  const isEventPast = (e: Event) => {
+    const ref = e.endDate || e.date;
+    if (!ref) return false;
+    const endDate = new Date(ref);
+    endDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today > endDate;
+  };
+
+  const visibleEvents = hideFinished ? events.filter(e => !isEventPast(e)) : events;
+
   const nonTestEvents = events.filter(e => !e.name.trim().toUpperCase().endsWith('TESTE'));
   const totalAcademies = nonTestEvents.reduce((acc, e) => {
     const activeCount = (e.academiesIds || []).filter(aid => {
@@ -195,19 +209,46 @@ export const SalespersonEvents: React.FC<{
           <div className="h-px flex-1 bg-white/5"></div>
         </div>
 
-        {events.length === 0 ? (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setHideFinished(true)}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+              hideFinished ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20" : "bg-white/5 text-white/40 hover:bg-white/10"
+            )}
+          >
+            Próximos
+          </button>
+          <button
+            onClick={() => setHideFinished(false)}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+              !hideFinished ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20" : "bg-white/5 text-white/40 hover:bg-white/10"
+            )}
+          >
+            Todos
+          </button>
+        </div>
+
+        {visibleEvents.length === 0 ? (
           <div className="bg-neutral-900/50 border border-white/5 rounded-[3rem] p-16 text-center space-y-6 animate-in zoom-in-95 duration-500">
             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto text-white/10 border border-white/5">
               <CalendarDays size={40} strokeWidth={1} />
             </div>
             <div className="space-y-2">
-              <p className="text-lg font-black text-white italic uppercase tracking-tight">Roteiro Vazio</p>
-              <p className="text-xs text-white/30 max-w-[200px] mx-auto leading-relaxed">Aguarde a atribuição de novos eventos pelos administradores.</p>
+              <p className="text-lg font-black text-white italic uppercase tracking-tight">
+                {hideFinished && events.length > 0 ? 'Nenhum evento próximo' : 'Roteiro Vazio'}
+              </p>
+              <p className="text-xs text-white/30 max-w-[200px] mx-auto leading-relaxed">
+                {hideFinished && events.length > 0
+                  ? 'Toque em "Todos" para ver os eventos encerrados.'
+                  : 'Aguarde a atribuição de novos eventos pelos administradores.'}
+              </p>
             </div>
           </div>
         ) : (
           <div className="space-y-8">
-            {events.map((e, idx) => {
+            {visibleEvents.map((e, idx) => {
               const allAcademiesIds = e.academiesIds || [];
               const allAcademies = allAcademiesIds
                 .map(aid => academies.find(a => a.id === aid))
